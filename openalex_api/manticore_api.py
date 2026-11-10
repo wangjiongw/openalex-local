@@ -1,5 +1,6 @@
 """Manticore requests over immutable builds; raw records still come from ClickHouse."""
 import time
+import os
 import logging
 import re
 
@@ -112,6 +113,9 @@ def search_request(entity, body, tables, limit, offset=0, scroll=None, layout="l
     clauses = native["query"].get("bool", {}).get("must", [])
     if entity == "works" and any(re.search(r"@\([^)]*\b(?:abstract|keywords)(?:_en)?\b", c.get("query_string", "")) for c in clauses):
         native["options"]["threads"] = 32
+    # shortcut: nested identity filters still scan; add flat postings if broad filters dominate load.
+    if entity == "works" and "attrs.authorships" in native["expressions"].get("oa_predicate", "") and not any(c.get("query_string") for c in clauses):
+        native["options"]["threads"] = min(96, len(os.sched_getaffinity(0)))
     native["_source"] = ["original_id", "group_name"]
     if entity != "works" and "_score" in native["sort"][0]:
         text = catalog_text(original_body["query"])

@@ -222,6 +222,12 @@ def validate_response(case, response, records):
         if normalize_title(expected['author']) not in names: raise AssertionError('expected author name absent')
     for value in values:
         key = value['id'].rsplit('/',1)[-1]
+        for field in ('author_id', 'institution_id'):
+            if field in expected:
+                candidates = [str(item.get('id', '')).rsplit('/', 1)[-1] for authorship in value.get('authorships') or []
+                              for item in ([authorship.get('author') or {}] if field == 'author_id' else authorship.get('institutions') or [])]
+                if expected[field] not in candidates:
+                    raise AssertionError(field + ' filter differs')
         known = records.get(key)
         if known and (shape != 'graph' or value.get('title') is not None):
             for field in SELECT.split(','):

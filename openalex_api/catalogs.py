@@ -12,6 +12,7 @@ import json
 import time
 
 from .backend import Backend, database, sql_string, sql_list
+from .model import canonical_id
 from .config import atomic_json, config, read_generation
 from .earth_control import read_json
 from .ingest import lock
@@ -255,7 +256,7 @@ def qualify(g, build):
     import concurrent.futures
     import threading
     from .acceptance import fixtures, candidate_api
-    from .earth_delivery import check, load_cases
+    from .earth_delivery import SELECT, check, load_cases
     from .manticore_build import verify_segment, physical_check, signature
     from .config import CODE_ROOT
     import asyncio
@@ -305,6 +306,15 @@ def qualify(g, build):
                                                      expected=dict(shape='search', ids=[key])))
     finally:
         b.close()
+    for field in ('author_id', 'institution_id'):
+        candidates = [canonical_id(item['id']) for record in fixture['records'].values()
+                      for authorship in record.get('authorships') or []
+                      for item in ([authorship.get('author') or {}] if field == 'author_id' else authorship.get('institutions') or []) if item.get('id')]
+        if candidates:
+            key = candidates[0]
+            fixture['cases'].append(dict(name='identity-only:' + field, phase='search', path='/v1/works',
+                params=dict(filter=('author' if field == 'author_id' else 'institution') + ':' + key, select=SELECT),
+                expected=dict(shape='search', min_results=1, **{field: key})))
     atomic_json(output / 'cases.json', fixture)
     stop = threading.Event()
     def exports_during_load():

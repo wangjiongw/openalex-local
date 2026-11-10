@@ -254,3 +254,16 @@ def test_broad_text_thread_allocation_preserves_query(field, broad):
 def test_title_content_does_not_request_broad_text_threads():
     body = query("works", "keywords abstract @abstract_en", "title")
     assert "threads" not in search_request("works", body, ["fixture"], 25)["options"]
+
+
+@pytest.mark.parametrize("filters", ["author:A1", "institution:I1", "author:A1,institution:I2"])
+def test_identity_only_scan_uses_available_cpus_without_changing_predicate(monkeypatch, filters):
+    from openalex_api import manticore_api as api
+    from openalex_api.manticore_query import request_body
+    monkeypatch.setattr(api.os, "sched_getaffinity", lambda _: set(range(16)))
+    body = query("works", filters=filters)
+    expected = request_body(body, ["fixture"], 25)
+    actual = search_request("works", body, ["fixture"], 25)
+    assert actual["options"].pop("threads") == 16
+    expected["_source"] = ["original_id", "group_name"]
+    assert actual == expected

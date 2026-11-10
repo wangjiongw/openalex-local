@@ -92,3 +92,13 @@ def test_journal_draft_never_changes_active_policy(tmp_path,monkeypatch):
 def test_priority_balances_earth_profile_and_scale():
     def journal(n):return dict(works_count=n,topic_profile=[dict(count=10,field={'id':'fields/19'})])
     assert audit.journal_rank(journal(10000))>audit.journal_rank(journal(1))
+
+
+@pytest.mark.parametrize("field,key", [("author_id", "A1"), ("institution_id", "I1")])
+def test_identity_only_acceptance_checks_every_result_and_rejects_empty(field, key):
+    case = dict(expected=dict(shape='search', min_results=1, **{field: key}))
+    work = dict(id='W1', authorships=[dict(author=dict(id='https://openalex.org/A1'), institutions=[dict(id='I1')])])
+    delivery.validate_response(case, httpx.Response(200, json=dict(results=[work])), {})
+    for results in ([], [dict(id='W2')], [work, dict(id='W2')]):
+        with pytest.raises(AssertionError):
+            delivery.validate_response(case, httpx.Response(200, json=dict(results=results)), {})
