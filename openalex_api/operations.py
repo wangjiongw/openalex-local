@@ -169,4 +169,3 @@ def restore(generation, build, output, allow_sealed=False):
         state["isolated_processes_stopped"] = all(p.poll() is not None for p in processes)
         atomic_json(output / "result.json", state)
     return state
-
