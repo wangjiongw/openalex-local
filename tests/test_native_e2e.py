@@ -18,7 +18,12 @@ def test_native_pipeline_publish_restore_and_resume(tmp_path):
     workspace = tmp_path / 'workspace'
     command = [sys.executable, '-m', 'openalex_api.cli', '--workspace', str(workspace)]
     def run(*args):
-        subprocess.run(command + list(args), check=True, timeout=900)
+        result = subprocess.run(command + list(args), timeout=900)
+        if result.returncode:
+            for log in (workspace / 'var/log').glob('*.log'):
+                errors = [v for v in log.read_text(errors='replace').splitlines() if '<Error>' in v]
+                print(log.name, '\n'.join(errors[-6:]), flush=True)
+        result.check_returncode()
     run('init', '--snapshot', str(snapshot))
     sockets = [socket.socket() for _ in range(4)]
     try:
