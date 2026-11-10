@@ -73,7 +73,7 @@ def fixtures(g, manifest, output):
             records.update(b.details(g, 'works', sorted(targets)[start:start+100]))
     finally:
         b.close()
-    if read_generation(g).get('snapshot_complete', False):
+    if read_generation(g).get('snapshot_complete', True):
         from .search_acceptance import EARTH_GOLD
         for gold in EARTH_GOLD:
             bibliography = {field: gold[field] for field in ('doi','title','year')}
