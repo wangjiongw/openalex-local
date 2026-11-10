@@ -1,0 +1,23 @@
+{
+  "host": "0.0.0.0",
+  "port": 8088,
+  "ch_url": "http://127.0.0.1:18123",
+  "search_engine": "manticore",
+  "manticore_build": {
+    "batch_rows": 5000,
+    "projection_workers": 8,
+    "bulk_workers": 4
+  },
+  "api_workers": 4,
+  "qps": 0,
+  "concurrency": 0,
+  "query_timeout": 15,
+  "cursor_ttl": 600,
+  "manticore_workers": 96,
+  "manticore_max_threads_per_query": 4,
+  "manticore_observation_seconds": 0,
+  "cpus": 96,
+  "memory_gib": 1024,
+  "disk_budget_gib": null,
+  "clickhouse_memory_gib": 512
+}

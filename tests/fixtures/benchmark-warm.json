@@ -1,0 +1,73 @@
+{
+  "label": "warm",
+  "generation": "pilot_20260908",
+  "complete": false,
+  "requested_duration_seconds": 1800,
+  "elapsed_seconds": 1799.891062773997,
+  "offered_qps": 5.0,
+  "concurrency_limit": 10,
+  "summary": {
+    "detail": {
+      "requests": 2723,
+      "status_counts": {
+        "200": 2723
+      },
+      "p50_seconds": 0.045676112989895046,
+      "p95_seconds": 0.05727117205969989,
+      "p99_seconds": 0.09691206098068506,
+      "queue_p95_seconds": 0.0019117490155622363,
+      "errors": []
+    },
+    "match": {
+      "requests": 1732,
+      "status_counts": {
+        "200": 1732
+      },
+      "p50_seconds": 0.07191869895905256,
+      "p95_seconds": 0.11564049508888274,
+      "p99_seconds": 0.34984059899579734,
+      "queue_p95_seconds": 0.0019346580374985933,
+      "errors": []
+    },
+    "references": {
+      "requests": 1779,
+      "status_counts": {
+        "200": 1779
+      },
+      "p50_seconds": 0.05592308996710926,
+      "p95_seconds": 0.3424542349530384,
+      "p99_seconds": 0.3688007390592247,
+      "queue_p95_seconds": 0.0018166169757023454,
+      "errors": []
+    },
+    "search": {
+      "requests": 1770,
+      "status_counts": {
+        "200": 1770
+      },
+      "p50_seconds": 0.07809647603426129,
+      "p95_seconds": 0.1835887290071696,
+      "p99_seconds": 0.3415613870602101,
+      "queue_p95_seconds": 0.001989623997360468,
+      "errors": []
+    },
+    "title_equal": {
+      "requests": 996,
+      "status_counts": {
+        "200": 996
+      },
+      "p50_seconds": 0.055052048061043024,
+      "p95_seconds": 0.07040510198567063,
+      "p99_seconds": 0.1468137699412182,
+      "queue_p95_seconds": 0.0020419179927557707,
+      "errors": []
+    }
+  },
+  "limitations": [
+    "Source-hash sample with 1,000 exact ID/title probes followed by repeated mixed queries; not human-reviewed bibliographic gold.",
+    "Successful response latencies and error rates are reported separately.",
+    "Cold process restart does not imply an OS filesystem cache flush."
+  ],
+  "source_case_count": 1000,
+  "probe_phase_requests": 1996
+}

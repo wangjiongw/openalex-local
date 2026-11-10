@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>OpenAlex · 本地文献库</title>
+  <link rel="stylesheet" href="/assets/app.css">
+  <script src="/assets/app.js" defer></script>
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="/" aria-label="OpenAlex 本地文献库首页"><span class="mark">oa</span><span>OpenAlex <small>本地文献库</small></span></a>
+    <div class="header-right"><span class="local-label">LOCAL RESEARCH ARCHIVE</span><button id="disconnect" class="quiet" hidden>断开连接</button></div>
+  </header>
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <div><p class="eyebrow">检索 · 阅读 · 追溯</p><h1 id="page-title">每一条线索，回到文献。</h1><p class="intro-note">从题名、作者或标识符开始，查看完整元数据与引用关系。</p></div>
+      <div class="archive-stamp"><span>SNAPSHOT</span><strong id="snapshot-date">本地快照</strong><span id="generation">尚未连接</span></div>
+    </section>
+
+    <section id="connection" class="connection" aria-labelledby="connect-title">
+      <div><h2 id="connect-title">连接你的文献库</h2><p>输入 API 密钥。密钥仅保留在当前浏览器标签页的会话中。</p></div>
+      <form id="connect-form"><label for="api-key">API 密钥</label><div class="input-action"><input id="api-key" type="password" autocomplete="off" required placeholder="请输入 API 密钥"><button type="submit">连接</button></div></form>
+    </section>
+    <p id="message" role="status" aria-live="polite"></p>
+    <div id="workspace" hidden>
+      <section class="collection-status" aria-label="数据覆盖与可用状态">
+        <div><strong id="works-count">—</strong><span>作品</span></div><div><strong id="authors-count">—</strong><span>作者</span></div><div><strong id="entity-count">21</strong><span>实体类型</span></div>
+        <p id="availability"></p><button id="refresh-status" class="quiet">刷新状态</button>
+      </section>
+      <section class="search-panel" aria-label="文献查询">
+        <form id="search-form">
+          <div class="search-line"><label class="sr-only" for="entity">实体类型</label><select id="entity"></select><label class="sr-only" for="query">题名、作者或标识符</label><input id="query" placeholder="输入题名、DOI 或 OpenAlex ID" autocomplete="off"><button id="search-button" type="submit">查找 <span aria-hidden="true">↗</span></button></div>
+          <div class="filters"><label>检索范围 <select id="search-scope"><option value="available">全部已上线范围</option><option value="earth_sciences">广义地球科学</option></select></label><label>检索字段 <select id="search-field"><option value="all">题名与摘要</option><option value="title">题名</option><option value="abstract">摘要</option><option value="title_abstract_keywords">题名、摘要与关键词</option><option value="author">作者姓名</option><option value="institution">机构名称</option><option value="source">期刊与来源</option></select></label><label>作者姓名 <input id="author-query" placeholder="可与题名、年份组合" maxlength="500"></label><label>年份 <input id="year" placeholder="例如 2020..2026" inputmode="text"></label><label>排序 <select id="sort"><option value="">相关性</option><option value="year:desc">年份：从新到旧</option><option value="cited_by_count:desc">被引数：从高到低</option></select></label><label>Topic 名称或 ID <input id="topic-filter" list="topic-options" placeholder="输入名称选择主题" maxlength="300"><datalist id="topic-options"></datalist></label><label class="check"><input id="primary-topic" type="checkbox">仅主 Topic</label><label>期刊名称或 ID <input id="source-filter" list="source-options" placeholder="输入名称选择期刊" maxlength="300"><datalist id="source-options"></datalist></label><label>文献类型 <select id="type-filter"><option value="">全部类型</option><option value="article">Article</option><option value="review">Review</option><option value="book-chapter">Book chapter</option><option value="preprint">Preprint</option></select></label><label>地学集合 <select id="earth-group"><option value="">已上线集合</option><option value="01_core_journals">核心地学期刊</option><option value="02_broad_interdisciplinary">泛地学及交叉学科</option><option value="03_author_supported">作者证据扩展</option></select></label><label class="check"><input id="oa-only" type="checkbox">仅开放获取</label></div>
+        </form>
+        <p id="search-note" class="subtle"></p><p id="coverage-note" class="subtle"></p>
+      </section>
+
+      <div class="library-layout">
+        <aside class="collections"><h2>浏览范围 <span>COLLECTIONS</span></h2><div id="collections"></div><p class="subtle">所有详情保留源记录的完整字段。引用目标缺失时保留原始标识。</p></aside>
+        <section class="results" aria-labelledby="results-title"><div class="section-heading"><h2 id="results-title">查找结果</h2><span id="result-count"></span></div><div id="results"><div class="empty"><span class="folio">01 / DISCOVER</span><h3>从一篇文献开始</h3><p>输入 DOI 或 OpenAlex ID 可直接读取记录；文本检索就绪后，也可搜索题名、摘要和作者。</p></div></div><button id="more-results" class="secondary wide" hidden>加载下一页</button></section>
+        <section id="detail" class="detail" aria-label="完整记录详情"><div class="empty"><span class="folio">02 / EXPLORE</span><h3>完整信息，在这里展开</h3><p>选择记录，阅读摘要、作者署名和机构，继续追溯参考文献与被引用文献。</p></div></section>
+      </div>
+    </div>
+  </main>
+  <footer><span>OpenAlex · 本地快照</span><span>元数据依源保留 · 无在线补全</span><a href="/docs">API 文档 ↗</a></footer>
+</body>
+</html>

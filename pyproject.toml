@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "openalex-local-api"
+version = "0.1.0"
+description = "Local OpenAlex search, complete records, and citation service"
+requires-python = ">=3.10"
+dependencies = ["fastapi==0.116.1", "uvicorn==0.35.0", "httpx==0.28.1", "orjson==3.11.3", "psutil==7.0.0"]
+[project.scripts]
+oa = "openalex_api.cli:main"
+[tool.setuptools.packages.find]
+include = ["openalex_api*"]
+[tool.setuptools.package-data]
+openalex_api = ["static/*"]
+[tool.pytest.ini_options]
+testpaths = ["tests"]

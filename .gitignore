@@ -1,0 +1,28 @@
+# Persistent datasets, running state, history and generated evidence
+/var/
+/exports/
+/reports/
+/build/
+/dist/
+
+# Private/generated runtime configuration
+/config/local.json
+/config/clickhouse*.xml
+/config/manticore.conf
+/config/opensearch/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.keystore
+
+# Python environment and generated metadata
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.coverage
+htmlcov/

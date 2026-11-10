@@ -1,0 +1,5 @@
+#!/bin/sh
+PROJECT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+export OPENALEX_HOME="$PROJECT"
+export PYTHONPATH="$PROJECT${PYTHONPATH:+:$PYTHONPATH}"
+exec "$PROJECT/.venv/bin/python" -m openalex_api.cli "$@"
