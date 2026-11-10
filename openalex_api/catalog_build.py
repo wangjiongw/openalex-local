@@ -24,7 +24,7 @@ def prepare(b, c, m):
         if any(plan[key] != m[key] for key in ('metadata_signature','parent_manifest_sha256','expected_authors')):
             raise RuntimeError('catalog block inputs changed')
         return plan
-    progress = m['catalog_progress']['authors']
+    progress = m['catalog_progress'].setdefault('authors',dict(after='',selected=0,missing=0,missing_sample=[]))
     base = [s for s in m['segments'] if s['entity']=='authors' and s['count']]
     if sum(s['count'] for s in base) != progress['selected']-progress['missing']:
         raise RuntimeError('author prefix checkpoint mismatch')
