@@ -1,5 +1,10 @@
 # Community delivery plan
 
+See the [feature inventory and extension priorities](FEATURES.zh-CN.md) for
+implemented capabilities, partial coverage, and optional upstream-inspired work.
+Existing validated import/index/publication/recovery workflows are reusable
+capabilities, not pending reimplementations.
+
 1. Publish a clean MIT-licensed baseline, portable examples and basic CI.
 2. Separate installed code and workspace; read user-managed local snapshots with
    old/new JSONL adapters, resumable metadata processing and pinned native engines.
