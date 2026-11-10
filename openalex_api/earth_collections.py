@@ -14,7 +14,7 @@ import unicodedata
 from pathlib import Path
 
 from .backend import Backend, sql_string, sql_list
-from .config import ROOT, atomic_json, generation_name, generation_path, read_generation
+from .config import ROOT, atomic_json, generation_name, generation_path, read_generation, config
 from .earth_rules import tail
 from .ingest import lock
 from .model import abstract, doi
@@ -358,7 +358,7 @@ def run(g, collection="earth_scope_v1", follow=False, max_blocks=None):
                 if catalog["signature"] != state["identity"]["catalog"]:
                     raise RuntimeError("classification catalog changed during export")
                 sample = resource_status()
-                reason = decide(sample["disk_free_bytes"], sample["total_rss_bytes"])
+                reason = decide(sample["disk_free_bytes"], sample["total_rss_bytes"], policy=config())
                 if reason:
                     raise Paused("export-only: " + reason)
                 if state["phase"] == "direct":

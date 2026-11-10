@@ -109,3 +109,23 @@ def test_adopted_workspace_rejects_backend_lifecycle(monkeypatch):
     monkeypatch.setattr(manage, 'config', lambda: {'adopted_from': {'workspace': '/example'}})
     with pytest.raises(ValueError, match='cannot manage'):
         manage.start('clickhouse')
+
+
+def test_direct_backend_start_checks_workspace_ownership(monkeypatch):
+    from openalex_api import manage, workspace
+    monkeypatch.setattr(manage, 'config', lambda: {'execution_profile': 'community'})
+    claim = Mock(side_effect=RuntimeError('workspace belongs to another host'))
+    monkeypatch.setattr(workspace, 'claim', claim)
+    with pytest.raises(RuntimeError, match='another host'):
+        manage.start('clickhouse')
+    claim.assert_called_once()
+
+
+def test_collection_admission_uses_community_budget():
+    from openalex_api.resources import decide, GiB
+    policy = dict(execution_profile='community', min_free_gib=1, memory_gib=8)
+    assert decide(10 * GiB, GiB, policy=policy) is None
+    assert decide(GiB // 2, GiB, policy=policy) == 'disk-reserve'
+    assert decide(10 * GiB, 8 * GiB, policy=policy) == 'memory-budget'
+    with pytest.raises(ValueError, match='negative'):
+        decide(10 * GiB, GiB, additional=-1, policy=policy)

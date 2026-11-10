@@ -26,3 +26,7 @@ __pycache__/
 *.egg-info/
 .coverage
 htmlcov/
+
+# Native engine CPU/ABI crash dumps
+core
+core.*

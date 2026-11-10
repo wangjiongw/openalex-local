@@ -248,6 +248,9 @@ def health(service):
 def start(service, extra=None):
     if config().get("adopted_from") and service in ("clickhouse", "manticore", "opensearch"):
         raise ValueError("adopted read-only workspaces cannot manage shared backends")
+    if service in ("clickhouse", "manticore", "opensearch") and config().get("execution_profile") == "community":
+        from .workspace import claim
+        claim()
     with lock(ROOT / "var/run" / f"{service}.control.lock"):
         p = state_path(service)
         if identity(p):
@@ -263,6 +266,8 @@ def start(service, extra=None):
             raise RuntimeError(
                 "Verified orphan service process is still running; use stop before start"
             )
+        if service in SERVICES and health(service):
+            raise RuntimeError("endpoint is already served by an unowned process: " + service)
         if service in ["clickhouse", "opensearch"]:
             engine_configs()
         proc = subprocess.Popen(

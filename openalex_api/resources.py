@@ -38,9 +38,13 @@ class Paused(RuntimeError):
         super().__init__(reason)
 
 
-def decide(free, rss, *, large=False, additional=0, temporary=0):
+def decide(free, rss, *, large=False, additional=0, temporary=0, policy=None):
     if min(additional, temporary) < 0:
         raise ValueError("negative capacity estimate")
+    if policy and policy.get("execution_profile") == "community":
+        if free < additional + temporary + policy["min_free_gib"] * GiB:
+            return "disk-reserve"
+        return "memory-budget" if rss >= policy["memory_gib"] * GiB else None
     if free < 300 * GiB:
         return "disk-emergency"
     if rss >= 960 * GiB:
@@ -63,14 +67,7 @@ def checkpoint(g, **requirements):
     sample = resource_status()
     from .config import config
     cfg = config()
-    if cfg.get("execution_profile") == "community":
-        additional = requirements.get("additional", 0) + requirements.get("temporary", 0)
-        if additional < 0:
-            raise ValueError("negative capacity estimate")
-        reason = ("disk-reserve" if sample["disk_free_bytes"] < additional + cfg["min_free_gib"] * GiB
-                  else "memory-budget" if sample["total_rss_bytes"] >= cfg["memory_gib"] * GiB else None)
-    else:
-        reason = decide(sample["disk_free_bytes"], sample["total_rss_bytes"], **requirements)
+    reason = decide(sample["disk_free_bytes"], sample["total_rss_bytes"], policy=cfg, **requirements)
     if sample.get("python_rss_bytes", 0) >= 128 * GiB:
         reason = reason or "memory-python-budget"
     if reason:
