@@ -81,3 +81,29 @@ def test_validation_requires_durable_complete_source_coverage(tmp_path, monkeypa
     checkpoint.write_text('{}')
     with pytest.raises(RuntimeError, match='checksum'):
         identity.validate(Backend([]), m)
+
+
+def test_lookup_sql_keeps_predicates_sort_options_and_native_scroll():
+    import httpx
+    calls = []
+    result = dict(hits=dict(total=2, total_relation='eq', hits=[]), scroll='next', timed_out=False)
+    class Client:
+        class HTTP:
+            def post(self, path, data):
+                calls.append((path, data['query']))
+                return httpx.Response(200, request=httpx.Request('POST','http://local/sql'), json=result)
+        http = HTTP()
+    native = dict(table='fixture', query={'bool':{'must':[{'equals':{'oa_predicate':1}},{'in':{'id':[1,2]}}]}},
+                  expressions=dict(oa_predicate="ANY(x.author_id='A1' FOR x IN attrs.authorships)"),
+                  sort=[{'_score':'desc'},{'id':'asc'}],limit=2,offset=0,
+                  options=dict(scroll='prior',cutoff=0,field_weights=dict(name=5)))
+    assert identity.search(Client(),native,True) == result
+    path, sql = calls[0]
+    assert path == '/sql' and 'oa_predicate=1' in sql and 'id IN (1,2)' in sql
+    assert 'ORDER BY oa_weight DESC,id ASC' in sql and "scroll='prior'" in sql
+    assert 'field_weights=(name=5)' in sql and '/*+ DocidIndex(id) */' in sql
+    assert identity.sql_condition({'bool':{'must_not':[{'range':{'id':{'gte':1,'lt':4}}}]}}) == '((id<1 OR id>=4))'
+
+
+def test_negated_multi_value_filter_excludes_every_matching_value():
+    assert identity.sql_condition({'equals': {'any(filter_topic_ids)': 1}}, True) == 'all(filter_topic_ids)!=1'

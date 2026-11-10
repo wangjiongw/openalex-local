@@ -7,6 +7,7 @@
 - Author identity, institution and language filters, entity-to-works navigation, saved query URLs and batch selection in the web UI.
 - Independent Earth bibliography regressions and query/export mixed-load qualification; native end-to-end checks include catalog publication and export downloads.
 - Recoverable author/institution-to-work candidate indexes accelerate mandatory identity filters in queries and exports while retaining the original authorship predicate; large/negative/optional predicates keep exact scanning.
+- Large identity candidates use the same Manticore HTTP SQL endpoint with a forced docid lookup, retaining native result counts and scroll tokens.
 - Batch identifier resolution avoids per-record metadata queries. Source code and workspace remain separate for supervised services; read-only adoption writes new exports locally.
 
 

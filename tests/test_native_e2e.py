@@ -12,6 +12,54 @@ import pytest
 from openalex_api.demo import make_snapshot
 
 
+IDENTITY_SQL_CHECK = r"""
+import json,copy
+from openalex_api.config import ROOT
+from openalex_api.manticore_api import search_request
+from openalex_api.manticore_engine import Client
+from openalex_api.identity_filters import search
+from openalex_api.query import query
+m=json.loads((ROOT/'var/generations/demo/searches/demo_catalogs/build.json').read_text())
+c=Client()
+for filters in ('author:A1,institution:I1','author:A1,institution:!I2','author:A2,institution:I1','year:2022,topic:T1'):
+ n=search_request('works',query('works','Climate','title',filters),m['indexes']['works'].split(','),2,layout=m.get('physical_layout','legacy'))
+ n['query'].pop('match_all',None);n['query'].setdefault('bool',{}).setdefault('must',[]).append({'in':{'id':list(range(1,13))}})
+ expected=c.search(n);actual=search(c,n,True)
+ assert actual['hits']['total']==expected['hits']['total'],(actual,expected)
+ assert [(h['_id'],h['_score']) for h in actual['hits']['hits']]==[(h['_id'],h['_score']) for h in expected['hits']['hits']],(actual,expected)
+ if actual['hits']['total']>2:
+  left=copy.deepcopy(n);right=copy.deepcopy(n);left['options']['scroll']=expected['scroll'];right['options']['scroll']=actual['scroll']
+  a=c.search(left);b=search(c,right,True)
+  assert [h['_id'] for h in a['hits']['hits']]==[h['_id'] for h in b['hits']['hits']],(a,b)
+c.close()
+
+import copy,json
+from openalex_api.manticore_engine import Client
+from openalex_api.manticore_formats import create,project_native
+from openalex_api.manticore_api import search_request
+from openalex_api.identity_filters import search
+from openalex_api.query import query
+c=Client();table='oa_sql_parity_fixture'
+a=[dict(author=dict(id='A1',display_name='John Smith'),institutions=[dict(id='I1')]),dict(author=dict(id='A2',display_name='Alice'),institutions=[dict(id='I2')])]
+records=[dict(id='W1',title='Climate change',publication_year=2020,topics=[dict(id='T1'),dict(id='T2')],authorships=a,open_access=dict(is_oa=False)),dict(id='W2',title='Climate ocean',publication_year=2021,topics=[dict(id='T2')]),dict(id='W3',title='Ocean'),dict(id='W4',title='Climate')]
+create(c,table);c.bulk(table,[project_native('works',dict(raw=json.dumps(r),version=1),'',[]) for r in records]);c.sql('FLUSH RAMCHUNK '+table)
+try:
+ bodies=[query('works',filters=f) for f in ['topic:T1','topic:T1|T2','topic:!T1','topic:null','topic:!null','id:!W1','year:2020..2021','year:null','is_oa:!false','author:A1,institution:I2','author:A1,institution:I1','author:A1,institution:!I2']]
+ bodies += [query('works','Climate','title'),query('works','Climate','title','topic:T2',sort='year:desc')]
+ for body in bodies:
+  n=search_request('works',body,[table],2,layout='native_v2');n['query'].pop('match_all',None);n['query'].setdefault('bool',{}).setdefault('must',[]).append({'in':{'id':[1,2,3,4]}})
+  left=c.search(n);right=search(c,n,True)
+  expected=[(r['_id'],r['_score']) for r in left['hits']['hits']];actual=[(r['_id'],r['_score']) for r in right['hits']['hits']]
+  assert (left['hits']['total'],expected)==(right['hits']['total'],actual),(body,left,right)
+  if left['hits']['total']>2:
+   one=copy.deepcopy(n);two=copy.deepcopy(n);one['options']['scroll']=left['scroll'];two['options']['scroll']=right['scroll']
+   l=c.search(one);r=search(c,two,True)
+   assert [h['_id'] for h in l['hits']['hits']]==[h['_id'] for h in r['hits']['hits']],(body,l,r)
+ print('SQL/native parity passed for',len(bodies),'filter/ranking/scroll cases')
+finally:c.sql('DROP TABLE '+table);c.close()
+"""
+
+
 @pytest.mark.skipif(os.environ.get('OPENALEX_NATIVE_E2E') != '1', reason='requires native engine downloads')
 @pytest.mark.parametrize("profile", ["metadata", "earth_sciences"])
 def test_native_pipeline_publish_restore_and_resume(tmp_path, profile):
@@ -99,6 +147,7 @@ def test_native_pipeline_publish_restore_and_resume(tmp_path, profile):
             manifest=json.loads((workspace/'var/generations/demo/searches/demo_catalogs/build.json').read_text())
             assert manifest['state']=='sealed' and manifest['entities']['authors']['count']==1 and manifest['entities']['institutions']['count']==1
             run('catalogs','build','--generation','demo','--build','demo_catalogs','--parent','demo_earth')
+            subprocess.run([sys.executable,'-c',IDENTITY_SQL_CHECK],env=os.environ|dict(OPENALEX_HOME=str(workspace)),check=True,timeout=60)
             user_jobs_before=len(list((workspace/'exports/query').glob('*/state.json')))
             run('catalogs','validate','--generation','demo','--build','demo_catalogs')
             assert len(list((workspace/'exports/query').glob('*/state.json')))==user_jobs_before

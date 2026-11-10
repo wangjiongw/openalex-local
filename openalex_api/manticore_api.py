@@ -163,10 +163,10 @@ def listing(entity, body, select, page, per_page, cursor, count, scores, search_
     offset = 0 if payload else (page - 1) * per_page
     native = search_request(entity, body, [s["index"] for s in segments], per_page, offset,
                             payload["scroll"] if payload else None, manifest.get("physical_layout", "legacy"))
-    from .identity_filters import apply as identity_prefilter
-    identity_prefilter(native, body, manifest, backend())
+    from .identity_filters import apply as identity_prefilter, search as identity_search
+    lookup = identity_prefilter(native, body, manifest, backend())
     prepared = time.perf_counter()
-    result = client().search(native)
+    result = identity_search(client(), native, lookup)
     searched = time.perf_counter()
     if result["hits"].get("total_relation") != "eq":
         raise BackendError("Manticore did not return an exact count")

@@ -146,7 +146,7 @@ def apply(native, body, manifest, backend):
         native['query'].pop('match_all', None)
         native['query'].setdefault('bool', {}).setdefault('must', []).append({'in': {'id': ids}} if ids else {'equals': {'id': 0}})
         native['options'].pop('threads', None)
-        return
+        return len(ids) > 1000
 
 
 def validate(backend, manifest):
@@ -162,3 +162,75 @@ def validate(backend, manifest):
         raise RuntimeError('identity prefilter source coverage differs')
     if not int(backend.ch(f"EXISTS TABLE {index['table']} FORMAT JSONEachRow")[0]['result']):
         raise RuntimeError('identity prefilter table is missing')
+
+
+def sql_condition(node, negate=False):
+    from .manticore_query import value_sql
+    if 'match_all' in node:
+        return 'id<0' if negate else 'id>0'
+    if 'query_string' in node:
+        from .backend import sql_string
+        if negate:
+            raise ValueError('negative native fulltext is not a lookup filter')
+        return 'MATCH(' + sql_string(node['query_string']) + ')'
+    if 'bool' in node:
+        parts = []
+        spec = node['bool']
+        for key in ('must', 'filter', 'must_not'):
+            children = spec.get(key, [])
+            for child in children if isinstance(children, list) else [children]:
+                parts.append(sql_condition(child, negate != (key == 'must_not')))
+        if spec.get('should'):
+            parts.append('(' + (' AND ' if negate else ' OR ').join(sql_condition(c, negate) for c in spec['should']) + ')')
+        return '(' + (' OR ' if negate else ' AND ').join(parts) + ')' if parts else ('id<0' if negate else 'id>0')
+    for key in ('equals', 'in', 'range'):
+        if key not in node:
+            continue
+        field, value = next(iter(node[key].items()))
+        if negate and field.startswith('any('):
+            field = 'all(' + field[4:]
+        if key == 'equals':
+            return field + ('!=' if negate else '=') + value_sql(value)
+        if key == 'in':
+            return field + (' NOT IN (' if negate else ' IN (') + ','.join(value_sql(v) for v in value) + ')'
+        operators = dict(gt='<=', gte='<', lt='>=', lte='>') if negate else dict(gt='>', gte='>=', lt='<', lte='<=')
+        return '(' + (' OR ' if negate else ' AND ').join(field + operators[k] + value_sql(v) for k, v in value.items()) + ')'
+    raise ValueError('unsupported native lookup filter')
+
+
+def search(client, native, lookup=False):
+    if not lookup:
+        return client.search(native)
+    from .backend import BackendError, sql_string
+    try:
+        spec = dict(native['query'].get('bool', {}))
+        children = spec.get('must', [])
+        texts = [c['query_string'] for c in children if 'query_string' in c]
+        if len(texts) > 1:
+            return client.search(native)
+        spec['must'] = [c for c in children if 'query_string' not in c]
+        # SQL MATCH must precede the parenthesized attribute predicate.
+        where = ' AND '.join(['MATCH(' + sql_string(text) + ')' for text in texts] + [sql_condition({'bool': spec})])
+    except ValueError:
+        return client.search(native)
+    columns = ['id', 'original_id', 'group_name', 'WEIGHT() AS oa_weight']
+    columns += [expression + ' AS ' + checked_name(name) for name, expression in native.get('expressions', {}).items()]
+    order = ','.join(('oa_weight' if field == '_score' else field) + ' ' + direction.upper() for item in native['sort'] for field, direction in item.items())
+    options = []
+    for key, value in native['options'].items():
+        if key == 'scroll':
+            if isinstance(value, str):
+                options.append('scroll=' + sql_string(value))
+        elif key == 'field_weights':
+            options.append('field_weights=(' + ','.join(checked_name(k) + '=' + str(int(v)) for k, v in value.items()) + ')')
+        else:
+            options.append(checked_name(key) + '=' + str(int(value)))
+    tables = ','.join(checked_name(t) for t in native['table'].split(','))
+    sql = f"SELECT {','.join(columns)} FROM {tables} WHERE {where} ORDER BY {order} LIMIT {int(native.get('offset', 0))},{int(native['limit'])} OPTION {','.join(options)} /*+ DocidIndex(id) */"
+    # JSON /sql keeps native totals and scroll tokens; only the planner hint differs.
+    response = client.http.post('/sql', data={'query': sql})
+    result = response.json()
+    if result.get('error') or result.get('warning') or result.get('timed_out'):
+        raise BackendError('Manticore identity lookup failed: ' + str(result.get('error') or result.get('warning') or 'timeout'))
+    response.raise_for_status()
+    return result
