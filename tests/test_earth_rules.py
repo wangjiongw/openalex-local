@@ -226,3 +226,10 @@ def test_real_catalog_preserves_legacy_and_seeds_authors_without_recursion(monke
             assert h.get("/v1/works/classification",params=dict(identifier="W1")).json()["results"][0]["classification"]["earth_related"] is True
     finally:
         b.ch("DROP DATABASE IF EXISTS "+database(g));b.close()
+
+
+def test_ascii_fast_path_uses_functions_available_in_pinned_lts():
+    sql = er.evidence_sql(rules())
+    assert 'isValidASCII' not in sql
+    assert 'length(er_abstract)=lengthUTF8(er_abstract)' in sql
+    assert 'length(er_title)=lengthUTF8(er_title)' in sql

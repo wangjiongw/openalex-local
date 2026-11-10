@@ -26,7 +26,7 @@ def unicode_regex(pattern, capture=False):
 
 def text_match_sql(expression, pattern):
     # ASCII text has identical word boundaries and avoids the Unicode regex cost.
-    return "if(isValidASCII("+expression+"),match("+expression+","+sql_string(pattern)+"),match("+expression+","+sql_string(unicode_regex(pattern))+"))"
+    return "if(length("+expression+")=lengthUTF8("+expression+"),match("+expression+","+sql_string(pattern)+"),match("+expression+","+sql_string(unicode_regex(pattern))+"))"
 
 
 def policy():
@@ -137,7 +137,7 @@ if(empty(JSONExtractString(raw,'title')),JSONExtractString(raw,'display_name'),J
 arrayMap(k -> JSONExtractString(k,'display_name'),arrayFilter(k -> JSONExtractFloat(k,'score') >= {p['keyword_min_score']},JSONExtractArrayRaw(raw,'keywords'))) AS er_keyword_names,
 arrayStringConcat(er_keyword_names,' ') AS er_keywords,
 lowerUTF8(arrayStringConcat(JSONExtractKeys(raw,'abstract_inverted_index'),' ')) AS er_abstract,
-arrayDistinct(if(isValidASCII(er_abstract),extractAll(er_abstract,{sql_string(p['abstract_token_pattern'])}),extractAll(replaceRegexpAll(er_abstract,'[^\\\\p{{L}}\\\\p{{N}}_]','  '),{token_pattern}))) AS er_terms,
+arrayDistinct(if(length(er_abstract)=lengthUTF8(er_abstract),extractAll(er_abstract,{sql_string(p['abstract_token_pattern'])}),extractAll(replaceRegexpAll(er_abstract,'[^\\\\p{{L}}\\\\p{{N}}_]','  '),{token_pattern}))) AS er_terms,
 arraySort(arrayDistinct(arrayConcat(
 arrayMap(t -> concat('field:',extract(JSONExtractString(t,'field','id'),'[^/]+$')),er_core),
 arrayMap(t -> concat('subfield:',extract(JSONExtractString(t,'subfield','id'),'[^/]+$')),arrayFilter(t -> extract(JSONExtractString(t,'subfield','id'),'[^/]+$') IN {subfields},er_topics)),
