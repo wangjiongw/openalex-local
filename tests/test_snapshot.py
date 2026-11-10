@@ -1,6 +1,5 @@
 import gzip
 import json
-from types import SimpleNamespace
 
 import pytest
 
@@ -46,32 +45,6 @@ def test_parquet_is_detected_without_loading_it(tmp_path):
     (path / 'manifest.json').write_text('{}')
     with pytest.raises(ValueError, match='Parquet'):
         snapshot.inventory(tmp_path)
-
-
-def test_frozen_download_resume_and_upstream_change(tmp_path, monkeypatch):
-    data = gzip.compress(b'{"id":"https://openalex.org/W1"}\n')
-    url = 's3://openalex/data/jsonl/works/updated_date=2026-01-01/part_0000.gz'
-    raw = json.dumps(dict(date='2026-01-01', format='jsonl', entities=[dict(entity='works', files=[dict(url=url, meta=dict(content_length=len(data), record_count=1))])])).encode()
-    monkeypatch.setattr(snapshot, 'remote_bytes', lambda url: raw if url.endswith('manifest.json') else b'license')
-    planned = snapshot.plan(target=tmp_path / 'target', entities=['works'], max_shards=1)
-    assert planned['complete'] is False and planned['files'] == 1
-    monkeypatch.setattr(snapshot.shutil, 'which', lambda _: 'aws')
-    calls = []
-    def transfer(args, **kwargs):
-        assert '--no-sign-request' in args and '--delete' not in args
-        calls.append(args)
-        from pathlib import Path
-        Path(args[4]).write_bytes(data)
-        return SimpleNamespace(returncode=0)
-    monkeypatch.setattr(snapshot.subprocess, 'run', transfer)
-    result = snapshot.download(planned['plan'])
-    assert result['state'] == 'downloaded'
-    assert snapshot.verify(tmp_path / 'target', deep=True)['passed']
-    snapshot.download(planned['plan'])
-    assert len(calls) == 1
-    monkeypatch.setattr(snapshot, 'remote_bytes', lambda url: b'changed')
-    with pytest.raises(RuntimeError, match='release changed'):
-        snapshot.download(planned['plan'])
 
 
 def test_duplicate_shard_rejected(tmp_path):

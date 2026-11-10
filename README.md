@@ -1,21 +1,27 @@
 # OpenAlex Local
 
-Build a local literature search service from the OpenAlex snapshot: download,
-validate, import, classify, index, verify, and serve a web UI and HTTP API.
+Use an OpenAlex snapshot you have downloaded to build a local metadata and
+citation service with a web UI and HTTP API. Point the toolchain at its local
+path, validate and import it, then optionally classify a subset and build text
+search indexes.
 
-**Community toolchain, v0.2.0 development.** JSONL download, resumable processing,
-native engine installation, validation/recovery and explicit publication are
-available. Start with the [native deployment guide](docs/QUICKSTART.md). Small
-fixture checks establish pipeline correctness; production capacity and native
-platform CI results must be assessed separately.
+**Community toolchain, v0.2.0 development.** Snapshot acquisition is user-managed;
+this project provides [download and format guidance](docs/SNAPSHOT.md), local
+readers, resumable processing, native engine installation, validation/recovery
+and deployment. Start with the [native deployment guide](docs/QUICKSTART.md).
 
-- Source records, DOI/ID lookup, references and citations use ClickHouse.
-- Title, abstract, keyword and author-name searches use Manticore.
-- Earth-science collections are the first supported indexing profile.
+- The default pipeline imports and audits source records, DOI/ID mappings and
+  reference/citation relationships in ClickHouse, independently of discipline.
+- Text indexing is optional. The included **Earth-science example** demonstrates
+  subset classification, collection export and Manticore indexing; it does not
+  restrict the metadata service to Earth science. Other text indexing profiles
+  are not supplied in this release.
+- Title, abstract, keyword and author-name text searches require a published
+  text index; DOI/ID lookup and citation expansion do not.
 - Official-style OpenAlex routes coexist with local `/v1` extensions; full
   compatibility with the live official API is not claimed.
-- Data, indexes, engine binaries, credentials and operational reports stay in a
-  local workspace and are never part of this Git repository.
+- Snapshots may stay at any readable local path. Workspace data, indexes,
+  binaries, credentials and reports are never part of this Git repository.
 
 ## Development
 

@@ -51,12 +51,12 @@ async function refreshStatus() {
   const coverage = status.coverage || {};
   $("works-count").textContent = fmt(coverage.works?.unique_entities || 0); $("authors-count").textContent = fmt(coverage.authors?.unique_entities || 0); $("entity-count").textContent = Object.keys(coverage).length;
   const searchCoverage = status.search_coverage || {};
-  $("coverage-note").textContent = searchCoverage.engine === "manticore" ? `已上线 ${fmt(searchCoverage.entities?.works?.indexed_entities || 0)} / ${fmt(searchCoverage.earth_expected)} 篇地学候选文献 · ${searchCoverage.collection} · ${searchCoverage.earth_complete ? "地学集合完整" : "分批上线，当前未命中不代表全库没有"}` : "DOI、详情和引用关系覆盖完整快照；名称检索按验收后的范围逐批上线。";
+  $("coverage-note").textContent = !status.search_ready ? "当前提供元数据与引用关系查询；文本索引为可选功能。" : searchCoverage.engine === "manticore" ? `已上线 ${fmt(searchCoverage.entities?.works?.indexed_entities || 0)} / ${fmt(searchCoverage.earth_expected)} 篇地学候选文献 · ${searchCoverage.collection} · ${searchCoverage.earth_complete ? "地学集合完整" : "分批上线，当前未命中不代表全库没有"}` : "DOI、详情和引用关系覆盖完整快照；名称检索按验收后的范围逐批上线。";
   for (const option of $("earth-group").options) option.disabled = !!option.value && !(searchCoverage.indexed_groups?.[option.value] > 0);
   if ($("earth-group").selectedOptions[0].disabled) $("earth-group").value = "";
   $("search-scope").disabled = $("entity").value !== "works";
-  $("availability").textContent = !status.metadata_ready ? "元数据服务暂时不可用" : `${status.metadata_complete ? "全量元数据可查" : "部分覆盖元数据可查"} · ${status.search_ready ? `文本检索可用 · ${searchCoverage.global_search_complete ? "全库" : (searchCoverage.published_scopes || []).join("、").replace("earth_sciences","广义地球科学")}` : "文本检索待就绪"}`;
-  $("search-note").textContent = status.search_ready ? "支持题名、摘要、作者姓名及组合筛选；输入 DOI 或 OpenAlex ID 可直接定位。" : "完整详情与引用关系可通过 DOI / OpenAlex ID 查询。文本检索尚未通过发布验收。";
+  $("availability").textContent = !status.metadata_ready ? "元数据服务暂时不可用" : `${status.metadata_complete ? "全量元数据可查" : "部分覆盖元数据可查"} · ${status.search_ready ? `文本检索可用 · ${searchCoverage.global_search_complete ? "全库" : (searchCoverage.published_scopes || []).join("、").replace("earth_sciences","广义地球科学")}` : "未发布文本索引"}`;
+  $("search-note").textContent = status.search_ready ? "支持题名、摘要、作者姓名及组合筛选；输入 DOI 或 OpenAlex ID 可直接定位。" : "可通过 DOI / OpenAlex ID 查询详情与引用关系；按需构建并发布索引后可启用文本检索。";
   $("collections").replaceChildren();
   for (const [entity,label] of Object.entries(labels)) {
     const el = button("", () => {chooseEntity(entity); $("query").focus();}, "collection-item"); el.dataset.entity = entity;

@@ -276,7 +276,9 @@ def readyz():
     try:
         meta = generation()
         available = availability(meta)
-        ready = bool(available["metadata_ready"] and available["search_ready"])
+        metadata_only = (meta.get("metadata_only") and not meta.get("_search_build")
+                         and not meta.get("_search_error") and not meta.get("_search_disabled"))
+        ready = bool(available["metadata_ready"] and (available["search_ready"] or metadata_only))
         return JSONResponse({"ready": ready, "generation": meta["generation"],
                              "search_build": (meta.get("_search_build") or {}).get("build"),
                              **available}, status_code=200 if ready else 503)

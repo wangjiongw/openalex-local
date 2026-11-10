@@ -1,11 +1,27 @@
 # OpenAlex Local
 
-从 OpenAlex snapshot 下载、校验、导入、分类和构建索引，部署本地网页与查询 API。
+使用者按[下载指引](SNAPSHOT.md)自行获取 OpenAlex snapshot，指定本地存放路径后，由本项目读取、校验、导入和处理，并部署网页及服务器 API。项目不负责快照下载。
 
-当前为 v0.2.0 开发版，已提供下载、断点处理、引擎安装、验收、恢复与显式发布命令。完整元数据与引用使用 ClickHouse，文本检索使用 Manticore，网页与 API 使用 FastAPI。地学为第一个索引范围；不宣称与官方在线 API 全部功能或实时数据一致。
+默认流程与学科无关：使用 ClickHouse 保存完整原始元数据、DOI／ID 映射和引用关系。地学分类、文献列表导出和 Manticore 文本索引作为**可选示例**，需要显式指定 `--profile earth_sciences`。不做这一步也能按 DOI／ID 查询元信息、参考文献及被引关系；标题、摘要、作者姓名等文本检索需要另外构建并发布索引。
 
-数据、索引、私有配置、引擎和运行产物保存在独立本地工作空间，不提交 Git。源码采用 MIT；数据及第三方引擎遵守各自许可证。A/D 图谱处理不属于本项目主线。
+```bash
+oa --workspace /path/to/workspace init --snapshot /path/to/openalex-snapshot
+oa --workspace /path/to/workspace engines ensure
+oa --workspace /path/to/workspace snapshot verify --deep
+oa --workspace /path/to/workspace pipeline run --generation local_metadata
+oa --workspace /path/to/workspace pipeline resume --generation local_metadata --until published
+```
 
-部署入口：[原生部署与完整命令](QUICKSTART.md)。合成数据验收不代表全量数据性能验收；跨 Pod 检查需要从实际客户端运行。
+可选地学示例使用独立 generation：
 
-入口文档：[README](../README.md)、[快照格式](SNAPSHOT.md)、[模块边界](ARCHITECTURE.md)、[交付路线](ROADMAP.md)。
+```bash
+oa --workspace /path/to/workspace engines ensure --search
+oa --workspace /path/to/workspace pipeline run --generation earth_example --profile earth_sciences
+oa --workspace /path/to/workspace pipeline resume --generation earth_example --profile earth_sciences --until published
+```
+
+已按默认流程导入的数据也可以复用；原生部署指南说明了直接从已有 generation 运行地学分类和索引的方式。
+
+数据、索引、私有配置、引擎和运行产物保留本地，不提交 Git。源码采用 MIT；数据及第三方引擎遵守各自许可证。A/D 图谱处理不属于本项目主线。当前为 v0.2.0 开发版，不宣称与官方在线 API 全部功能或实时数据一致。
+
+入口文档：[部署与命令](QUICKSTART.md)、[模块边界](ARCHITECTURE.md)、[API 范围](API-COVERAGE.md)、[验证状态](VALIDATION.md)。

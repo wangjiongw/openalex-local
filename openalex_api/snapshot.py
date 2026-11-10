@@ -1,29 +1,11 @@
-"""Manifest adapters and resumable, anonymous public-snapshot downloads."""
+"""Read and verify user-provided local OpenAlex JSONL snapshots."""
 import gzip
 import hashlib
 import json
-import shutil
-import subprocess
-import time
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path, PurePosixPath
 from urllib.parse import unquote, urlparse
 
-import httpx
-
-from .config import ENTITIES, ROOT, atomic_json
-
-
-def sha(data):
-    return hashlib.sha256(data).hexdigest()
-
-
-def file_sha(path):
-    h = hashlib.sha256()
-    with Path(path).open('rb') as stream:
-        for chunk in iter(lambda: stream.read(8 * 1024**2), b''):
-            h.update(chunk)
-    return h.hexdigest()
+from .config import ENTITIES
 
 
 def relative_object(url, entity):
@@ -122,150 +104,6 @@ def inventory(snapshot):
     return dict(snapshot=str(root), manifest_sha256=digest.hexdigest(), entities=report,
                 files=items, format='jsonl', release=release,
                 complete=not subset and set(sources) == set(ENTITIES))
-
-
-def _https(source):
-    parsed = urlparse(source)
-    if parsed.query or parsed.fragment or parsed.username or parsed.password:
-        raise ValueError('use an unsigned public snapshot URL')
-    if parsed.scheme == 's3':
-        return 'https://' + parsed.netloc + '.s3.amazonaws.com' + parsed.path.rstrip('/')
-    if parsed.scheme != 'https':
-        raise ValueError('snapshot source must be s3:// or https://')
-    return source.rstrip('/')
-
-
-def remote_bytes(url):
-    for attempt in range(4):
-        try:
-            response = httpx.get(url, follow_redirects=True, timeout=30, trust_env=False)
-            response.raise_for_status()
-            return response.content
-        except (httpx.TransportError, httpx.HTTPStatusError) as error:
-            if isinstance(error, httpx.HTTPStatusError) and error.response.status_code < 500:
-                raise
-            if attempt == 3:
-                raise
-            time.sleep(.25 * 2**attempt)
-
-
-def plan(source='s3://openalex', target=None, entities=None, max_shards=None):
-    source = source.rstrip('/')
-    if not source.endswith('/data/jsonl'):
-        source += '/data/jsonl'
-    url = _https(source) + '/manifest.json'
-    raw = remote_bytes(url)
-    combined = json.loads(raw)
-    if combined.get('format') != 'jsonl' or not isinstance(combined.get('entities'), list):
-        raise ValueError('download requires the official combined JSONL manifest')
-    selected = set(entities or [v['entity'] for v in combined['entities']])
-    known = {v['entity'] for v in combined['entities']}
-    if not selected or selected - known or selected - set(ENTITIES):
-        raise ValueError('unknown or empty entity selection')
-    if max_shards is not None and (type(max_shards) is not int or max_shards < 1):
-        raise ValueError('max-shards must be positive')
-    target = Path(target or ROOT / 'snapshots' / str(combined['date'])).expanduser().resolve()
-    chosen, objects, seen = [], [], set()
-    for value in combined['entities']:
-        entity = value['entity']
-        if entity not in selected:
-            continue
-        files = _entity_files(value)
-        files = files[:max_shards] if max_shards else files
-        for entry in files:
-            relative = relative_object(entry['url'], entity)
-            if not entry['url'].startswith(source + '/') or relative in seen:
-                raise ValueError('manifest object outside selected source or duplicate')
-            seen.add(relative)
-            objects.append(dict(url=entry['url'], relative=relative, **entry['meta']))
-        chosen.append(dict(entity=entity, files=files,
-                           record_count=sum(f['meta']['record_count'] for f in files),
-                           content_length=sum(f['meta']['content_length'] for f in files)))
-    local_manifest = dict(date=combined['date'], format='jsonl', entities=chosen,
-                          snapshot_subset=selected != known or max_shards is not None)
-    value = dict(schema=1, source=source, source_manifest=url,
-                 source_manifest_sha256=sha(raw), source_manifest_raw=raw.decode(),
-                 target=str(target), objects=objects, manifest=local_manifest,
-                 compressed_bytes=sum(o['content_length'] for o in objects),
-                 records=sum(o['record_count'] for o in objects),
-                 complete=not local_manifest['snapshot_subset'], state='planned')
-    path = target / 'download-plan.json'
-    if path.exists() and json.loads(path.read_text()) != value:
-        raise ValueError('target already has a different download plan; use another target')
-    atomic_json(path, value)
-    return {k: v for k, v in value.items() if k not in ('source_manifest_raw', 'objects', 'manifest')} | {'plan': str(path), 'files': len(objects)}
-
-
-def download(plan_path, workers=4):
-    if type(workers) is not int or not 1 <= workers <= 64:
-        raise ValueError('download workers must be between 1 and 64')
-    aws = shutil.which('aws')
-    if not aws:
-        raise RuntimeError('install AWS CLI v2 for anonymous snapshot downloads')
-    value = json.loads(Path(plan_path).read_text())
-    if sha(remote_bytes(value['source_manifest'])) != value['source_manifest_sha256']:
-        raise RuntimeError('upstream release changed; create a new download plan')
-    target = Path(value['target']).resolve()
-    base = target / 'data/jsonl'
-    def transfer(item):
-        entity = item['relative'].split('/')[0]
-        if relative_object(item['url'], entity) != item['relative'] or not item['url'].startswith(value['source'] + '/'):
-            raise ValueError('invalid download-plan object')
-        path = base / item['relative']
-        path.parent.mkdir(parents=True, exist_ok=True)
-        receipt = path.with_suffix('.receipt.json')
-        if path.exists() and receipt.exists():
-            proof = json.loads(receipt.read_text())
-            if (proof.get('source_manifest_sha256') == value['source_manifest_sha256']
-                    and proof.get('url') == item['url'] and path.stat().st_size == item['content_length']
-                    and file_sha(path) == proof.get('sha256')):
-                return
-        temp = path.with_suffix('.partial')
-        for attempt in range(4):
-            result = subprocess.run([aws, 's3', 'cp', item['url'], str(temp), '--no-sign-request', '--only-show-errors'], capture_output=True)
-            if result.returncode == 0 and temp.is_file() and temp.stat().st_size == item['content_length']:
-                temp.replace(path)
-                atomic_json(receipt, dict(url=item['url'], sha256=file_sha(path),
-                                          source_manifest_sha256=value['source_manifest_sha256']))
-                return
-            if attempt == 3:
-                raise RuntimeError('snapshot object transfer failed: ' + item['relative'])
-            time.sleep(.5 * 2**attempt)
-    with ThreadPoolExecutor(workers) as pool:
-        list(pool.map(transfer, value['objects']))
-    if sha(remote_bytes(value['source_manifest'])) != value['source_manifest_sha256']:
-        raise RuntimeError('upstream release changed during transfer; snapshot not committed')
-    # Preserve license/release notes and available auxiliary logs without applying them.
-    extras = {}
-    bucket = value['source'].split('/data/jsonl')[0]
-    names = ['LICENSE.txt', 'RELEASE_NOTES.txt']
-    for name in names:
-        (target / name).write_bytes(remote_bytes(_https(bucket) + '/' + name))
-    for entity in ([] if value['manifest']['snapshot_subset'] else [v['entity'] for v in value['manifest']['entities']]):
-        for name in ['deleted_ids.csv.gz', 'merged_ids.csv.gz']:
-            url = _https(value['source']) + '/' + entity + '/' + name
-            try:
-                path = base / entity / name
-                path.parent.mkdir(parents=True, exist_ok=True)
-                temp = path.with_suffix('.partial')
-                with httpx.stream('GET', url, timeout=120, follow_redirects=True, trust_env=False) as response:
-                    response.raise_for_status()
-                    with temp.open('wb') as output:
-                        for chunk in response.iter_bytes(8 * 1024**2):
-                            output.write(chunk)
-                temp.replace(path)
-            except httpx.HTTPStatusError as error:
-                if error.response.status_code == 404:
-                    continue
-                raise
-            extras[entity + '/' + name] = dict(sha256=file_sha(path), applied=False)
-    (target / 'source-manifest.json').write_text(value['source_manifest_raw'])
-    atomic_json(base / 'manifest.json', value['manifest'])
-    result = dict(state='downloaded', files=len(value['objects']), compressed_bytes=value['compressed_bytes'],
-                  source_manifest_sha256=value['source_manifest_sha256'], auxiliary=extras,
-                  note='transfer verified; gzip/JSON/content checks happen during import')
-    atomic_json(target / 'download.json', result)
-    return result
 
 
 def verify(snapshot, deep=False):

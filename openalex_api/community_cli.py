@@ -11,16 +11,10 @@ def execute(args):
         return prepare(Path(args.source_workspace), args.generation, args.build, args.port)
     if args.command == 'snapshot':
         from . import snapshot
-        if args.action == 'plan':
-            return snapshot.plan(args.source, args.target, args.entities, args.max_shards)
-        if args.action == 'download':
-            if not args.plan:
-                raise ValueError('snapshot download requires --plan from snapshot plan')
-            return snapshot.download(args.plan, args.workers)
         return snapshot.verify(args.target or config()['snapshot'], args.deep)
     if args.command == 'engines':
         from .engines import ensure
-        return ensure(args.offline, args.cache, args.profile)
+        return ensure(args.offline, args.cache, args.profile, search=args.search)
     if args.command == 'pipeline':
         from . import community_pipeline as pipeline
         if args.action == 'plan':

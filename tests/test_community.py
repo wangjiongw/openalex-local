@@ -129,3 +129,23 @@ def test_collection_admission_uses_community_budget():
     assert decide(10 * GiB, 8 * GiB, policy=policy) == 'memory-budget'
     with pytest.raises(ValueError, match='negative'):
         decide(10 * GiB, GiB, additional=-1, policy=policy)
+
+
+def test_default_plan_does_not_load_earth_rules(tmp_path, monkeypatch):
+    snapshot = tmp_path / 'snapshot'
+    make_snapshot(snapshot)
+    monkeypatch.setattr(pipeline, 'config', lambda: {'snapshot': str(snapshot)})
+    monkeypatch.setattr(pipeline, 'RESOURCE_ROOT', tmp_path / 'no-rules')
+    plan = pipeline.plan('local_data')
+    assert plan['profile'] == 'metadata'
+    assert plan['stages'] == ['metadata', 'published']
+    assert plan['build'] is None and plan['rule_signature'] is None
+
+
+def test_metadata_ready_does_not_require_optional_search(monkeypatch):
+    from openalex_api import api
+    monkeypatch.setattr(api, 'generation', lambda: dict(generation='example', metadata_only=True))
+    monkeypatch.setattr(api, 'availability', lambda _: dict(metadata_ready=True, search_ready=False))
+    assert api.readyz().status_code == 200
+    monkeypatch.setattr(api, 'generation', lambda: dict(generation='example', metadata_only=True, _search_error='broken published index'))
+    assert api.readyz().status_code == 503

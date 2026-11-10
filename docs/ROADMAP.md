@@ -1,8 +1,10 @@
 # Community delivery plan
 
 1. Publish a clean MIT-licensed baseline, portable examples and basic CI.
-2. Separate installed code and workspace; add frozen-manifest JSONL download,
-   old/new input adapters, resumable stages and platform-pinned engines.
+2. Separate installed code and workspace; read user-managed local snapshots with
+   old/new JSONL adapters, resumable metadata processing and pinned native engines.
+   Snapshot downloading is documented, not implemented by the project.
+   Earth-science classification and text indexing are an optional example.
 3. Synthetic native pipelines pass on Linux x86_64 and ARM64. Read-only
    existing-data query checks are separate from full-data recovery qualification;
    the package remains a development release. See [validation status](VALIDATION.md).

@@ -1,8 +1,6 @@
 """Current ClickHouse/Manticore pipeline, independent of incident-era reports."""
 import json
-import socket
 import time
-from pathlib import Path
 
 from .config import ROOT, RESOURCE_ROOT, atomic_json, config, generation_path, read_generation
 from .ingest import lock
@@ -15,22 +13,23 @@ def path(g):
     return generation_path(g) / 'pipeline.json'
 
 
-def plan(g, profile='earth_sciences'):
+def plan(g, profile='metadata'):
     from .snapshot import inventory
-    if profile != 'earth_sciences':
-        raise ValueError('only the earth_sciences indexing profile is supported')
+    if profile not in ('metadata', 'earth_sciences'):
+        raise ValueError('unknown pipeline profile')
     inventory_value = inventory(config()['snapshot'])
     if any(v['missing'] or v['size_mismatch'] for v in inventory_value['entities'].values()):
-        raise ValueError('snapshot is incomplete on disk; finish its download first')
+        raise ValueError('snapshot is incomplete on disk; complete the files listed in its manifest first')
     if not inventory_value['files']:
         raise ValueError('snapshot has no data files')
+    indexing = profile == 'earth_sciences'
     rules = {n: json.loads((RESOURCE_ROOT / n).read_text()) for n in
-             ['earth-sciences-rules.json', 'earth-journal-scopes.json']}
-    return dict(schema=1, generation=g, profile=profile, stages=list(STAGES),
+             ['earth-sciences-rules.json', 'earth-journal-scopes.json']} if indexing else None
+    return dict(schema=1, generation=g, profile=profile, stages=list(STAGES) if indexing else ['metadata', 'published'],
                 snapshot=inventory_value['snapshot'], manifest_sha256=inventory_value['manifest_sha256'],
-                snapshot_complete=inventory_value['complete'], rule_signature=digest(rules),
+                snapshot_complete=inventory_value['complete'], rule_signature=digest(rules) if indexing else None,
                 source_records=sum(v['records'] for v in inventory_value['entities'].values()),
-                build=g[:40] + '_earth', engine='manticore')
+                build=g[:40] + '_earth' if indexing else None, engine='manticore' if indexing else None)
 
 
 def ensure_service(name):
@@ -59,14 +58,15 @@ def metadata(g):
     ingest.metadata_release(g)
 
 
-def run(g, profile='earth_sciences', until='validated'):
-    from . import ingest, earth_catalog, earth_collections
-    from .manticore_build import build
+def run(g, profile='metadata', until=None):
+    from . import ingest
     if config().get("adopted_from"):
         raise ValueError("adopted workspaces are read-only; use a separate workspace for building")
     expected = plan(g, profile)
-    if until not in STAGES:
-        raise ValueError('unknown pipeline stage')
+    stages = expected['stages']
+    until = until or ('validated' if profile == 'earth_sciences' else 'metadata')
+    if until not in stages:
+        raise ValueError('stage is not available for profile ' + profile)
     if not generation_path(g).exists():
         ensure_service('clickhouse')
         ingest.create_generation(g, mode='full', metadata_only=True)
@@ -78,7 +78,7 @@ def run(g, profile='earth_sciences', until='validated'):
             raise ValueError('pipeline input/profile changed; create a new generation')
         ensure_service('clickhouse')
         try:
-            for stage in STAGES[:STAGES.index(until) + 1]:
+            for stage in stages[:stages.index(until) + 1]:
                 if stage in state['completed']:
                     continue
                 state.update(state='running', phase=stage, updated=time.time(), error=None)
@@ -86,17 +86,24 @@ def run(g, profile='earth_sciences', until='validated'):
                 if stage == 'metadata':
                     metadata(g)
                 elif stage == 'collections':
+                    from . import earth_catalog, earth_collections
                     earth_catalog.build_catalog(g)
                     earth_collections.run(g)
                     earth_collections.verify(g, 'earth_scope_v1')
                 elif stage == 'index':
+                    from . import earth_collections
+                    from .manticore_build import build
                     ensure_service('manticore')
                     build(g, expected['build'], list(earth_collections.GROUPS), layout='native_v2')
                 elif stage == 'validated':
                     from .acceptance import qualify
                     qualify(g, expected['build'])
                 elif stage == 'published':
-                    publish(g, expected['build'])
+                    if expected['build']:
+                        publish(g, expected['build'])
+                    else:
+                        ensure_service('api')
+                        ingest.publish(g, metadata_only=True)
                 state['completed'].append(stage)
                 state.update(state='complete', updated=time.time())
                 atomic_json(path(g), state)

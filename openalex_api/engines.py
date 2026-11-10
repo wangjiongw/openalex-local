@@ -32,7 +32,7 @@ def architecture():
     return value
 
 
-def ensure(offline=False, cache=None, profile='standard'):
+def ensure(offline=False, cache=None, profile='standard', search=False):
     from .config import config
     if config().get("adopted_from"):
         raise ValueError("adopted workspaces cannot replace shared engines")
@@ -40,7 +40,7 @@ def ensure(offline=False, cache=None, profile='standard'):
     entries = json.loads((RESOURCE_ROOT / 'platform-engines.json').read_text())
     if profile == 'armv8-compat' and arch != 'arm64':
         raise ValueError('armv8-compat is an ARM64-only profile')
-    selected = entries[arch].copy()
+    selected = {name: item for name, item in entries[arch].items() if name == 'clickhouse' or search}
     if profile == 'armv8-compat':
         selected['clickhouse'] = entries['armv8-compat']['clickhouse']
     cache = Path(cache).expanduser().resolve() if cache else ROOT / 'var/downloads'

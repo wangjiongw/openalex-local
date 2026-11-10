@@ -1,8 +1,9 @@
 # Native Linux quickstart
 
-Requires Python 3.10+, glibc Linux, `dpkg-deb` (usually supplied by `dpkg`),
-AWS CLI v2 for snapshot downloads, and sufficient persistent disk. No root install
-of a database is required. Keep source and workspace in separate directories.
+Requires Python 3.10+, glibc Linux and sufficient persistent disk. Optional text
+indexing also requires `dpkg-deb` (usually supplied by `dpkg`) to unpack Manticore.
+AWS CLI is only a user-managed acquisition tool, not a processing dependency.
+No root install of a database is required. Keep source and workspace in separate directories.
 
 ```bash
 git clone https://github.com/wangjiongw/openalex-local.git
@@ -18,31 +19,26 @@ oa init
 the current directory if neither is supplied. Private credentials are generated in
 `config/local.json` with mode 0600. Do not add that file to Git.
 
-## Input and engines
+## Bring a local snapshot
 
-For a small real-data download (not a production-complete snapshot):
+Download the desired OpenAlex release separately following the [snapshot guide](SNAPSHOT.md).
+The project does not download snapshots. Preserve manifests and relative paths,
+then specify the directory where your data already lives:
 
 ```bash
-oa snapshot plan --target "$OPENALEX_HOME/snapshots/demo" --entities works --max-shards 1
-oa snapshot download --plan "$OPENALEX_HOME/snapshots/demo/download-plan.json"
-oa snapshot verify --target "$OPENALEX_HOME/snapshots/demo" --deep
+oa init --snapshot /absolute/path/to/openalex-snapshot
+oa inventory
+oa snapshot verify --deep
 ```
 
-For the full current JSONL release, omit `--entities` and `--max-shards`, choose a
-new target, and review the plan's byte/record totals before downloading. Downloads
-are anonymous, use bounded retries, and reuse objects only after checksum checks.
-Repeating `snapshot download` resumes the frozen plan. A changed upstream manifest
-requires a new plan/target rather than silently mixing releases.
-
-For an existing snapshot use `oa init --snapshot /absolute/path/to/snapshot`.
-This also updates an initialized workspace's snapshot path. Both legacy
-`data/<entity>/manifest` and current `data/jsonl/manifest.json` inputs work.
-A works-only shard can contain no Earth-science papers: use the synthetic fixture
-below when testing the complete search pipeline.
+This updates the configured snapshot path without copying it. Read-only source
+mounts are supported. Both legacy `data/<entity>/manifest` and current
+`data/jsonl/manifest.json` inputs work; Parquet import is not supplied. Partial
+snapshots need manifests describing their actual files and remain incomplete.
 
 ```bash
-oa engines ensure
-# Or, with matching pinned archives in a local cache:
+oa engines ensure  # ClickHouse only; no text engine required
+# Or use matching pinned archives in a local cache:
 oa engines ensure --offline --cache /path/to/engine-cache
 ```
 
@@ -52,36 +48,78 @@ ClickHouse LTS binaries target Linux amd64/arm64. Older ARM CPUs may need
 in the offline cache if the upstream compatibility URL has changed. Changing a
 profile does not overwrite an existing engine: use another workspace.
 
-## Process and publish
+## Default: metadata and citation service
 
 Edit local configuration before starting services. Defaults use 16 GiB resource
-budget, 8 GiB ClickHouse limit, up to 8 CPUs, 4 import workers, API port 8088,
-ClickHouse HTTP 18123/TCP 19000 and Manticore HTTP 19308. Configure `port`,
-`ch_url`, `ch_tcp_port` and `manticore_url` to avoid collisions. Resource settings
-are process budgets, not kernel reservations; full data needs much more disk and
-may need larger memory budgets. Benchmark your storage before scaling workers.
+budget, 8 GiB ClickHouse limit, up to 8 CPUs, 4 import workers and API port 8088.
+ClickHouse HTTP/TCP defaults to 18123/19000; optional Manticore HTTP uses 19308.
+Configure `port`, `ch_url`, `ch_tcp_port` and, if used, `manticore_url` to avoid
+collisions. Full snapshots require substantial persistent disk and may need
+larger budgets. Benchmark storage before scaling workers.
 
 ```bash
-oa pipeline plan --generation local_release
-oa pipeline run --generation local_release --until validated
-# Only publish after functional, load and fresh-engine restore checks pass:
-oa pipeline resume --generation local_release --until published
-oa pipeline status --generation local_release
+oa pipeline plan --generation local_metadata
+oa pipeline run --generation local_metadata
+# The default run imports and audits metadata; publishing is explicit:
+oa pipeline resume --generation local_metadata --until published
+oa pipeline status --generation local_metadata
 ```
 
-Stages are metadata import/audit, Earth collections, native Manticore indexes,
-validation/recovery, then explicit publication. Resume reuses completed stages and
-rejects changed inputs/rules; new input requires a new generation. No mandatory
-24-hour wait applies. Full-snapshot qualification uses the existing 30-minute
-load policy. Partial/demo qualification uses short concurrency smoke checks and
-is explicitly labelled; it does not establish full-data performance.
+The default `metadata` profile reads all supplied entities, preserves complete
+source records, and builds DOI/ID mappings and reference/citation relationships.
+It neither classifies by discipline nor creates text indexes. Publication starts
+the API with metadata access; title/name full-text search stays unavailable until
+an optional index is built. `/readyz` can report a ready metadata-only deployment
+while `/status` explicitly reports `search_ready: false`.
+
+Resume reuses completed stages and rejects changed inputs/profile. No mandatory
+24-hour wait applies. A new snapshot requires a new generation.
+
+## Optional example: Earth-science text search
+
+Earth science is a supplied example subset, not a mandatory project scope.
+Install the optional engine explicitly:
+
+```bash
+oa engines ensure --search
+```
+
+Starting from the snapshot with a new generation:
+
+```bash
+oa pipeline plan --generation earth_example --profile earth_sciences
+oa pipeline run --generation earth_example --profile earth_sciences
+oa pipeline resume --generation earth_example --profile earth_sciences --until published
+```
+
+This example adds Earth classification, versioned collection export, native
+Manticore indexing, functional/load/recovery checks, and explicit index publication.
+The default stop is `validated`. Full-snapshot search qualification uses the
+existing 30-minute load policy; partial/demo data uses labelled short concurrent
+smoke checks and does not establish full-data throughput.
+
+To reuse an already imported `local_metadata` generation, invoke the existing
+modules directly instead of importing another copy or changing its saved profile:
+
+```bash
+oa search-catalog local_metadata
+oa earth-export local_metadata
+oa earth-export-verify local_metadata
+oa search-build local_metadata earth_example
+oa search-validate local_metadata earth_example
+oa search-publish local_metadata earth_example
+```
+
+Only the Earth-science text profile is supplied today. The metadata service is
+independent of that choice; this release does not provide arbitrary-discipline
+text indexing profiles.
 
 A synthetic end-to-end trial can be generated without downloading real papers:
 
 ```bash
 python -m openalex_api.demo "$OPENALEX_HOME/snapshots/synthetic"
 oa init --snapshot "$OPENALEX_HOME/snapshots/synthetic"
-# Then run the pipeline above with engines installed.
+# Run the default metadata pipeline, or opt into the Earth example above.
 ```
 
 ## Query locally or across Pods
@@ -95,23 +133,26 @@ public reports or repository files.
 export OA_URL=http://POD_IP:8088
 # Supply OA_API_KEY securely from your local config.
 curl "$OA_URL/readyz"
-curl -H "X-API-Key: $OA_API_KEY" --get "$OA_URL/v1/works" \
-  --data-urlencode 'search=climate' --data-urlencode 'search_field=title'
+curl -H "X-API-Key: $OA_API_KEY" --get "$OA_URL/v1/works/lookup" \
+  --data-urlencode 'identifier=10.99999/demo.2'
+# Use a DOI present in your input; demo.2 exists only in the synthetic fixture.
 ```
 
 Open `http://POD_IP:8088/` for the web UI; enter the same key. `/docs` lists API
 routes. No per-key QPS or caller concurrency rejection is enabled by default;
 worker counts and database timeouts still bound processing capacity. Publication
-reports do not imply a cross-Pod test. From another Pod with access to the same
+reports do not imply a cross-Pod test. For a published text index, from another Pod with access to the same
 workspace (or a securely copied client config and fixtures), run:
 
 ```bash
-oa verify --generation local_release --base-url "$OA_URL" \
+oa verify --generation earth_example --base-url "$OA_URL" \
   --remote-client --output "$OPENALEX_HOME/reports/remote-verification"
 ```
 
-Lifecycle: `oa start all`, `oa status`, `oa stop all`, `oa logs api`. To exercise
-recovery independently, use `oa restore --generation local_release --output
+Lifecycle: `oa start clickhouse`, `oa start api`, `oa status`, `oa stop all`,
+`oa logs api`. Also run `oa start manticore` when restarting a deployment with a
+published text index. A metadata-only deployment does not need that process. To exercise
+recovery independently, use `oa restore --generation earth_example --output
 /path/to/new-report`. Recovery starts an empty temporary Manticore engine, checks
 snapshots/receipts and query results, and stops its own processes. It reuses the
 existing metadata server read-only; it is not a ClickHouse disaster backup test.

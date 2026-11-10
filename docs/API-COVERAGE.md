@@ -1,5 +1,8 @@
 # Query coverage and limits
 
+The default metadata profile serves source records and citation relationships.
+Text indexing is optional; Earth science is the included example.
+
 Use `/capabilities` and `/status` on your own running API for supported filters,
 indexed entities, published scopes and generation. `/docs` is the executable route
 reference. An official-style route does not imply full official API parity.
