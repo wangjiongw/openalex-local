@@ -1,21 +1,32 @@
-# Community delivery plan
+# Delivery status and follow-up work
 
-See the [feature inventory and extension priorities](FEATURES.zh-CN.md) for
-implemented capabilities, partial coverage, and optional upstream-inspired work.
-Existing validated import/index/publication/recovery workflows are reusable
-capabilities, not pending reimplementations.
+## Frozen for v0.2.0-rc.1
 
-1. Publish a clean MIT-licensed baseline, portable examples and basic CI.
-2. Separate installed code and workspace; read user-managed local snapshots with
-   old/new JSONL adapters, resumable metadata processing and pinned native engines.
-   Snapshot downloading is documented, not implemented by the project.
-   Earth-science classification and text indexing are an optional example.
-3. Synthetic native pipelines pass on Linux x86_64 and ARM64. Read-only
-   existing-data query checks are separate from full-data recovery qualification;
-   the package remains a development release. See [validation status](VALIDATION.md).
+The local JSONL snapshot reader, metadata and citation import/audit, default
+metadata service, optional Earth collections and Manticore index workflow,
+CLI/API/web UI, native installers and search restore tools are implemented.
+Validated import, indexing, publication and recovery are reusable capabilities;
+they are not pending reimplementations. See the [feature inventory](FEATURES.zh-CN.md).
 
-Official-style common work queries take priority. Full-text scope, entity-name
-catalog coverage, metadata scan predicates and unsupported operations must be
-reported separately. Preprint/version grouping, Parquet import, live incremental
-sync and full-discipline indexing are later changes. No A/D graph writing is in
-scope. Existing private datasets and services are not modified by this repository.
+The candidate keeps existing interfaces and data layouts. Scope and known limits
+are in [release and operations](RELEASE.md). Candidate acceptance checks source,
+installed artifacts and isolated existing-data access; it does not replace the
+internal production service or rebuild its published indexes.
+
+## After candidate feedback
+
+Fix reproduced defects within the frozen scope, maintain compatibility and
+validation evidence, then decide whether to promote to `v0.2.0`. There is no fixed
+24-hour wait and no automatic production cutover.
+
+## Optional later work
+
+- General query-result/DOI-list export and PDF/TEI download integration.
+- More entity-name indexes, user-defined indexing scopes and query combinations.
+- Calibrated bibliographic matching and cross-record version associations.
+- Parquet input, new-snapshot updates, deleted/merged ID application.
+- Independent ClickHouse disaster backup/recovery, semantic retrieval and MCP.
+
+These items are not prerequisites for using the candidate. Official-style routes
+do not imply complete live OpenAlex API parity. External A/D graph writing is a
+separate project. Snapshot acquisition stays user-managed.

@@ -5,7 +5,7 @@ citation service with a web UI and HTTP API. Point the toolchain at its local
 path, validate and import it, then optionally classify a subset and build text
 search indexes.
 
-**Community toolchain, v0.2.0 development.** Snapshot acquisition is user-managed;
+**Community release candidate, v0.2.0-rc.1.** Snapshot acquisition is user-managed;
 this project provides [download and format guidance](docs/SNAPSHOT.md), local
 readers, resumable processing, native engine installation, validation/recovery
 and deployment. Start with the [native deployment guide](docs/QUICKSTART.md).
@@ -32,9 +32,13 @@ python3 -m venv .venv
 .venv/bin/python -m pytest -q
 ```
 
-The source package is currently named `openalex-local-api`, imports remain
-`openalex_api`, and the CLI remains `oa`. Linux x86_64 and ARM64 are the target
-platforms; support is declared only after native end-to-end checks pass.
+See [release scope, supported commands and operations](docs/RELEASE.md).
+This candidate freezes the existing feature set; optional content downloads,
+version grouping and continuous snapshot updates remain future work.
+
+The source package is named `openalex-local-api`, imports remain
+`openalex_api`, and the CLI remains `oa`. Native metadata and Earth-example workflows pass on Linux x86_64 and ARM64;
+older ARM CPUs require the documented compatibility engine profile.
 
 See the [功能清单与扩展规划](docs/FEATURES.zh-CN.md), [validation status](docs/VALIDATION.md), [API coverage and limits](docs/API-COVERAGE.md), [snapshot formats](docs/SNAPSHOT.md), [architecture](docs/ARCHITECTURE.md),
 [contributing](CONTRIBUTING.md), and [中文说明](docs/README.zh-CN.md).

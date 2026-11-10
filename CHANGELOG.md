@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0rc1 — v0.2.0-rc.1
 
 - Removed `oa snapshot plan/download`; snapshot acquisition is now documented
   as a user-managed step. `snapshot verify` remains local-only.
@@ -17,3 +17,8 @@
 - Source-derived query/load checks and isolated fresh-engine search recovery.
 - Guarded read-only adoption of explicitly compatible published installations.
 - Native synthetic end-to-end CI; full production parity is not claimed.
+
+Candidate scope is frozen. It preserves the existing metadata and search layouts;
+internal `0.1.0` deployments are not automatically upgraded. Existing published
+indexes can be reused only under the documented projection/version checks.
+See [release and operations](docs/RELEASE.md) for supported commands and limits.

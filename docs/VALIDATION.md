@@ -1,6 +1,6 @@
 # Validation status
 
-The community toolchain is version `0.2.0.dev0`. This records tested boundaries,
+The community toolchain is version `0.2.0rc1`. This records tested boundaries,
 not an assertion of complete official API compatibility or full-snapshot capacity.
 
 [Native CI for the toolchain implementation](https://github.com/wangjiongw/openalex-local/actions/workflows/tests.yml)

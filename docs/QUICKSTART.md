@@ -8,12 +8,19 @@ No root install of a database is required. Keep source and workspace in separate
 ```bash
 git clone https://github.com/wangjiongw/openalex-local.git
 cd openalex-local
+git checkout v0.2.0-rc.1
 python3 -m venv .venv
 .venv/bin/pip install .
 export PATH="$PWD/.venv/bin:$PATH"
 export OPENALEX_HOME="$HOME/openalex-workspace"
 oa init
 ```
+
+For a packaged installation, download the wheel and `SHA256SUMS.txt` from the
+[GitHub candidate release](https://github.com/wangjiongw/openalex-local/releases/tag/v0.2.0-rc.1),
+verify its SHA-256, and run `python -m pip install /path/to/openalex_local_api-0.2.0rc1-py3-none-any.whl`
+in your virtual environment. No PyPI publication is required. The wheel contains
+the UI and packaged rules; raw snapshots and engine binaries are separate.
 
 `--workspace /absolute/path` overrides `OPENALEX_HOME`. The workspace defaults to
 the current directory if neither is supplied. Private credentials are generated in
@@ -170,6 +177,12 @@ automatic takeover; after verifying all old processes stopped, release
 referenced by a published index. Retain independent backups.
 
 ## Existing installation adoption
+
+Internal `0.1.0` deployments are not upgraded merely by checking out the candidate.
+The source snapshot, metadata generation and published index each have their own
+identity. Preserve their pointers, manifests, receipts, engine versions and parent
+segments. See [release and operations](RELEASE.md) before adopting existing data.
+
 
 `oa adopt --source-workspace /existing/workspace --generation GEN --build BUILD
 --port 8089` binds a **fresh** workspace to a supported, frozen, already published

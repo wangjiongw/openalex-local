@@ -3,7 +3,7 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "openalex-local-api"
-version = "0.2.0.dev0"
+version = "0.2.0rc1"
 license = "MIT"
 readme = "README.md"
 description = "Local OpenAlex search, complete records, and citation service"
