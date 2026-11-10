@@ -1,3 +1,4 @@
+from openalex_api.config import CODE_ROOT
 import json
 import os
 from pathlib import Path
@@ -100,7 +101,7 @@ def test_actual_checksum_failure_bytes_and_original_exception(tmp_path):
             str(classes) + ":" + cp,
             "-d",
             str(tmp_path),
-            str(settings.ROOT / "tests/fixtures/CaptureSelfTest.java"),
+            str(CODE_ROOT / "tests/fixtures/CaptureSelfTest.java"),
         ],
         check=True,
         timeout=60,

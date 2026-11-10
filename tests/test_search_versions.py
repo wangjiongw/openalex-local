@@ -47,7 +47,7 @@ def test_short_successful_load_is_not_formal_acceptance():
 def test_qualified_engine_uses_fresh_shared_data_without_touching_legacy(tmp_path, monkeypatch):
     from openalex_api import manage, search_storage
     monkeypatch.setattr(manage, "ROOT", tmp_path)
-    monkeypatch.setattr(manage, "config", lambda: config() | dict(ch_admin_password="fixture", ch_reader_password="fixture"))
+    monkeypatch.setattr(manage, "config", lambda: config() | dict(ch_admin_password="fixture", ch_reader_password="fixture", search_engine="opensearch"))
     monkeypatch.setattr(search_storage, "qualified_options", lambda g: ["qualified-observer"])
     legacy = tmp_path / "var/data/opensearch"
     legacy.mkdir(parents=True)
@@ -190,3 +190,13 @@ def test_failed_acknowledgment_does_not_advance_qualification_cursor(tmp_path, m
     with pytest.raises(RuntimeError, match="injected"):
         q.workload()
     assert q.s["after"] == "" and q.s["count"] == 0
+
+
+def test_observation_does_not_turn_partial_snapshot_into_complete(manifests):
+    activate(manifests, "first")
+    manifest = versions.read("test_version", "first")
+    manifest.update(incremental=False)
+    (versions.build_path("test_version", "first") / "build.json").write_text(json.dumps(manifest))
+    (versions.build_path("test_version", "first") / "observation.json").write_text('{"state":"complete"}')
+    meta = versions.attach(dict(generation="test_version", snapshot_complete=False, complete=False))
+    assert meta["_search_build"] and not meta["complete"]

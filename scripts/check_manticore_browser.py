@@ -1,4 +1,4 @@
-"""Exercise the deployed UI using the existing temporary Playwright installation."""
+"""Exercise a deployed UI using Playwright and explicit fixture identifiers."""
 import argparse
 import json
 from pathlib import Path
@@ -6,13 +6,18 @@ from playwright.sync_api import sync_playwright
 from openalex_api.config import config, ROOT
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("--base-url", default="http://127.0.0.1:18088")
-parser.add_argument("--output", type=Path, default=ROOT / "reports/manticore-implementation-20261106")
+parser.add_argument("--base-url", default="http://127.0.0.1:8088")
+parser.add_argument("--output", type=Path, default=ROOT / "reports/browser")
+parser.add_argument("--chromium", help="optional local Chromium executable; otherwise use Playwright's installation")
+parser.add_argument("--doi", required=True)
+parser.add_argument("--query", default="climate")
+parser.add_argument("--source-name", required=True)
+parser.add_argument("--source-id", required=True)
 args = parser.parse_args()
 out = args.output
 out.mkdir(parents=True, exist_ok=True)
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True, executable_path="/tmp/openalex-browser/chromium_headless_shell-1223/chrome-linux/headless_shell",
+    browser = p.chromium.launch(headless=True, executable_path=args.chromium,
         args=["--no-sandbox"])
     page = browser.new_page(viewport={"width": 1440, "height": 1000})
     errors = []
@@ -25,7 +30,7 @@ with sync_playwright() as p:
     page.wait_for_load_state("networkidle")
     for selector in ("#topic-filter", "#source-filter", "#earth-group", "#type-filter", "#primary-topic"):
         assert page.locator(selector).is_visible()
-    page.locator("#query").fill("10.1038/nature06095")
+    page.locator("#query").fill(args.doi)
     page.locator("#search-button").click()
     page.locator("#detail .record-title").wait_for(state="visible", timeout=30000)
     page.wait_for_load_state("networkidle")
@@ -39,11 +44,11 @@ with sync_playwright() as p:
     title = target.inner_text()
     target.click()
     page.wait_for_function("title => document.querySelector('#detail .record-title')?.textContent === title", arg=title)
-    page.locator("#query").fill("climate")
-    page.locator("#source-filter").fill("Geology")
-    page.locator("#source-options option[value='S56162041']").wait_for(state="attached", timeout=15000)
-    assert page.locator("#source-options option").first.get_attribute("value") == "S56162041"
-    page.locator("#source-filter").fill("S56162041")
+    page.locator("#query").fill(args.query)
+    page.locator("#source-filter").fill(args.source_name)
+    page.locator(f"#source-options option[value='{args.source_id}']").wait_for(state="attached", timeout=15000)
+    assert page.locator("#source-options option").first.get_attribute("value") == args.source_id
+    page.locator("#source-filter").fill(args.source_id)
     page.locator("#earth-group").select_option("01_core_journals")
     with page.expect_response(lambda r: "/v1/works?" in r.url, timeout=20000) as pending:
         page.locator("#search-button").click()

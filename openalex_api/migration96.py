@@ -1,3 +1,5 @@
+
+from .config import CODE_ROOT
 """Explicit v2 cursor lineage. Original cursors, tables and evidence remain intact."""
 
 import hashlib
@@ -138,7 +140,7 @@ def legacy_signature(g):
     """Recompute the original v2 fingerprint from the preserved baseline, never guess it."""
     from .config import config
 
-    baseline = ROOT / "baseline/openalex_api"
+    baseline = CODE_ROOT / "baseline/openalex_api"
     if not baseline.is_dir():
         raise RuntimeError("preserved v2 code is required for migration")
     h = hashlib.sha256()

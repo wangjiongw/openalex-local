@@ -1,3 +1,4 @@
+from .config import CODE_ROOT
 """Independent search builds over an immutable, already audited metadata generation."""
 import contextlib
 import contextvars
@@ -23,7 +24,7 @@ def build_path(g, build):
 
 def signature():
     from .proofs import file_hash, digest
-    return digest({name: file_hash(ROOT / "openalex_api" / name)
+    return digest({name: file_hash(CODE_ROOT / "openalex_api" / name)
                    for name in ("model.py", "search_projection.py", "search_scopes.py")})
 
 
@@ -38,7 +39,9 @@ def read(g, build):
     else:
         expected = signature()
     if manifest["projection_signature"] != expected:
-        raise RuntimeError("search projection changed; rebuild required")
+        from .compatibility import supports
+        if not supports(manifest):
+            raise RuntimeError("search projection changed; rebuild required")
     return manifest
 
 
@@ -92,7 +95,7 @@ def attach(meta, build=None, allow_sealed=False):
         if manifest and manifest.get("state") == "validated":
             observation = build_path(meta["generation"], manifest["build"]) / "observation.json"
             if (not manifest.get("incremental") or manifest.get("global_complete")) and observation.exists() and json.loads(observation.read_text()).get("state") == "complete":
-                meta["complete"] = True
+                meta["complete"] = meta.get("snapshot_complete", True)
     except (OSError, ValueError, KeyError, RuntimeError) as error:
         meta["_search_error"] = str(error)
         meta["_search_build"] = None
@@ -341,7 +344,7 @@ def publish(g, build):
         acceptance = json.loads((build_path(g, build) / "acceptance.json").read_text())
         from .search_acceptance import require_passed
         require_passed(acceptance, g, build)
-        if acceptance.get("code") != {p.name: file_hash(p) for p in (ROOT / "openalex_api").glob("*.py")}:
+        if acceptance.get("code") != {p.name: file_hash(p) for p in (CODE_ROOT / "openalex_api").glob("*.py")}:
             raise RuntimeError("search API implementation changed after acceptance")
         if not manifest.get("physical_checked") or not manifest.get("snapshot") or not manifest.get("restore_checked"):
             raise RuntimeError("search physical or snapshot recovery acceptance is incomplete")

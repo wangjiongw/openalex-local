@@ -37,7 +37,7 @@ function chooseEntity(entity) {
   $("search-scope").disabled = entity !== "works";
   const works = entity === "works";
   const entityReady = status?.search_coverage?.entities?.[entity]?.ready;
-  if (entityReady === false) $("search-note").textContent = `${labels[entity]}名称检索尚未上线；仍可通过 OpenAlex ID 或适用的标识符查看完整记录。`;
+  if (entityReady === false) $("search-note").textContent = `${labels[entity]}尚未建立独立名称索引；仍可通过 OpenAlex ID 或适用的标识符查看完整记录。`;
   else if (status?.search_ready) $("search-note").textContent = works ? "搜索当前已上线的文献范围；可固定选择广义地球科学。DOI 和 ID 定位覆盖全库。" : "在当前已上线的数据中检索名称；标识符定位覆盖全库。";
   for (const el of [$("year"),$("author-query"),$("oa-only"),$("sort"),$("topic-filter"),$("primary-topic"),$("source-filter"),$("type-filter"),$("earth-group")]) el.disabled = !works;
   if (!works) { $("author-query").value = ""; $("year").value = ""; $("oa-only").checked = false; $("sort").value = ""; }
@@ -60,7 +60,7 @@ async function refreshStatus() {
   $("collections").replaceChildren();
   for (const [entity,label] of Object.entries(labels)) {
     const el = button("", () => {chooseEntity(entity); $("query").focus();}, "collection-item"); el.dataset.entity = entity;
-    el.append(node("span", label + (searchCoverage.entities?.[entity]?.ready === false ? " · 名称检索待上线" : "")), node("small", coverage[entity] ? fmt(coverage[entity].unique_entities) : "—")); $("collections").append(el);
+    el.append(node("span", label + (searchCoverage.entities?.[entity]?.ready === false ? " · 未建独立名称索引" : "")), node("small", coverage[entity] ? fmt(coverage[entity].unique_entities) : "—")); $("collections").append(el);
   }
   chooseEntity($("entity").value);
 }
@@ -175,7 +175,7 @@ function overview(pane) {
   pane.append(node("p",`共 ${Object.keys(record).length} 个顶层字段；切换“全部字段”查看未经裁剪的完整 JSON。`,"subtle"));
 }
 function raw(pane) {pane.replaceChildren(node("p",`${Object.keys(record).length} 个顶层字段 · 完整 API 响应，可下载保存。`,"field-summary"));const pre=node("pre",recordText,"raw");pre.tabIndex=0;pane.append(pre);}
-function relations(pane) {pane.replaceChildren();edgeCursor=null;const actions=node("div",undefined,"detail-actions");for(const [value,label] of [["references","参考文献"],["citations","被引用文献"],["related-works","相关文献"]]) actions.append(button(label,()=>{edgeDirection=value;edgeCursor=null;loadEdges(false);},"secondary"));pane.append(actions,node("p","相关文献来自 OpenAlex 快照中的推荐列表。","subtle"),node("div",undefined,"edge-list"));pane.lastChild.id="edge-list";const more=button("加载下一页",()=>loadEdges(true),"secondary wide");more.id="more-edges";more.hidden=true;pane.append(more);loadEdges(false);}
+function relations(pane) {pane.replaceChildren();edgeCursor=null;edgeDirection="references";const actions=node("div",undefined,"detail-actions");for(const [value,label] of [["references","参考文献"],["citations","引用本文的文献"],["related-works","相关文献"]]) actions.append(button(label,()=>{edgeDirection=value;edgeCursor=null;loadEdges(false);},"secondary"));pane.append(actions,node("p","相关文献来自 OpenAlex 快照中的推荐列表。","subtle"),node("div",undefined,"edge-list"));pane.lastChild.id="edge-list";const more=button("加载下一页",()=>loadEdges(true),"secondary wide");more.id="more-edges";more.hidden=true;pane.append(more);loadEdges(false);}
 async function loadEdges(more) {
   const ticket=++edgeRequest, id=record.id.split("/").pop(), params={select:"id,title,publication_year,doi,authorships,primary_location"};if(edgeDirection!=="related-works")params.per_page="20";if(more && edgeCursor) params.cursor=edgeCursor;
   const target=$("edge-list"), moreButton=$("more-edges");if(!target)return;moreButton.disabled=true;message();

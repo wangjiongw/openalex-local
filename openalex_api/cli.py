@@ -1,5 +1,11 @@
-import argparse, json, logging, sys, time
+import argparse, json, logging, sys, time, os
 from pathlib import Path
+# Select the workspace before importing modules that bind their state paths.
+_bootstrap = argparse.ArgumentParser(add_help=False)
+_bootstrap.add_argument("--workspace")
+_workspace, _ = _bootstrap.parse_known_args()
+if _workspace.workspace:
+    os.environ["OPENALEX_HOME"] = str(Path(_workspace.workspace).expanduser().resolve())
 from .config import ROOT, init, config, ENTITIES, atomic_json
 
 
@@ -11,8 +17,41 @@ def main():
     p = argparse.ArgumentParser(
         prog="oa", description="Local OpenAlex import and service management"
     )
+    p.add_argument("--workspace", help="local data/config workspace; overrides OPENALEX_HOME")
     s = p.add_subparsers(dest="command", required=True)
-    s.add_parser("init")
+    q = s.add_parser("init")
+    q.add_argument("--snapshot")
+    q = s.add_parser("snapshot")
+    q.add_argument("action", choices=["plan", "download", "verify"])
+    q.add_argument("--source", default="s3://openalex")
+    q.add_argument("--target")
+    q.add_argument("--entities", nargs="+")
+    q.add_argument("--max-shards", type=int)
+    q.add_argument("--plan")
+    q.add_argument("--deep", action="store_true")
+    q.add_argument("--workers", type=int, default=4)
+    q = s.add_parser("engines")
+    q.add_argument("action", choices=["ensure"])
+    q.add_argument("--offline", action="store_true")
+    q.add_argument("--cache")
+    q.add_argument("--profile", choices=["standard", "armv8-compat"], default="standard")
+    q = s.add_parser("adopt")
+    q.add_argument("--source-workspace", required=True)
+    q.add_argument("--generation", required=True)
+    q.add_argument("--build", required=True)
+    q.add_argument("--port", type=int, default=8088)
+    q = s.add_parser("pipeline")
+    q.add_argument("action", choices=["plan", "run", "resume", "status"])
+    q.add_argument("--generation", required=True)
+    q.add_argument("--profile", choices=["earth_sciences"], default="earth_sciences")
+    q.add_argument("--until", choices=["metadata", "collections", "index", "validated", "published"], default="validated")
+    for name in ["verify", "restore"]:
+        q = s.add_parser(name)
+        q.add_argument("--generation", required=True)
+        q.add_argument("--build")
+        q.add_argument("--output", required=True)
+        q.add_argument("--base-url")
+        q.add_argument("--remote-client", action="store_true")
     s.add_parser("inventory")
     s.add_parser("doctor")
     q = s.add_parser("manticore")
@@ -129,6 +168,11 @@ def main():
         from . import ingest, manage
 
         if a.command == "init":
+            path = init()
+            if a.snapshot:
+                value = config()
+                value["snapshot"] = str(Path(a.snapshot).expanduser().resolve())
+                atomic_json(path, value)
             emit(
                 {
                     "config": str(init()),
@@ -136,7 +180,22 @@ def main():
                 }
             )
             return
-        config()
+        if a.command in ("snapshot", "engines", "pipeline", "verify", "restore", "adopt"):
+            from .community_cli import execute
+            emit(execute(a))
+            return
+        cfg = config()
+        if cfg.get("adopted_from"):
+            if a.command not in ("start", "stop", "restart", "status", "logs", "_supervise"):
+                raise ValueError("adopted workspace is read-only; use a separate workspace for data processing")
+            if a.command in ("start", "stop", "restart", "_supervise") and a.service != "api":
+                raise ValueError("adopted workspace only manages its own API")
+        if a.command in ("search-build", "search-validate", "search-publish") and config().get("search_engine") == "manticore":
+            if getattr(a, "background", False) or getattr(a, "scope", None):
+                raise ValueError("use the community pipeline entrypoint; legacy background/scope flags are not supported")
+            from .community_pipeline import search_action
+            emit(search_action(a.command, a.generation, a.build_id))
+            return
         if a.command == "manticore":
             from .manticore_build import main as manticore_main
             sys.argv = ["oa manticore", *a.args]

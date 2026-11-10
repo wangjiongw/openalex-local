@@ -1,3 +1,4 @@
+from .config import RESOURCE_ROOT
 """Explainable Earth-related membership over frozen OpenAlex metadata."""
 import json
 import re
@@ -6,7 +7,7 @@ from pathlib import Path
 from .backend import sql_list, sql_string
 
 VERSION = 2
-POLICY_PATH = Path(__file__).resolve().parents[1] / "config/earth-sciences-rules.json"
+POLICY_PATH = RESOURCE_ROOT / "earth-sciences-rules.json"
 EVIDENCE_SETTINGS = " SETTINGS short_circuit_function_evaluation='force_enable'"
 
 

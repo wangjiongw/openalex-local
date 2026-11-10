@@ -1,3 +1,4 @@
+from openalex_api.config import CODE_ROOT
 import hashlib
 import json
 import sqlite3
@@ -209,7 +210,7 @@ def test_extracted_semantics_exactly_match_legacy_sinks():
     from openalex_api.config import ROOT
 
     spec = importlib.util.spec_from_file_location(
-        "openalex_api.legacy_ingest", ROOT / "baseline/openalex_api/ingest.py"
+        "openalex_api.legacy_ingest", CODE_ROOT / "baseline/openalex_api/ingest.py"
     )
     legacy = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(legacy)

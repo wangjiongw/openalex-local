@@ -6,6 +6,8 @@ storage-verification receipt and never starts the production build workflow.
 
 from __future__ import annotations
 
+from .config import CODE_ROOT
+
 import gzip
 import hashlib
 import json
@@ -163,7 +165,7 @@ def validate_agent() -> dict:
     if digest(jdk_release) != receipt["jdk_release_sha256"]:
         raise RuntimeError("bundled JDK differs from the tested postings runtime")
     for name, expected in receipt.get("sources", {}).items():
-        if digest(ROOT / "scripts" / name) != expected:
+        if digest(CODE_ROOT / "scripts" / name) != expected:
             raise RuntimeError(f"tested postings agent source changed: {name}")
     qualification = Path(receipt.get("qualification_v2", ""))
     if not qualification.is_absolute():

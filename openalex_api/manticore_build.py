@@ -1,3 +1,4 @@
+from .config import CODE_ROOT
 """Receipt-driven Earth indexes. Only sealed, verified snapshots can be published."""
 import argparse
 import gzip
@@ -40,7 +41,7 @@ def signature(layout="legacy"):
     files = ["manticore_engine.py", "manticore_query.py"]
     if layout == "native_v2":
         files.append("manticore_formats.py")
-    return hashlib.sha256(orjson.dumps({n: file_hash(ROOT / "openalex_api" / n) for n in files},
+    return hashlib.sha256(orjson.dumps({n: file_hash(CODE_ROOT / "openalex_api" / n) for n in files},
                                      option=orjson.OPT_SORT_KEYS)).hexdigest()
 
 
@@ -296,6 +297,7 @@ def build(g, build_id, groups, parent=None, layout=None, source=None):
     from .manticore_formats import create as create_native
     creator = create_native if layout == "native_v2" else create
     original = read(g, source) if source else None
+    protect_running = bool(parent or original)
     path = build_path(g, build_id)
     collection = ROOT / "exports/earth_collections" / g / "earth_scope_v1"
     frozen = read_json(collection / "manifest.json")
@@ -326,7 +328,7 @@ def build(g, build_id, groups, parent=None, layout=None, source=None):
                  rebuild_source=source, source_artifact_signature=artifact_signature(original) if original else None,
                  collection="earth_scope_v1", collection_signature=frozen["signature"],
                  groups=list(groups), input_groups=list(groups), parent=parent,
-                 expected_groups={k: verified["counts"][k] for k in groups}, work_limit=20_000_000,
+                 expected_groups={k: verified["counts"][k] for k in groups}, work_limit=sum(verified["counts"].values()) if read_generation(g).get("pipeline_version") == 3 else 20_000_000,
                  earth_expected=sum(verified["counts"].values()), state="building", created=time.time(),
                  incremental=True, global_complete=False, ready_scopes=[], indexes={}, entities={}, segments=[])
         if original:
@@ -385,7 +387,7 @@ def build(g, build_id, groups, parent=None, layout=None, source=None):
         atomic_json(path / "progress.json", dict(state="sealing", updated=time.time(),
                     entities=m["entities"], segment=segment["index"],
                     phase="compact_snapshot_physical_check_restore"))
-        seal(c, path, segment, protect=(lambda: guard(g, m, force=True)) if parent or source else None)
+        seal(c, path, segment, protect=(lambda: guard(g, m, force=True)) if protect_running else None)
         save(m)
     try:
         m.update(state="building", error=None)
@@ -413,7 +415,7 @@ def build(g, build_id, groups, parent=None, layout=None, source=None):
             iterator = iter(members(collection, frozen, group, done)) if group else None
             pending = None
             while done < expected:
-                if m.get("parent") or source:
+                if protect_running:
                     guard(g, m)
                 total_works = sum(s["count"] for s in m["segments"] if s["entity"] == "works")
                 if entity == "works" and total_works >= m.get("work_limit", 20_000_000):

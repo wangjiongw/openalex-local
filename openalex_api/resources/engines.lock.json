@@ -1,0 +1,27 @@
+{
+  "clickhouse-common-static-25.8.12.129-arm64.tgz": {
+    "url": "https://packages.clickhouse.com/tgz/lts/clickhouse-common-static-25.8.12.129-arm64.tgz",
+    "sha512": "54bbad7fe6f9c902e4ba46c23e82ff03d01b1bfe32b7a5a0749632b44d9095a3a6862cd9cbaaea759de8a2b566f387a38413b5924a1b12f9d7f30085ef1039d9",
+    "checksum_source": "official SHA512 verified; binary cannot run on this CPU (SIGILL)"
+  },
+  "opensearch-3.3.2-linux-arm64.tar.gz": {
+    "url": "https://artifacts.opensearch.org/releases/bundle/opensearch/3.3.2/opensearch-3.3.2-linux-arm64.tar.gz",
+    "sha512": "ab055a9192b04be020272a7769801f041c28ad9e12849d54c5ed96b844692b8fcf2ab66ae91f761cc052d3f19777a4a49c43fa81a7ffb037cb2afbe62c4a8dec",
+    "checksum_source": "official checksum"
+  },
+  "clickhouse-compat": {
+    "url": "https://builds.clickhouse.com/master/aarch64v80compat/clickhouse",
+    "sha512": "3dcd949e6d478bcec6ee667ff55e5a997e92ee165b9b3667574ecf8c9869ce783534144d4ee1d9796c3eaa24f090268ed309ea6d54906baf3e17a96e9162cdf4",
+    "version": "ClickHouse local version 26.9.1.954 (official build).",
+    "build_type": "official ARMv8 compatibility CI build; retained locally and hash-pinned, not an LTS release",
+    "runtime_sha512": "a75f6beba76ab7be399de9dd1983782c5d9f1998f22dae097e548c872157ad294311057fdbe3cb931c1667624ea12d5add88c5db1abf84b2e978f85d6531b8dd",
+    "source_commit": "87a70daf3aa965f873fc524b02bef98417682b34"
+  },
+  "manticore-29.9.0-arm64": {
+    "url": "https://repo.manticoresearch.com/repository/manticoresearch_jammy/dists/jammy/main/binary-arm64/manticore_29.9.0-26091108-58e88d5ab_arm64.deb",
+    "sha256": "ad0c113160ebbb7ce556a866248940b9dcb653ac043002a9e120a18d1c975c2f",
+    "version": "29.9.0-26091108-58e88d5ab",
+    "architecture": "arm64",
+    "runtime_test": "searchd --version succeeds on this Kunpeng CPU"
+  }
+}

@@ -1,3 +1,4 @@
+from .config import CODE_ROOT
 """Unprivileged process supervision with PID identity checks and rotating logs."""
 
 import json, logging, logging.handlers, os, signal, subprocess, sys, threading, time
@@ -26,10 +27,11 @@ def engine_configs():
     chport = urlparse(c["ch_url"]).port
     xml = f"""<clickhouse>
  <logger><level>information</level><console>true</console></logger>
- <listen_host>127.0.0.1</listen_host><http_port>{chport}</http_port><tcp_port>19000</tcp_port>
+ <listen_host>127.0.0.1</listen_host><http_port>{chport}</http_port><tcp_port>{c.get("ch_tcp_port", 19000)}</tcp_port>
  <path>{data}/clickhouse/</path><tmp_path>{data}/clickhouse/tmp/</tmp_path><user_files_path>{data}/clickhouse/user_files/</user_files_path>
  <users_config>{conf}/clickhouse-users.xml</users_config>
  <max_server_memory_usage>{c["clickhouse_memory_gib"] * 1024**3}</max_server_memory_usage>
+ <memory_worker_use_cgroup>{str(c.get("ch_memory_worker_use_cgroup", c.get("execution_profile") != "community")).lower()}</memory_worker_use_cgroup>
  <max_thread_pool_size>512</max_thread_pool_size><background_pool_size>8</background_pool_size>
  <background_schedule_pool_size>8</background_schedule_pool_size><background_move_pool_size>2</background_move_pool_size>
  <background_fetches_pool_size>2</background_fetches_pool_size><background_common_pool_size>2</background_common_pool_size>
@@ -48,6 +50,8 @@ def engine_configs():
         p = conf / name
         p.write_text(body)
         p.chmod(0o600)
+    if c.get("search_engine") == "manticore":
+        return
     (ROOT / "var/backups/opensearch").mkdir(parents=True, exist_ok=True)
     storage_profile = ROOT / "var/storage-profile.json"
     allow_mmap = (
@@ -242,6 +246,8 @@ def health(service):
 
 
 def start(service, extra=None):
+    if config().get("adopted_from") and service in ("clickhouse", "manticore", "opensearch"):
+        raise ValueError("adopted read-only workspaces cannot manage shared backends")
     with lock(ROOT / "var/run" / f"{service}.control.lock"):
         p = state_path(service)
         if identity(p):
@@ -263,6 +269,7 @@ def start(service, extra=None):
             [sys.executable, "-m", "openalex_api.cli", "_supervise", service]
             + (extra or []),
             cwd=ROOT,
+            env=os.environ | {"PYTHONPATH": str(CODE_ROOT), "OPENALEX_HOME": str(ROOT)},
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
@@ -358,7 +365,7 @@ def stop(service, force=False):
 def command(service, extra):
     c = config()
     env = os.environ.copy()
-    env["PYTHONPATH"] = str(ROOT)
+    env["PYTHONPATH"] = str(CODE_ROOT)
     env["OPENALEX_HOME"] = str(ROOT)
     env["PYTHONUNBUFFERED"] = "1"
     env["PYTHONFAULTHANDLER"] = "1"
@@ -391,7 +398,7 @@ def command(service, extra):
         )
         return [str(home / "bin/opensearch")], env
     if service.startswith("storage-repair-"):
-        return [sys.executable, str(ROOT / "scripts/storage_merge_recover.py"), service[len("storage-repair-"):], *(extra or [])], env
+        return [sys.executable, str(CODE_ROOT / "scripts/storage_merge_recover.py"), service[len("storage-repair-"):], *(extra or [])], env
     for prefix, command in (("export-earth-", "earth-export"), ("verify-search-", "search-qualify"), ("build-search-", "search-build"), ("catalog-search-", "search-catalog"), ("pipeline-search-", "search-pipeline")):
         if service.startswith(prefix):
             return [sys.executable, "-m", "openalex_api.cli", command, service[len(prefix):], *(extra or [])], env
@@ -401,7 +408,7 @@ def command(service, extra):
     if service.startswith("watch-"):
         return [
             sys.executable,
-            str(ROOT / "scripts/watch_full_build.py"),
+            str(CODE_ROOT / "scripts/watch_full_build.py"),
             service[6:],
         ], env
     if service == "monitor":
@@ -431,6 +438,9 @@ def command(service, extra):
             ] + (extra if operation == "recover" else []), env
     if service == "api" or service.startswith("validation-api-"):
         validation = service != "api"
+        if c.get("adopted_from"):
+            env["OPENALEX_GENERATION"] = c["adopted_from"]["generation"]
+            env["OPENALEX_SEARCH_BUILD"] = c["adopted_from"]["build"]
         if validation:
             env["OPENALEX_GENERATION"] = service[len("validation-api-") :]
         workers = int(c.get("api_workers", 1))

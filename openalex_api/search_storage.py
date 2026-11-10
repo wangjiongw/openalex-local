@@ -1,3 +1,5 @@
+from .config import RESOURCE_ROOT
+from .config import CODE_ROOT
 """Fresh DTFS qualification, independent of the preserved failed legacy attempts."""
 import contextlib
 import json
@@ -31,13 +33,13 @@ PORT = 19220
 def dependencies():
     c = config()
     return dict(projection=search_versions.signature(),
-                code={p: file_hash(ROOT / "openalex_api" / p) for p in
+                code={p: file_hash(CODE_ROOT / "openalex_api" / p) for p in
                       ("search_storage.py", "search_versions.py", "backend.py", "storage.py", "storage_repair.py", "manage.py", "search_scopes.py", "search_incremental.py")},
-                engines=file_hash(ROOT / "config/engines.lock.json"),
+                engines=file_hash(RESOURCE_ROOT / "engines.lock.json"),
                 jdk=file_hash(ROOT / "var/engines/opensearch-3.3.2/jdk/release"),
                 jvm_options=file_hash(ROOT / "var/engines/opensearch-3.3.2/config/jvm.options"),
-                observer=file_hash(ROOT / "scripts/MergeFailureCapture.java"),
-                checker={p: file_hash(ROOT / "scripts" / p) for p in ("ReadOnlyIndexCheck.java", "CaptureAgent.java")},
+                observer=file_hash(CODE_ROOT / "scripts/MergeFailureCapture.java"),
+                checker={p: file_hash(CODE_ROOT / "scripts" / p) for p in ("ReadOnlyIndexCheck.java", "CaptureAgent.java")},
                 heap_gib=c["opensearch_heap_gib"],
                 processors=min(c["cpus"], c.get("opensearch_processors", 16)),
                 mmap=False, store="niofs", translog="request", jit="default",
@@ -175,7 +177,7 @@ class Qualification:
         exports = ["--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED",
                    "--add-exports=java.base/jdk.internal.org.objectweb.asm.commons=ALL-UNNAMED"]
         subprocess.run([str(self.engine / "jdk/bin/javac"), *exports, "-d", str(self.base / "classes"),
-                        str(ROOT / "scripts/MergeFailureCapture.java")], check=True, timeout=120)
+                        str(CODE_ROOT / "scripts/MergeFailureCapture.java")], check=True, timeout=120)
         (self.base / "agent.mf").write_text("Premain-Class: MergeFailureCapture\n\n")
         subprocess.run([str(self.engine / "jdk/bin/jar"), "cfm", str(self.base / "merge-capture.jar"),
                         str(self.base / "agent.mf"), "-C", str(self.base / "classes"), "."], check=True, timeout=30)

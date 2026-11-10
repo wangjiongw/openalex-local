@@ -1,3 +1,4 @@
+from .config import RESOURCE_ROOT
 """Versioned, resumable bibliographic collections over immutable metadata."""
 import csv
 import copy
@@ -19,7 +20,7 @@ from .ingest import lock
 from .model import abstract, doi
 from .proofs import digest, file_hash
 
-POLICY = Path(__file__).resolve().parents[1] / "config/earth-journal-scopes.json"
+POLICY = RESOURCE_ROOT / "earth-journal-scopes.json"
 GROUPS = ("01_core_journals", "02_broad_interdisciplinary", "03_author_supported")
 PAGE_ROWS = 100_000
 SHARD_ROWS = 100_000

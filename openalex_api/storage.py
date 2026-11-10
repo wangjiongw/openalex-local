@@ -1,3 +1,5 @@
+
+from .config import CODE_ROOT
 """Evidence-backed snapshot preservation and isolated real-data storage soak."""
 
 import json
@@ -272,8 +274,8 @@ def prepare_index_checker():
                     cp,
                     "-d",
                     str(classes),
-                    str(ROOT / "scripts/ReadOnlyIndexCheck.java"),
-                    str(ROOT / "scripts/CaptureAgent.java"),
+                    str(CODE_ROOT / "scripts/ReadOnlyIndexCheck.java"),
+                    str(CODE_ROOT / "scripts/CaptureAgent.java"),
                 ],
                 check=True,
                 timeout=120,

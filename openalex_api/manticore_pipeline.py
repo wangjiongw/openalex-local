@@ -1,3 +1,4 @@
+from .config import CODE_ROOT
 """Dependencies and query protection for immutable Manticore builds."""
 import hashlib
 import time
@@ -36,7 +37,7 @@ def parent_ready(g, build, published=False):
                 ("verify-manticore-", "build-manticore-"))
     engine = read_json(manage.state_path("manticore"))
     return bool(owner and all(engine.get(k) == v for k, v in observation["engine_identity"].items())
-                and all(file_hash(ROOT / "openalex_api" / name) == value for name, value in report["code"].items()))
+                and all(file_hash(CODE_ROOT / "openalex_api" / name) == value for name, value in report["code"].items()))
 
 
 def wait_parent(g, m, published=False):
@@ -167,10 +168,10 @@ def mixed_check(g, build, child):
         pointer = generation_path(g) / 'search-active.json'
         if read_json(pointer).get('build') != build:
             raise RuntimeError('mixed test publication was superseded')
-        code = {p.name: file_hash(p) for p in (ROOT / 'openalex_api').glob('*.py')}
+        code = {p.name: file_hash(p) for p in (CODE_ROOT / 'openalex_api').glob('*.py')}
         value = asyncio.run(load_cases(url, fixture['cases'], fixture['records'], 10, 1800,
                             {'X-API-Key':cfg['api_keys'][0]}, 100))
-        unchanged = code == {p.name: file_hash(p) for p in (ROOT / 'openalex_api').glob('*.py')}
+        unchanged = code == {p.name: file_hash(p) for p in (CODE_ROOT / 'openalex_api').glob('*.py')}
         value.update(code=code, code_unchanged=unchanged)
         value['passed'] = bool(unchanged and read_json(pointer).get('build') == build
             and not value['errors'] and value['requests'] >= 1000

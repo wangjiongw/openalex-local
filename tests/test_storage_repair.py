@@ -281,6 +281,7 @@ def test_legacy_archive_reuse_requires_exact_old_source_and_same_archive_functio
     from openalex_api import proofs
     import hashlib
     monkeypatch.setattr(proofs, 'ROOT', tmp_path)
+    monkeypatch.setattr(proofs, 'CODE_ROOT', tmp_path)
     current = tmp_path / 'openalex_api/storage.py'
     current.parent.mkdir()
     baseline = 'def archive():\n return 1\ndef probe_source_open():\n return 2\n'

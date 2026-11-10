@@ -1,3 +1,4 @@
+from .config import CODE_ROOT
 """Real API acceptance, optional 24h observation, and controlled publication."""
 import os
 import time
@@ -190,7 +191,7 @@ def qualify(g, build):
             while time.time() - observation["observation_started"] < required_seconds:
                 if signature(m.get("physical_layout", "legacy")) != observation["projection_signature"]:
                     raise RuntimeError("projection/query changed during observation")
-                if any(file_hash(ROOT / "openalex_api" / name) != checksum for name, checksum in report["code"].items()):
+                if any(file_hash(CODE_ROOT / "openalex_api" / name) != checksum for name, checksum in report["code"].items()):
                     raise RuntimeError("application changed during observation; repeat qualification")
                 engine_state = read_json(manage.state_path("manticore"))
                 if any(engine_state.get(k) != v for k, v in engine_identity.items()):
@@ -243,7 +244,7 @@ def _publish(g, build):
             or not observation_passed or not acceptance.get("passed")
             or not acceptance.get("performance_passed") or observation["projection_signature"] != signature(m.get("physical_layout", "legacy"))):
         raise RuntimeError("publication requires the configured observation policy and passed API/load/restore gates")
-    if any(file_hash(ROOT / "openalex_api" / name) != checksum for name, checksum in acceptance["code"].items()):
+    if any(file_hash(CODE_ROOT / "openalex_api" / name) != checksum for name, checksum in acceptance["code"].items()):
         raise RuntimeError("application changed after qualification; repeat qualification")
     if observation.get("mixed_load_required"):
         mixed = read_json(path / "qualification/mixed-load.json")

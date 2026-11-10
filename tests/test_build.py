@@ -1,3 +1,4 @@
+from openalex_api.config import CODE_ROOT
 import json
 import pytest
 from openalex_api import build, manage
@@ -5,7 +6,7 @@ from openalex_api.config import ROOT
 
 
 def test_measured_benchmark_schema():
-    report = json.loads((ROOT / "tests/fixtures/benchmark-warm.json").read_text())
+    report = json.loads((CODE_ROOT / "tests/fixtures/benchmark-warm.json").read_text())
     build.assert_benchmark(report)
     report["summary"]["detail"]["status_counts"]["503"] = 1
     with pytest.raises(RuntimeError, match="errors"):

@@ -1,3 +1,5 @@
+from .config import RESOURCE_ROOT
+from .config import CODE_ROOT
 """Each proof declares data, engine or implementation dependencies independently."""
 
 import ast
@@ -17,7 +19,7 @@ def file_hash(path):
 
 
 def schema_hash():
-    tree = ast.parse((ROOT / "openalex_api/backend.py").read_text())
+    tree = ast.parse((CODE_ROOT / "openalex_api/backend.py").read_text())
     method = next(
         n
         for n in ast.walk(tree)
@@ -30,8 +32,8 @@ def semantic(g):
     return digest(
         dict(
             manifest=read_generation(g)["manifest_sha256"],
-            model=file_hash(ROOT / "openalex_api/model.py"),
-            semantics=file_hash(ROOT / "openalex_api/semantics.py"),
+            model=file_hash(CODE_ROOT / "openalex_api/model.py"),
+            semantics=file_hash(CODE_ROOT / "openalex_api/semantics.py"),
             schema=schema_hash(),
             rules="canonical-json-sorted-sha256;ordinal*1e9+line;external_ids;set-referenced_works;source-position-v1",
         )
@@ -44,7 +46,7 @@ def execution():
         dict(
             code={
                 p.name: file_hash(p)
-                for p in sorted((ROOT / "openalex_api").glob("*.py"))
+                for p in sorted((CODE_ROOT / "openalex_api").glob("*.py"))
             },
             tuning={
                 k: v
@@ -96,21 +98,21 @@ def dependencies(g, name):
         "archive",
         "archive-stable",
     ):
-        result["engines"] = file_hash(ROOT / "config/engines.lock.json")
+        result["engines"] = file_hash(RESOURCE_ROOT / "engines.lock.json")
         jdk = ROOT / "var/engines/opensearch-3.3.2/jdk/release"
         result["jdk"] = file_hash(jdk) if jdk.exists() else None
         result["checkers"] = {
-            x: file_hash(ROOT / "scripts" / x)
+            x: file_hash(CODE_ROOT / "scripts" / x)
             for x in ("ReadOnlyIndexCheck.java", "CaptureAgent.java")
         }
-        result["storage_code"] = file_hash(ROOT / "openalex_api/storage.py")
+        result["storage_code"] = file_hash(CODE_ROOT / "openalex_api/storage.py")
         from .storage import runtime_options
 
         result["jvm_runtime_options"] = runtime_options()
         if name == "storage-verification":
-            result["phase_code"] = {name: file_hash(ROOT / "openalex_api" / name)
+            result["phase_code"] = {name: file_hash(CODE_ROOT / "openalex_api" / name)
                                     for name in ("storage_finish.py", "storage_repair.py", "continuous_storage.py", "manage.py")}
-            result["merge_capture_code"] = file_hash(ROOT / "scripts/MergeFailureCapture.java")
+            result["merge_capture_code"] = file_hash(CODE_ROOT / "scripts/MergeFailureCapture.java")
             result["tested_storage"] = {
                 "allow_mmap": False,
                 "store": "niofs",
@@ -122,12 +124,12 @@ def dependencies(g, name):
             result["storage_profile"] = file_hash(profile) if profile.exists() else None
     if name == "recovery-tests":
         result["code"] = {
-            p.name: file_hash(p) for p in sorted((ROOT / "openalex_api").glob("*.py"))
+            p.name: file_hash(p) for p in sorted((CODE_ROOT / "openalex_api").glob("*.py"))
         }
     if name == "preflight":
         result["execution"] = execution()
     if name in ("search-complete", "search-audit", "gate-search"):
-        result["search_code"] = file_hash(ROOT / "openalex_api/search_build.py")
+        result["search_code"] = file_hash(CODE_ROOT / "openalex_api/search_build.py")
     if name in (
         "search-complete",
         "search-audit",
@@ -137,7 +139,7 @@ def dependencies(g, name):
         result["search_epoch"] = search_epoch(g)
     if name == "api-validation":
         result["implementation"] = {
-            name: file_hash(ROOT / name)
+            name: file_hash(CODE_ROOT / name)
             for name in (
                 "openalex_api/api.py",
                 "openalex_api/query.py",
@@ -177,7 +179,7 @@ def legacy_archive_compatible(g, name, recorded, current):
         selected = {node.name: ast.dump(node, include_attributes=False) for node in tree.body
                     if isinstance(node, ast.FunctionDef) and node.name in ("archive", "probe_source_open")}
         return selected if len(selected) == 2 else None
-    current_functions = functions(ROOT / "openalex_api/storage.py")
+    current_functions = functions(CODE_ROOT / "openalex_api/storage.py")
     if current_functions is None:
         return False
     for path in (ROOT / "var/generations" / g).glob("before-*/openalex_api/storage.py"):

@@ -1,9 +1,10 @@
 from pathlib import Path
 import json, os, re, secrets, tempfile, time, logging
 
-ROOT = Path(
-    os.environ.get("OPENALEX_HOME", Path(__file__).resolve().parents[1])
-).resolve()
+CODE_ROOT = Path(__file__).resolve().parents[1]
+RESOURCE_ROOT = Path(__file__).resolve().parent / "resources"
+ROOT = Path(os.environ.get("OPENALEX_HOME", Path.cwd())).expanduser().resolve()
+
 ENTITIES = (
     "works authors institutions sources publishers funders awards topics keywords concepts domains fields subfields countries continents languages licenses institution-types source-types work-types sdgs"
 ).split()
@@ -13,9 +14,11 @@ DEFAULT = dict(
     port=8088,
     ch_url="http://127.0.0.1:18123",
     os_url="http://127.0.0.1:19200",
-    cpus=32,
-    memory_gib=256,
-    disk_budget_gib=2048,
+    cpus=min(8, os.cpu_count() or 1),
+    memory_gib=16,
+    disk_budget_gib=None,
+    min_free_gib=1,
+    execution_profile="community",
     concurrency=0,  # Zero disables caller concurrency rejection.
     qps=0,  # Zero disables per-key rate limiting.
     burst=10,
@@ -24,8 +27,12 @@ DEFAULT = dict(
     cursor_ttl=600,
     batch_size=1000,
     opensearch_heap_gib=16,
-    clickhouse_memory_gib=96,
+    clickhouse_memory_gib=8,
     workers=4,
+    search_engine="manticore",
+    manticore_workers=4,
+    manticore_max_threads_per_query=2,
+    manticore_observation_seconds=0,
 )
 
 

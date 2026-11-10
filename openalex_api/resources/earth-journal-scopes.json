@@ -1,0 +1,578 @@
+{
+  "version": 1,
+  "description": "Earth-system journal scope tiers; no JIF or citation threshold; uncertain identities remain pending.",
+  "review_basis": "Curated discipline definitions and publisher/society scope references; unknown journals remain pending; source topic labels are supporting metadata, never sole proof.",
+  "journals": [
+    {
+      "name": "Atmospheric Chemistry and Physics",
+      "scope": "core",
+      "url": "https://www.egu.eu/publications/open-access-journals/",
+      "scope_summary": "EGU thematic journals: Earth atmosphere, hydrosphere, cryosphere, solid Earth, soils and Earth-system processes; editorial scope reviewed by journal, not citation metrics.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Atmospheric Measurement Techniques",
+      "scope": "core",
+      "url": "https://www.egu.eu/publications/open-access-journals/",
+      "scope_summary": "EGU thematic journals: Earth atmosphere, hydrosphere, cryosphere, solid Earth, soils and Earth-system processes; editorial scope reviewed by journal, not citation metrics.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Biogeosciences",
+      "scope": "core",
+      "url": "https://www.egu.eu/publications/open-access-journals/",
+      "scope_summary": "EGU thematic journals: Earth atmosphere, hydrosphere, cryosphere, solid Earth, soils and Earth-system processes; editorial scope reviewed by journal, not citation metrics.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Climate of the Past",
+      "scope": "core",
+      "url": "https://www.egu.eu/publications/open-access-journals/",
+      "scope_summary": "EGU thematic journals: Earth atmosphere, hydrosphere, cryosphere, solid Earth, soils and Earth-system processes; editorial scope reviewed by journal, not citation metrics.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Earth Surface Dynamics",
+      "scope": "core",
+      "url": "https://www.egu.eu/publications/open-access-journals/",
+      "scope_summary": "EGU thematic journals: Earth atmosphere, hydrosphere, cryosphere, solid Earth, soils and Earth-system processes; editorial scope reviewed by journal, not citation metrics.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Earth System Dynamics",
+      "scope": "core",
+      "url": "https://www.egu.eu/publications/open-access-journals/",
+      "scope_summary": "EGU thematic journals: Earth atmosphere, hydrosphere, cryosphere, solid Earth, soils and Earth-system processes; editorial scope reviewed by journal, not citation metrics.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Geochronology",
+      "scope": "core",
+      "url": "https://www.egu.eu/publications/open-access-journals/",
+      "scope_summary": "EGU thematic journals: Earth atmosphere, hydrosphere, cryosphere, solid Earth, soils and Earth-system processes; editorial scope reviewed by journal, not citation metrics.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Geoscientific Instrumentation, Methods and Data Systems",
+      "scope": "core",
+      "url": "https://www.egu.eu/publications/open-access-journals/",
+      "scope_summary": "EGU thematic journals: Earth atmosphere, hydrosphere, cryosphere, solid Earth, soils and Earth-system processes; editorial scope reviewed by journal, not citation metrics.",
+      "reviewed_date": "2026-11-04",
+      "aliases": [
+        "Geoscientific Instrumentation Methods and Data Systems"
+      ]
+    },
+    {
+      "name": "Geoscientific Model Development",
+      "scope": "core",
+      "url": "https://www.egu.eu/publications/open-access-journals/",
+      "scope_summary": "EGU thematic journals: Earth atmosphere, hydrosphere, cryosphere, solid Earth, soils and Earth-system processes; editorial scope reviewed by journal, not citation metrics.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Hydrology and Earth System Sciences",
+      "scope": "core",
+      "url": "https://www.egu.eu/publications/open-access-journals/",
+      "scope_summary": "EGU thematic journals: Earth atmosphere, hydrosphere, cryosphere, solid Earth, soils and Earth-system processes; editorial scope reviewed by journal, not citation metrics.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Natural Hazards and Earth System Sciences",
+      "scope": "core",
+      "url": "https://www.egu.eu/publications/open-access-journals/",
+      "scope_summary": "EGU thematic journals: Earth atmosphere, hydrosphere, cryosphere, solid Earth, soils and Earth-system processes; editorial scope reviewed by journal, not citation metrics.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Nonlinear Processes in Geophysics",
+      "scope": "core",
+      "url": "https://www.egu.eu/publications/open-access-journals/",
+      "scope_summary": "EGU thematic journals: Earth atmosphere, hydrosphere, cryosphere, solid Earth, soils and Earth-system processes; editorial scope reviewed by journal, not citation metrics.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Ocean Science",
+      "scope": "core",
+      "url": "https://www.egu.eu/publications/open-access-journals/",
+      "scope_summary": "EGU thematic journals: Earth atmosphere, hydrosphere, cryosphere, solid Earth, soils and Earth-system processes; editorial scope reviewed by journal, not citation metrics.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "SOIL",
+      "scope": "core",
+      "url": "https://www.egu.eu/publications/open-access-journals/",
+      "scope_summary": "EGU thematic journals: Earth atmosphere, hydrosphere, cryosphere, solid Earth, soils and Earth-system processes; editorial scope reviewed by journal, not citation metrics.",
+      "reviewed_date": "2026-11-04",
+      "issn": [
+        "2199-3971",
+        "2199-398X"
+      ]
+    },
+    {
+      "name": "Solid Earth",
+      "scope": "core",
+      "url": "https://www.egu.eu/publications/open-access-journals/",
+      "scope_summary": "EGU thematic journals: Earth atmosphere, hydrosphere, cryosphere, solid Earth, soils and Earth-system processes; editorial scope reviewed by journal, not citation metrics.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "The Cryosphere",
+      "scope": "core",
+      "url": "https://www.egu.eu/publications/open-access-journals/",
+      "scope_summary": "EGU thematic journals: Earth atmosphere, hydrosphere, cryosphere, solid Earth, soils and Earth-system processes; editorial scope reviewed by journal, not citation metrics.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Weather and Climate Dynamics",
+      "scope": "core",
+      "url": "https://www.egu.eu/publications/open-access-journals/",
+      "scope_summary": "EGU thematic journals: Earth atmosphere, hydrosphere, cryosphere, solid Earth, soils and Earth-system processes; editorial scope reviewed by journal, not citation metrics.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Geoscience Communication",
+      "scope": "core",
+      "url": "https://www.egu.eu/publications/open-access-journals/",
+      "scope_summary": "EGU thematic journals: Earth atmosphere, hydrosphere, cryosphere, solid Earth, soils and Earth-system processes; editorial scope reviewed by journal, not citation metrics.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Geophysical Research Letters",
+      "scope": "core",
+      "url": "https://www.agu.org/Publications/Authors/Journals",
+      "scope_summary": "Named Earth-system AGU journals and JGR disciplinary sections; solar/planetary-wide sections are not included by publisher membership alone.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Reviews of Geophysics",
+      "scope": "core",
+      "url": "https://www.agu.org/Publications/Authors/Journals",
+      "scope_summary": "Named Earth-system AGU journals and JGR disciplinary sections; solar/planetary-wide sections are not included by publisher membership alone.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Tectonics",
+      "scope": "core",
+      "url": "https://www.agu.org/Publications/Authors/Journals",
+      "scope_summary": "Named Earth-system AGU journals and JGR disciplinary sections; solar/planetary-wide sections are not included by publisher membership alone.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Water Resources Research",
+      "scope": "core",
+      "url": "https://www.agu.org/Publications/Authors/Journals",
+      "scope_summary": "Named Earth-system AGU journals and JGR disciplinary sections; solar/planetary-wide sections are not included by publisher membership alone.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Global Biogeochemical Cycles",
+      "scope": "core",
+      "url": "https://www.agu.org/Publications/Authors/Journals",
+      "scope_summary": "Named Earth-system AGU journals and JGR disciplinary sections; solar/planetary-wide sections are not included by publisher membership alone.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Geochemistry Geophysics Geosystems",
+      "scope": "core",
+      "url": "https://www.agu.org/Publications/Authors/Journals",
+      "scope_summary": "Named Earth-system AGU journals and JGR disciplinary sections; solar/planetary-wide sections are not included by publisher membership alone.",
+      "reviewed_date": "2026-11-04",
+      "aliases": [
+        "Geochemistry, Geophysics, Geosystems"
+      ]
+    },
+    {
+      "name": "Paleoceanography",
+      "scope": "core",
+      "url": "https://www.agu.org/Publications/Authors/Journals",
+      "scope_summary": "Named Earth-system AGU journals and JGR disciplinary sections; solar/planetary-wide sections are not included by publisher membership alone.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Paleoceanography and Paleoclimatology",
+      "scope": "core",
+      "url": "https://www.agu.org/Publications/Authors/Journals",
+      "scope_summary": "Named Earth-system AGU journals and JGR disciplinary sections; solar/planetary-wide sections are not included by publisher membership alone.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Journal of Geophysical Research Atmospheres",
+      "scope": "core",
+      "url": "https://www.agu.org/Publications/Authors/Journals",
+      "scope_summary": "Named Earth-system AGU journals and JGR disciplinary sections; solar/planetary-wide sections are not included by publisher membership alone.",
+      "reviewed_date": "2026-11-04",
+      "issn": [
+        "0148-0227",
+        "2156-2202",
+        "2169-897X",
+        "2169-8996"
+      ]
+    },
+    {
+      "name": "Journal of Geophysical Research Biogeosciences",
+      "scope": "core",
+      "url": "https://www.agu.org/Publications/Authors/Journals",
+      "scope_summary": "Named Earth-system AGU journals and JGR disciplinary sections; solar/planetary-wide sections are not included by publisher membership alone.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Journal of Geophysical Research Earth Surface",
+      "scope": "core",
+      "url": "https://www.agu.org/Publications/Authors/Journals",
+      "scope_summary": "Named Earth-system AGU journals and JGR disciplinary sections; solar/planetary-wide sections are not included by publisher membership alone.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Journal of Geophysical Research Oceans",
+      "scope": "core",
+      "url": "https://www.agu.org/Publications/Authors/Journals",
+      "scope_summary": "Named Earth-system AGU journals and JGR disciplinary sections; solar/planetary-wide sections are not included by publisher membership alone.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Journal of Geophysical Research Solid Earth",
+      "scope": "core",
+      "url": "https://www.agu.org/Publications/Authors/Journals",
+      "scope_summary": "Named Earth-system AGU journals and JGR disciplinary sections; solar/planetary-wide sections are not included by publisher membership alone.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Chinese Journal of Geophysics",
+      "scope": "core",
+      "url": "https://www.agu.org/Publications/Authors/Journals",
+      "scope_summary": "Named Earth-system AGU journals and JGR disciplinary sections; solar/planetary-wide sections are not included by publisher membership alone.",
+      "reviewed_date": "2026-11-04",
+      "issn": [
+        "0001-5733",
+        "0898-9591",
+        "2326-0440"
+      ]
+    },
+    {
+      "name": "Nature Geoscience",
+      "scope": "core",
+      "url": "https://www.nature.com/ngeo/submission-guidelines/about/aims",
+      "scope_summary": "Earth-science disciplines including geology, geophysics, atmosphere, climate, hydrology, oceanography and Earth observation.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Nature Climate Change",
+      "scope": "core",
+      "url": "https://www.nature.com/nclimate/aims",
+      "scope_summary": "Climate change, its Earth-system processes, effects and responses; treated as a climate-specialist journal.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Nature Water",
+      "scope": "core",
+      "url": "https://www.nature.com/natwater/aims",
+      "scope_summary": "Water research and its connections with Earth systems and human activity; included as a dedicated water journal.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Earth-Science Reviews",
+      "scope": "core",
+      "url": "https://www.sciencedirect.com/journal/earth-science-reviews/about/aims-and-scope",
+      "scope_summary": "Reviews across the Earth sciences.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Earth and Planetary Science Letters",
+      "scope": "core",
+      "url": "https://www.sciencedirect.com/journal/earth-and-planetary-science-letters/about/aims-and-scope",
+      "scope_summary": "Physical and chemical processes and evolution of Earth and planets.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Chemical Geology",
+      "scope": "core",
+      "url": "https://www.sciencedirect.com/journal/chemical-geology/about/aims-and-scope",
+      "scope_summary": "Geochemical and isotopic processes of Earth materials.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Marine Geology",
+      "scope": "core",
+      "url": "https://www.sciencedirect.com/journal/marine-geology/about/aims-and-scope",
+      "scope_summary": "Marine geology, geophysics and geochemistry.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Journal of Hydrology",
+      "scope": "core",
+      "url": "https://www.sciencedirect.com/journal/journal-of-hydrology/about/aims-and-scope",
+      "scope_summary": "Hydrological processes and water systems.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Remote Sensing of Environment",
+      "scope": "core",
+      "url": "https://www.sciencedirect.com/journal/remote-sensing-of-environment/about/aims-and-scope",
+      "scope_summary": "Remote sensing of the terrestrial environment and Earth observation.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Quaternary Science Reviews",
+      "scope": "core",
+      "url": "https://www.sciencedirect.com/journal/quaternary-science-reviews/about/aims-and-scope",
+      "scope_summary": "Quaternary Earth environments and paleoclimate.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Gondwana Research",
+      "scope": "core",
+      "url": "https://www.sciencedirect.com/journal/gondwana-research/about/aims-and-scope",
+      "scope_summary": "Earth evolution, continental geology and geodynamics.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Precambrian Research",
+      "scope": "core",
+      "url": "https://www.sciencedirect.com/journal/precambrian-research/about/aims-and-scope",
+      "scope_summary": "Early Earth history and Precambrian geology.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Lithos",
+      "scope": "core",
+      "url": "https://www.sciencedirect.com/journal/lithos/about/aims-and-scope",
+      "scope_summary": "Petrology, mineralogy and geochemistry.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Ore Geology Reviews",
+      "scope": "core",
+      "url": "https://www.sciencedirect.com/journal/ore-geology-reviews/about/aims-and-scope",
+      "scope_summary": "Geology of mineral and ore deposits.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Geomorphology",
+      "scope": "core",
+      "url": "https://www.sciencedirect.com/journal/geomorphology/about/aims-and-scope",
+      "scope_summary": "Landforms and Earth surface processes.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "CATENA",
+      "scope": "core",
+      "url": "https://www.sciencedirect.com/journal/catena/about/aims-and-scope",
+      "scope_summary": "Landscape, soils, geomorphology and hydrological processes.",
+      "reviewed_date": "2026-11-04",
+      "issn": [
+        "0341-8162",
+        "1872-6887"
+      ]
+    },
+    {
+      "name": "Engineering Geology",
+      "scope": "core",
+      "url": "https://www.sciencedirect.com/journal/engineering-geology/about/aims-and-scope",
+      "scope_summary": "Geological processes and materials in engineering and hazards.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Annual Review of Earth and Planetary Sciences",
+      "scope": "core",
+      "url": "https://www.annualreviews.org/content/journals/earth",
+      "scope_summary": "Reviews of Earth and planetary sciences, including geology, geophysics, climate and oceanography.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Geology",
+      "scope": "core",
+      "url": "https://pubs.geoscienceworld.org/geology",
+      "scope_summary": "Geoscience research across geological disciplines.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Geophysics",
+      "scope": "core",
+      "url": "https://pubs.geoscienceworld.org/geophysics",
+      "scope_summary": "Applied geophysics, Earth imaging and physical properties of Earth materials.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Geophysical Journal International",
+      "scope": "core",
+      "url": "https://academic.oup.com/gji/pages/General_Instructions",
+      "scope_summary": "Research in solid-Earth geophysics and geophysical processes.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Journal of Climate",
+      "scope": "core",
+      "url": "https://www.ametsoc.org/index.cfm/ams/publications/journals/",
+      "scope_summary": "Named AMS journals dedicated to climate and atmospheric science.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Journal of the Atmospheric Sciences",
+      "scope": "core",
+      "url": "https://www.ametsoc.org/index.cfm/ams/publications/journals/",
+      "scope_summary": "Named AMS journals dedicated to climate and atmospheric science.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Climate Dynamics",
+      "scope": "core",
+      "url": "https://link.springer.com/journal/382/aims-and-scope",
+      "scope_summary": "Dynamics of the climate system and its component processes.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Sedimentology",
+      "scope": "core",
+      "url": "https://onlinelibrary.wiley.com/journal/13653091",
+      "scope_summary": "Sedimentary processes, sedimentary rocks and environments.",
+      "reviewed_date": "2026-11-04",
+      "issn": [
+        "0037-0746",
+        "1365-3091"
+      ]
+    },
+    {
+      "name": "The Holocene",
+      "scope": "core",
+      "url": "https://journals.sagepub.com/aims-scope/HOL",
+      "scope_summary": "Holocene environmental change and Earth history.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Earth System Science Data",
+      "scope": "core",
+      "url": "https://www.earth-system-science-data.net/about/aims_and_scope.html",
+      "scope_summary": "Publication and discussion of datasets describing the Earth system.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Science of The Total Environment",
+      "scope": "cross",
+      "url": "https://shop.elsevier.com/journals/science-of-the-total-environment/0048-9697",
+      "scope_summary": "Multidisciplinary environment and its relationship with humankind; individual works require Earth-related evidence.",
+      "reviewed_date": "2026-11-04",
+      "aliases": [
+        "The Science of The Total Environment"
+      ],
+      "issn": [
+        "0048-9697",
+        "1879-1026"
+      ]
+    },
+    {
+      "name": "Global Change Biology",
+      "scope": "cross",
+      "url": "https://openalex.org/sources",
+      "scope_summary": "Reviewed interdisciplinary ecology, environment, general remote-sensing or engineering scope; publication alone does not assign the core Earth-system group.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Environmental Research Letters",
+      "scope": "cross",
+      "url": "https://openalex.org/sources",
+      "scope_summary": "Reviewed interdisciplinary ecology, environment, general remote-sensing or engineering scope; publication alone does not assign the core Earth-system group.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Remote Sensing",
+      "scope": "cross",
+      "url": "https://openalex.org/sources",
+      "scope_summary": "Reviewed interdisciplinary ecology, environment, general remote-sensing or engineering scope; publication alone does not assign the core Earth-system group.",
+      "reviewed_date": "2026-11-04",
+      "issn": [
+        "2072-4292"
+      ]
+    },
+    {
+      "name": "International Journal of Rock Mechanics and Mining Sciences",
+      "scope": "cross",
+      "url": "https://openalex.org/sources",
+      "scope_summary": "Reviewed interdisciplinary ecology, environment, general remote-sensing or engineering scope; publication alone does not assign the core Earth-system group.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Rock Mechanics and Rock Engineering",
+      "scope": "cross",
+      "url": "https://openalex.org/sources",
+      "scope_summary": "Reviewed interdisciplinary ecology, environment, general remote-sensing or engineering scope; publication alone does not assign the core Earth-system group.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Computers and Geotechnics",
+      "scope": "cross",
+      "url": "https://openalex.org/sources",
+      "scope_summary": "Reviewed interdisciplinary ecology, environment, general remote-sensing or engineering scope; publication alone does not assign the core Earth-system group.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Computers & Geosciences",
+      "scope": "cross",
+      "url": "https://openalex.org/sources",
+      "scope_summary": "Reviewed interdisciplinary ecology, environment, general remote-sensing or engineering scope; publication alone does not assign the core Earth-system group.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Nature",
+      "scope": "cross",
+      "url": "https://www.nature.com/nature/aims",
+      "scope_summary": "Broad multidisciplinary journals; only individually Earth-related works enter the collection. This entry is an operational cross-disciplinary designation, not a shared publisher claim.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Science",
+      "scope": "cross",
+      "url": "https://www.science.org/content/page/science-information-authors",
+      "scope_summary": "Broad multidisciplinary journals; only individually Earth-related works enter the collection. This entry is an operational cross-disciplinary designation, not a shared publisher claim.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Nature Communications",
+      "scope": "cross",
+      "url": "https://www.nature.com/ncomms/aims",
+      "scope_summary": "Broad multidisciplinary journals; only individually Earth-related works enter the collection. This entry is an operational cross-disciplinary designation, not a shared publisher claim.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Science Advances",
+      "scope": "cross",
+      "url": "https://www.science.org/content/page/science-advances-information-authors",
+      "scope_summary": "Broad multidisciplinary journals; only individually Earth-related works enter the collection. This entry is an operational cross-disciplinary designation, not a shared publisher claim.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Annales Geophysicae",
+      "scope": "cross",
+      "url": "https://www.egu.eu/publications/open-access-journals/",
+      "scope_summary": "Broad planetary/space or cross-disciplinary scope; journal identity alone does not put all articles in the Earth-system core.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Journal of Geophysical Research Space Physics",
+      "scope": "cross",
+      "url": "https://www.agu.org/publications/catalog/journals",
+      "scope_summary": "Broad planetary/space or cross-disciplinary scope; journal identity alone does not put all articles in the Earth-system core.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Journal of Geophysical Research Planets",
+      "scope": "cross",
+      "url": "https://www.agu.org/publications/catalog/journals",
+      "scope_summary": "Broad planetary/space or cross-disciplinary scope; journal identity alone does not put all articles in the Earth-system core.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "Earth and Space Science",
+      "scope": "cross",
+      "url": "https://www.agu.org/publications/catalog/journals",
+      "scope_summary": "Broad planetary/space or cross-disciplinary scope; journal identity alone does not put all articles in the Earth-system core.",
+      "reviewed_date": "2026-11-04"
+    },
+    {
+      "name": "AGU Advances",
+      "scope": "cross",
+      "url": "https://www.agu.org/publications/catalog/journals",
+      "scope_summary": "Broad planetary/space or cross-disciplinary scope; journal identity alone does not put all articles in the Earth-system core.",
+      "reviewed_date": "2026-11-04"
+    }
+  ]
+}

@@ -45,59 +45,8 @@ def lock(path):
 
 
 def inventory(snapshot):
-    root = Path(snapshot).resolve()
-    extra = {p.parent.name for p in (root / "data").glob("*/manifest")} - set(ENTITIES)
-    if extra:
-        raise ValueError(
-            "Unsupported snapshot entity types: " + ", ".join(sorted(extra))
-        )
-    items = []
-    report = {}
-    h = hashlib.sha256()
-    for e in ENTITIES:
-        manifest = root / "data" / e / "manifest"
-        content = manifest.read_bytes()
-        h.update(e.encode() + content)
-        entries = json.loads(content)["entries"]
-        n = total = missing = mismatch = 0
-        for entry in entries:
-            suffix = entry["url"].split("/data/", 1)[1]
-            p = (root / "data" / suffix).resolve()
-            if not p.is_relative_to(root / "data" / e):
-                raise ValueError("manifest path escapes entity directory")
-            meta = entry["meta"]
-            size = meta["content_length"]
-            count = meta["record_count"]
-            present = p.is_file()
-            actual = p.stat().st_size if present else None
-            missing += not present
-            mismatch += present and actual != size
-            items.append(
-                dict(
-                    entity=e,
-                    path=str(p),
-                    relative=suffix,
-                    expected=count,
-                    bytes=size,
-                    present=present,
-                    size_ok=actual == size,
-                )
-            )
-            n += count
-            total += size
-        report[e] = dict(
-            shards=len(entries),
-            records=n,
-            compressed_bytes=total,
-            missing=missing,
-            size_mismatch=mismatch,
-        )
-    items.sort(key=lambda r: (r["entity"], r["relative"]))
-    for i, item in enumerate(items):
-        item["ordinal"] = i + 1
-    return dict(
-        snapshot=str(root), manifest_sha256=h.hexdigest(), entities=report, files=items
-    )
+    from .snapshot import inventory as inspect_snapshot
+    return inspect_snapshot(snapshot)
 
 
 def select_pilot(items, target):
@@ -109,6 +58,8 @@ def select_pilot(items, target):
         )
         if e not in ["works", "authors", "awards"]:
             chosen.update(x["relative"] for x in es)
+            continue
+        if not es:
             continue
         budget = (
             target if e == "works" else min(target, 100000 if e == "authors" else 20000)
@@ -138,7 +89,7 @@ def connect(g):
     return db
 
 
-def create_generation(g, mode="pilot", works=1000000, shards=None):
+def create_generation(g, mode="pilot", works=1000000, shards=None, metadata_only=False):
     generation_name(g)
     cfg = config()
     p = generation_path(g)
@@ -167,6 +118,8 @@ def create_generation(g, mode="pilot", works=1000000, shards=None):
         shards=shards or {},
         mutable=True,
         validated=False,
+        pipeline_version=3 if metadata_only else 1,
+        snapshot_complete=inv.get("complete", True),
     )
     atomic_json(p / "generation.json", meta)
     atomic_json(p / "inventory.json", inv)
@@ -178,9 +131,16 @@ def create_generation(g, mode="pilot", works=1000000, shards=None):
             "INSERT INTO shards(path,entity,relative,ordinal,expected,bytes,selected) VALUES(:path,:entity,:relative,:ordinal,:expected,:bytes,:selected)",
             [x | dict(selected=int(x["relative"] in selected)) for x in inv["files"]],
         )
+    if metadata_only:
+        with connect(g) as db:
+            for name, definition in [("metadata_line", "INTEGER DEFAULT 0"),
+                                     ("metadata_state", "TEXT DEFAULT 'pending'"),
+                                     ("metadata_prefix_sha256", "TEXT"),
+                                     ("legacy_verified", "INTEGER DEFAULT 0")]:
+                db.execute(f"ALTER TABLE shards ADD COLUMN {name} {definition}")
     b = Backend(writer=True)
     try:
-        b.create(g, shards or {})
+        b.create(g, shards or {}, search=not metadata_only)
     finally:
         b.close()
     return meta
@@ -468,10 +428,10 @@ def guard_capacity(cfg, baseline, free_start):
         if reason:
             raise Paused(reason)
         return
-    if free < 50 * 1024**3:
-        raise RuntimeError("filesystem free space below 50 GiB")
+    if free < cfg.get("min_free_gib", 50) * 1024**3:
+        raise RuntimeError("filesystem free space below configured reserve")
     usage = measured_project_usage()
-    if usage > cfg["disk_budget_gib"] * 1024**3 * 0.90:
+    if cfg.get("disk_budget_gib") is not None and usage > cfg["disk_budget_gib"] * 1024**3 * 0.90:
         raise RuntimeError(
             f"90% project disk budget reached: measured project bytes={usage}; expansion required"
         )
@@ -504,8 +464,8 @@ def run_import(g):
     if (p / "resume-block.json").exists() and not (p / "generation.json").exists():
         raise RuntimeError("Build resume blocked pending storage validation")
     meta = read_generation(g)
-    metadata_only = meta.get("pipeline_version") == 2
-    if metadata_only:
+    metadata_only = meta.get("pipeline_version") in (2, 3)
+    if meta.get("pipeline_version") == 2:
         from .recovery import require_stage
 
         require_stage(g, "metadata")
@@ -941,6 +901,7 @@ def metadata_release(g):
         )}
     finally:
         b.close()
+    counts = {e: counts.get(e, 0) for e in ENTITIES}
     if counts != {e: row["records"] for e, row in source["entities"].items()}:
         raise RuntimeError("metadata entity coverage does not match the snapshot")
     report = dict(

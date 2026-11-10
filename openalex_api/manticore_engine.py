@@ -156,8 +156,9 @@ def engine_config():
     (root / "binlog").mkdir(exist_ok=True)
     binary_root = ROOT / "var/engines/manticore-29.9.0"
     path = ROOT / "config/manticore.conf"
+    port = __import__("urllib.parse", fromlist=["urlparse"]).urlparse(config().get("manticore_url", "http://127.0.0.1:19308")).port
     path.write_text("searchd {\n"
-                    " listen = 127.0.0.1:19308:http\n"
+                    f" listen = 127.0.0.1:{port}:http\n"
                     f" log = {root}/searchd.log\n query_log = {root}/query.log\n"
                     f" pid_file = {root}/searchd.pid\n data_dir = {root}/data\n"
                     f" binlog_path = {root}/binlog\n binlog_flush = 1\n"

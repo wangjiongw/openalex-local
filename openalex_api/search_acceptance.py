@@ -1,3 +1,4 @@
+from .config import CODE_ROOT
 """Interactive acceptance against a pinned candidate; no quotas or silent partial results."""
 import asyncio
 import math
@@ -80,7 +81,7 @@ def run(g, build, url, seconds=1800):
     from .proofs import file_hash
     from .config import ROOT
     headers = {"X-API-Key": config()["api_keys"][0]}
-    before = {p.name: file_hash(p) for p in (ROOT / "openalex_api").glob("*.py")}
+    before = {p.name: file_hash(p) for p in (CODE_ROOT / "openalex_api").glob("*.py")}
     from .search_versions import read
     manifest = read(g, build)
     gold = EARTH_GOLD if manifest.get("incremental") else GOLD
@@ -161,7 +162,7 @@ def run(g, build, url, seconds=1800):
             cold.append(time.monotonic() - started)
     matrix = [asyncio.run(load(url, queries, c, 60 if seconds >= 1800 else seconds, headers)) for c in (1, 4, 8, 16, 32)]
     sustained = asyncio.run(load(url, queries, 10, seconds, headers))
-    unchanged = before == {p.name: file_hash(p) for p in (ROOT / "openalex_api").glob("*.py")}
+    unchanged = before == {p.name: file_hash(p) for p in (CODE_ROOT / "openalex_api").glob("*.py")}
     passed = bool(seconds >= 1800 and unchanged and not sustained["errors"] and sustained["requests"] >= 1000
                   and sustained["p95_seconds"] is not None and sustained["p95_seconds"] <= 2
                   and sustained["p99_seconds"] <= 5 and all(not row["errors"] for row in matrix))

@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from scripts import check_manticore_full_restore as recovery
+from openalex_api import operations as recovery
 from openalex_api.manticore_build import restore
 
 

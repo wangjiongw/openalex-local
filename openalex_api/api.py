@@ -109,7 +109,7 @@ def availability(meta):
     metadata = bool(meta.get("validated") or meta.get("metadata_only"))
     return dict(
         metadata_ready=metadata and backends["clickhouse"],
-        metadata_complete=metadata and meta.get("mode") == "full",
+        metadata_complete=metadata and meta.get("mode") == "full" and meta.get("snapshot_complete", True),
         search_ready=not meta.get("_search_error") and not meta.get("_search_disabled")
         and bool(meta.get("_search_build") or (meta.get("validated") and not meta.get("metadata_only", False)))
         and all(backends.values()),
@@ -175,7 +175,7 @@ async def controls(request: Request, call_next):
         response.headers["X-Content-Type-Options"] = "nosniff"
         return response
     if request.url.path in [
-        "/healthz",
+        "/healthz", "/readyz",
         "/docs",
         "/redoc",
         "/openapi.json",
@@ -271,6 +271,19 @@ def healthz():
     return {"status": "alive"}
 
 
+@app.get("/readyz")
+def readyz():
+    try:
+        meta = generation()
+        available = availability(meta)
+        ready = bool(available["metadata_ready"] and available["search_ready"])
+        return JSONResponse({"ready": ready, "generation": meta["generation"],
+                             "search_build": (meta.get("_search_build") or {}).get("build"),
+                             **available}, status_code=200 if ready else 503)
+    except (HTTPException, RuntimeError, OSError, ValueError):
+        return JSONResponse({"ready": False}, status_code=503)
+
+
 @app.get("/status")
 def status(request: Request):
     params_only(request, [])
@@ -319,7 +332,7 @@ def status(request: Request):
         if legacy.exists():
             pipeline = read_json(legacy)
     return {
-        "application_version": "0.1.0",
+        "application_version": __import__("openalex_api").__version__,
         "search_pipeline": pipeline,
         "generation": g,
         "search_build": (meta.get("_search_build") or {}).get("build"),

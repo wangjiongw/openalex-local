@@ -1,0 +1,23 @@
+{
+  "36a680859cdf6e146ea4453fbda31227c1167db8beb5d8a9113252cc5053fbed": {
+    "layout": "legacy",
+    "origin": "v0.1.0 verified projection",
+    "engine_semantics": "497963173ea9d9ce46575979cec521a82b6557abcd0fd95ae14604072ca5c74e",
+    "files": {
+      "manticore_query.py": "300be6ae8bf73b6269010a59f72173d91d886697271b668fad5e54488a4d1de8",
+      "model.py": "be70e65a2fa2588a7aaea72aaee5d7170a4e903a989c1a00a323e8fd166a3852",
+      "search_projection.py": "f7776eeedc695cd57f759c910b195d2ce092eeef7ae659f6ebd9eef7d17def8e"
+    }
+  },
+  "79872811ced0bcee03e82931dfb59ab4f0034c642e0bfc28671d2728bb280e92": {
+    "layout": "native_v2",
+    "origin": "v0.1.0 verified projection",
+    "engine_semantics": "497963173ea9d9ce46575979cec521a82b6557abcd0fd95ae14604072ca5c74e",
+    "files": {
+      "manticore_query.py": "300be6ae8bf73b6269010a59f72173d91d886697271b668fad5e54488a4d1de8",
+      "model.py": "be70e65a2fa2588a7aaea72aaee5d7170a4e903a989c1a00a323e8fd166a3852",
+      "search_projection.py": "f7776eeedc695cd57f759c910b195d2ce092eeef7ae659f6ebd9eef7d17def8e",
+      "manticore_formats.py": "aced26848632cbb9f541e8d8c48e6a89c3d527489791a8192eb63281388dbc46"
+    }
+  }
+}

@@ -71,10 +71,18 @@ def test_catalog_with_empty_work_attributes_has_indexes(native):
     check_indexes(c,name)
 
 
-def test_layout_signature_preserves_existing_artifacts():
-    from openalex_api.manticore_build import signature
-    assert signature() == '36a680859cdf6e146ea4453fbda31227c1167db8beb5d8a9113252cc5053fbed'
-    assert signature('native_v2') != signature()
+def test_layout_signature_uses_installed_implementation_not_workspace(tmp_path, monkeypatch):
+    from openalex_api import manticore_build as build
+    before = build.signature()
+    fake = tmp_path / 'openalex_api'
+    fake.mkdir()
+    for name in ['manticore_engine.py', 'manticore_query.py', 'manticore_formats.py']:
+        (fake / name).write_text('untrusted workspace replacement')
+    monkeypatch.setattr(build, 'ROOT', tmp_path)
+    assert build.signature() == before
+    assert build.signature('native_v2') != before
+    monkeypatch.setattr(build, 'CODE_ROOT', tmp_path)
+    assert build.signature() != before
 
 
 @pytest.mark.parametrize('change', ['none', 'hash', 'duplicate', 'missing'])

@@ -1,3 +1,5 @@
+
+from .config import CODE_ROOT
 """Resumable full build, fail-closed validation, publication and bounded cleanup."""
 
 import argparse
@@ -125,7 +127,7 @@ def run(g):
             subprocess.run(
                 [
                     sys.executable,
-                    str(ROOT / "scripts/benchmark.py"),
+                    str(CODE_ROOT / "scripts/benchmark.py"),
                     "--seconds",
                     "1800",
                     "--qps",

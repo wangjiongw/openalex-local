@@ -1,3 +1,5 @@
+
+from .config import CODE_ROOT
 """Durable recovery/build orchestrator; stages never bypass failed evidence."""
 
 import json
@@ -220,7 +222,7 @@ def build(g, until="complete"):
                     subprocess.run(
                         [
                             sys.executable,
-                            str(ROOT / "scripts/benchmark.py"),
+                            str(CODE_ROOT / "scripts/benchmark.py"),
                             "--seconds",
                             "1800",
                             "--qps",

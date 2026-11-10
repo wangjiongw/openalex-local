@@ -1,3 +1,4 @@
+from .config import CODE_ROOT
 """Reproducible samples and HTTP checks for the versioned Earth collections."""
 import asyncio
 import bisect
@@ -270,7 +271,7 @@ async def load_cases(url, cases, records, concurrency, seconds, headers, min_per
 
 def check(cases_file, output, base_url=None, phase='auto', load_seconds=0):
     from .config import ROOT
-    code={p.name:file_hash(p) for p in (ROOT/'openalex_api').glob('*.py')}
+    code={p.name:file_hash(p) for p in (CODE_ROOT / 'openalex_api').glob('*.py')}
     fixture=read_json(Path(cases_file));output=Path(output);output.mkdir(parents=True,exist_ok=True)
     if fixture.get('schema') != 1 or not fixture.get('cases'):raise ValueError('invalid acceptance fixture')
     for case in fixture['cases']:
@@ -311,7 +312,7 @@ def check(cases_file, output, base_url=None, phase='auto', load_seconds=0):
         sustained=asyncio.run(load_cases(url,selected,records,10,load_seconds,headers,100 if fixture.get('strict_performance') else 0))
     with httpx.Client(base_url=url,headers=headers,timeout=cfg['query_timeout']+5,trust_env=False) as client:
         after=client.get('/status');after.raise_for_status();after=after.json()
-    unchanged=code=={p.name:file_hash(p) for p in (ROOT/'openalex_api').glob('*.py')}
+    unchanged=code=={p.name:file_hash(p) for p in (CODE_ROOT / 'openalex_api').glob('*.py')}
     stable=unchanged and all(before.get(k)==after.get(k) for k in ('generation','search_build'))
     functional=bool(results) and all(r['passed'] for r in results) and stable
     performance=(not load_seconds or bool(load_seconds>=1800 and sustained and not sustained['errors'] and sustained['requests']>=1000

@@ -61,9 +61,16 @@ def checkpoint(g, **requirements):
     if p.exists():
         raise Paused(json.loads(p.read_text())["reason"])
     sample = resource_status()
-    reason = decide(
-        sample["disk_free_bytes"], sample["total_rss_bytes"], **requirements
-    )
+    from .config import config
+    cfg = config()
+    if cfg.get("execution_profile") == "community":
+        additional = requirements.get("additional", 0) + requirements.get("temporary", 0)
+        if additional < 0:
+            raise ValueError("negative capacity estimate")
+        reason = ("disk-reserve" if sample["disk_free_bytes"] < additional + cfg["min_free_gib"] * GiB
+                  else "memory-budget" if sample["total_rss_bytes"] >= cfg["memory_gib"] * GiB else None)
+    else:
+        reason = decide(sample["disk_free_bytes"], sample["total_rss_bytes"], **requirements)
     if sample.get("python_rss_bytes", 0) >= 128 * GiB:
         reason = reason or "memory-python-budget"
     if reason:

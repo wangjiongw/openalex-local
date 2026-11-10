@@ -1,0 +1,85 @@
+{
+  "arm64": {
+    "clickhouse": {
+      "directory": "clickhouse-compat",
+      "filename": "clickhouse-common-static-25.8.12.129-arm64.tgz",
+      "url": "https://packages.clickhouse.com/tgz/lts/clickhouse-common-static-25.8.12.129-arm64.tgz",
+      "algorithm": "sha512",
+      "digest": "54bbad7fe6f9c902e4ba46c23e82ff03d01b1bfe32b7a5a0749632b44d9095a3a6862cd9cbaaea759de8a2b566f387a38413b5924a1b12f9d7f30085ef1039d9",
+      "kind": "tgz",
+      "binary": "clickhouse",
+      "runtime_files": [
+        "clickhouse"
+      ],
+      "version": "25.8.12.129"
+    },
+    "manticore": {
+      "directory": "manticore-29.9.0",
+      "filename": "manticore_29.9.0-26091108-58e88d5ab_arm64.deb",
+      "url": "https://repo.manticoresearch.com/repository/manticoresearch_jammy/dists/jammy/main/binary-arm64/manticore_29.9.0-26091108-58e88d5ab_arm64.deb",
+      "algorithm": "sha256",
+      "digest": "ad0c113160ebbb7ce556a866248940b9dcb653ac043002a9e120a18d1c975c2f",
+      "kind": "deb",
+      "binary": "usr/bin/searchd",
+      "version": "29.9.0",
+      "runtime_files": [
+        "usr/bin/searchd",
+        "usr/bin/indextool",
+        "usr/share/manticore/modules/lib_manticore_secondary.so",
+        "usr/share/manticore/modules/lib_manticore_columnar.so"
+      ],
+      "cache_aliases": [
+        "manticore/manticore_29.9.0_arm64.deb"
+      ]
+    }
+  },
+  "amd64": {
+    "clickhouse": {
+      "directory": "clickhouse-compat",
+      "filename": "clickhouse-common-static-25.8.12.129-amd64.tgz",
+      "url": "https://packages.clickhouse.com/tgz/lts/clickhouse-common-static-25.8.12.129-amd64.tgz",
+      "algorithm": "sha512",
+      "digest": "64329d04ed6dfda68cbe54d7ea189d7fe4f848431987fb348f711b720216a1d0f80f6ff6ec1c463810d9b9fac583e2b063f5b8f3859684fb047e12fef42442bd",
+      "kind": "tgz",
+      "binary": "clickhouse",
+      "runtime_files": [
+        "clickhouse"
+      ],
+      "version": "25.8.12.129"
+    },
+    "manticore": {
+      "directory": "manticore-29.9.0",
+      "filename": "manticore_29.9.0-26091108-58e88d5ab_amd64.deb",
+      "url": "https://repo.manticoresearch.com/repository/manticoresearch_jammy/dists/jammy/main/binary-amd64/manticore_29.9.0-26091108-58e88d5ab_amd64.deb",
+      "algorithm": "sha256",
+      "digest": "2d783d6f955cc6aca16f225c10da527e5bbd3e14fd29c439b04953657c43a12d",
+      "kind": "deb",
+      "binary": "usr/bin/searchd",
+      "version": "29.9.0",
+      "runtime_files": [
+        "usr/bin/searchd",
+        "usr/bin/indextool",
+        "usr/share/manticore/modules/lib_manticore_secondary.so",
+        "usr/share/manticore/modules/lib_manticore_columnar.so"
+      ],
+      "cache_aliases": [
+        "manticore/manticore_29.9.0_amd64.deb"
+      ]
+    }
+  },
+  "armv8-compat": {
+    "clickhouse": {
+      "directory": "clickhouse-compat",
+      "filename": "clickhouse-compat-runtime",
+      "url": "https://builds.clickhouse.com/master/aarch64v80compat/clickhouse",
+      "algorithm": "sha512",
+      "digest": "a75f6beba76ab7be399de9dd1983782c5d9f1998f22dae097e548c872157ad294311057fdbe3cb931c1667624ea12d5add88c5db1abf84b2e978f85d6531b8dd",
+      "kind": "binary",
+      "binary": "clickhouse",
+      "runtime_files": [
+        "clickhouse"
+      ],
+      "version": "26.9.1.954"
+    }
+  }
+}
