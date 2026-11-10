@@ -13,6 +13,8 @@ reference. An official-style route does not imply full official API parity.
 | Title / abstract / keywords | Manticore lexical full-text fields | published work index only; first profile is broad Earth science |
 | Author names in works | author-name text search and work filters | works indexed in the published scope |
 | Topic / source names | separate name indexes and ID filters | only entities included in that build; unrelated entity catalogs may remain unbuilt |
+| Author / institution names | optional qualified catalogs, aliases and entity-to-works links | Earth-linked authors and all imported institutions in the example; identifiers still resolve imported metadata |
+| Bulk works export | query or DOI/ID list; JSONL.gz, CSV, DOI/ID lists through API/CLI/web | pinned generations/builds, shard receipts, cancel/resume; no automatic PDF download or reference-target expansion |
 | Year, OA, source/topic/author IDs and combinations | indexed filters where supported; metadata routes for supported source predicates | inspect capabilities; arbitrary JSON predicates are not all indexed |
 | References | outgoing snapshot `referenced_works` expanded to records | unresolved targets reported; empty source arrays are not inferred |
 | Citations | reverse edges built from imported references | snapshot coverage and age limit completeness |
@@ -32,4 +34,4 @@ live deletion/merge application, arXiv integration and external A/D graph writin
 are outside the community core release. Do not interpret a lexical text index as
 an embedding index or missing references as zero true bibliographic references.
 
-Development additions and export contracts are described in [SEARCH-EXPORT.md](SEARCH-EXPORT.md). Entity names become searchable only after their added catalog is qualified and published; identifier lookup retains full imported coverage.
+Retrieval additions and export contracts are described in [SEARCH-EXPORT.md](SEARCH-EXPORT.md). Entity names become searchable only after their added catalog is qualified and published; identifier lookup retains full imported coverage.

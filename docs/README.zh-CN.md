@@ -22,6 +22,6 @@ oa --workspace /path/to/workspace pipeline resume --generation earth_example --p
 
 已按默认流程导入的数据也可以复用；原生部署指南说明了直接从已有 generation 运行地学分类和索引的方式。
 
-数据、索引、私有配置、引擎和运行产物保留本地，不提交 Git。源码采用 MIT；数据及第三方引擎遵守各自许可证。A/D 图谱处理不属于本项目主线。当前为 v0.2.0-rc.1 候选版，不宣称与官方在线 API 全部功能或实时数据一致。
+数据、索引、私有配置、引擎和运行产物保留本地，不提交 Git。源码采用 MIT；数据及第三方引擎遵守各自许可证。A/D 图谱处理不属于本项目主线。当前为 v0.3.0-rc.1 候选版，不宣称与官方在线 API 全部功能或实时数据一致。
 
 入口文档：[候选版发布与运维](RELEASE.md)、[功能清单与扩展规划](FEATURES.zh-CN.md)、[部署与命令](QUICKSTART.md)、[模块边界](ARCHITECTURE.md)、[API 范围](API-COVERAGE.md)、[验证状态](VALIDATION.md)。

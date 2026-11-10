@@ -1,9 +1,25 @@
 # Validation status
 
-The community toolchain is version `0.2.0rc1`. This records tested boundaries,
+The community toolchain is version `0.3.0rc1`. This records tested boundaries,
 not an assertion of complete official API compatibility or full-snapshot capacity.
 
-## Candidate checks
+## v0.3.0-rc.1 retrieval and export checks
+
+Application code frozen at `51b00dc`; subsequent release documentation edits do not change the qualified application. Public [four-job CI run](https://github.com/wangjiongw/openalex-local/actions/runs/42919290346) covers Linux x86_64/ARM64 unit/build and native workflows.
+
+- Unit suite: 419 passed, 76 optional/live cases skipped. Both native profiles passed from source and from an installed wheel outside the source directory.
+- Existing work coverage: 76,850,149 indexed Earth-example candidates. Work indexes and the full metadata generation were reused.
+- Added institutions: 121,512. Earth-linked author membership: 28,816,816 IDs; 28,815,527 indexed; 1,289 referenced IDs absent from the imported author metadata and reported as missing. This is not the full all-discipline author-name catalog.
+- All added segments passed snapshot hashes, native physical checks and independent restore checks. Parent full-index restore evidence was reused; no repeated parent restore or new ClickHouse disaster recovery is claimed.
+- Real-data functional checks: 202 passed, including independent Earth bibliography and entity-name cases; application hashes stayed unchanged.
+- Concurrent matrix: 1/4/8/16/32 clients for 60 seconds each, followed by 30 minutes of sustained queries alongside real export jobs. Sustained requests: 26,881; errors: 0; P95: 1.288 s; P99: 1.605 s. Export jobs completed: 2,180.
+- At the 32-client stress point, matrix P95 was 3.798 s and P99 5.001 s, with 0 errors. Latency at this stress point is not a promise that every concurrency level stays below two seconds.
+- A real 111,702-work institution query export passed cancellation/recovery across the worker update, with every unique output ID reconciled against the identity index and all downloaded shard hashes verified.
+- Browser checks cover title/author/year, selection and CSV task creation, exact-job manifest download, query exports, saved URLs including invalid selectors, and desktop/mobile overflow. Local and real separate-Pod checks also exercise the installed package.
+
+These results describe this dataset and hardware. They are not a universal throughput promise, complete official API parity, or a measured classification recall guarantee. Workspace data, credentials, generated files and detailed internal acceptance reports remain outside Git.
+
+## Previous v0.2.0-rc.1 candidate checks
 
 Git candidate: `v0.2.0-rc.1`; package/API version: `0.2.0rc1`.
 The runtime candidate is frozen at commit `4ed26c0`; subsequent release edits are

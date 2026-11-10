@@ -1,8 +1,8 @@
-# v0.2.0-rc.1 scope and operations
+# v0.3.0-rc.1 scope and operations
 
-Git tag: `v0.2.0-rc.1`. Package/API version: `0.2.0rc1` (PEP 440). This is a
+Git tag: `v0.3.0-rc.1`. Package/API version: `0.3.0rc1` (PEP 440). This is a
 GitHub prerelease of the existing toolchain, not a new production dataset.
-The internal `0.1.0` service and its published data remain separate.
+Existing data requires explicit compatibility checks and controlled publication; publishing source does not automatically upgrade other installations.
 
 ## Frozen public workflow
 
@@ -15,8 +15,7 @@ The internal `0.1.0` service and its published data remain separate.
 - Query DOI/ID, full source records, references/citations/related works and supported
   indexed text/filters; inspect capabilities rather than assuming official parity.
 
-No new routes, CLI flags, record schemas or index layouts are introduced by the
-candidate version freeze. Full supported-query boundaries: [API coverage](API-COVERAGE.md).
+This candidate adds entity catalogs, query controls and durable exports while reusing the existing metadata and work-index projection. Full supported-query boundaries: [API coverage](API-COVERAGE.md).
 
 ## Supported command entrypoints
 
@@ -27,8 +26,10 @@ candidate version freeze. Full supported-query boundaries: [API coverage](API-CO
 | Lifecycle pipeline | `pipeline plan/run/resume/status --generation ...`; default `metadata`, optional `--profile earth_sciences` |
 | Reuse imported metadata | `search-catalog`, `earth-export`, `earth-export-status`, `earth-export-stop`, `earth-export-verify` |
 | Search build and publication | `search-build`, `search-validate`, `search-publish`, `search-status` |
+| Catalog expansion | `catalogs build/status/stop/validate/publish` |
+| Result exports | `export create/list/status/cancel/resume`; `start export-worker` |
 | Existing-data checks | `adopt`, `verify`, `restore` (search restore uses the existing metadata server read-only) |
-| Service operations | `start/stop/restart clickhouse`, `manticore` or `api`; `status`, `logs`, `doctor` |
+| Service operations | `start/stop/restart clickhouse`, `manticore`, `api` or `export-worker`; `status`, `logs`, `doctor` |
 
 Use `oa --workspace /absolute/workspace` before the command. Working examples
 and required arguments are in [QUICKSTART](QUICKSTART.md), and `oa COMMAND --help`
@@ -51,6 +52,7 @@ Keep these separately from Git:
 - ClickHouse persistent data and metadata generation/checkpoints/audit receipts.
 - Collection exports and all immutable index snapshots, manifests, receipts and
   referenced parent segments, including parents retained by a newer build.
+- Catalog identity-to-work derived ClickHouse tables, identity checkpoints and query-export jobs/files pinned to their generations/builds.
 - Local validation and operational reports.
 
 A wheel or source checkout alone cannot restore a literature database. Git is
@@ -58,12 +60,12 @@ not a data backup. Do not delete published dependencies during source cleanup.
 
 ## Restart, reuse and rollback
 
-Stop the old owner before moving a workspace. Only one host may own database
-writers; never open the same ClickHouse directory from two processes/Pods. The
+Stop the old owner before moving a workspace. Only one host may own workspace
+writers, including database and export workers; never open the same ClickHouse directory from two processes/Pods. The
 ownership marker is released manually only after confirming the old services
 have stopped. Configure unused ports before starting an isolated workspace.
 
-Restart ClickHouse, then Manticore if a search index is published, then the API.
+Restart ClickHouse, then Manticore if a search index is published, then the API and export worker.
 Check `/healthz`, `/readyz`, authenticated `/status` and `/capabilities`. A
 metadata-only deployment can be ready with `search_ready: false`. A running API
 does not establish that every text-search scope is indexed.
@@ -109,4 +111,4 @@ service cutover occurs when this prerelease is published.
 
 ## Retrieval/export candidate
 
-The v0.2.0-rc.1 section above describes the frozen baseline. The v0.3.0-rc.1 additions, commands, worker lifecycle and coverage boundaries are documented in [SEARCH-EXPORT.md](SEARCH-EXPORT.md). Added catalogs must pass separate qualification before publication; the original work segments and metadata generation are reused.
+The additions, commands, worker lifecycle and coverage boundaries are documented in [SEARCH-EXPORT.md](SEARCH-EXPORT.md). Added catalogs must pass separate qualification before publication; the original work segments and metadata generation are reused.

@@ -25,3 +25,5 @@ Historical recovery modules and `baseline/` are compatibility code, not an
 alternative default search stack. No external knowledge-graph project is required.
 Only one writer may own a workspace; remote clients use HTTP. Two ClickHouse
 processes must never open the same persistent data directory.
+
+Optional catalog expansion reuses the published work segments, indexes imported institutions and linked authors, and derives identity-to-work candidates in ClickHouse. Queries and exports retain the original authorship predicate after candidate selection; large candidates use Manticore docid lookups through its existing HTTP SQL endpoint. Export workers own immutable query plans, shard receipts and durable output files independently of API processes. See [query/export operations](SEARCH-EXPORT.md).

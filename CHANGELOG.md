@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0rc1 — v0.3.0-rc.1 (under qualification)
+## 0.3.0rc1 — v0.3.0-rc.1
 
 - Durable, pinned works exports through API, CLI and web: JSONL.gz, CSV, DOI and ID lists; chunk hashes, cancellation, checkpoint recovery and independent worker.
 - Incremental full institution and Earth-linked author catalogs reuse published work segments; parallel author membership extraction, snapshot/replay and explicit validation/publication.

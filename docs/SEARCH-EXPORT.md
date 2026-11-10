@@ -1,6 +1,6 @@
-# 检索与批量导出增强版（开发版）
+# 检索与批量导出增强版
 
-本轮基于 v0.2.0-rc.1，开发版本为 0.3.0rc1。新功能代码与现有数据的规模验收分别记录；新增作者目录完成构建、验证和发布之前，不宣称已上线。数据、私有配置、任务与输出不加入 Git。
+本轮基于 v0.2.0-rc.1，候选版本为 v0.3.0-rc.1（包与 API 为 0.3.0rc1）。新功能及已有数据上的目录构建、物理恢复、查询／导出混合验收已通过；验收范围见 [VALIDATION.md](VALIDATION.md)。使用者的目录仍须单独构建、验收和发布。数据、私有配置、任务与输出不加入 Git。
 
 ## 查询与网页
 
@@ -48,7 +48,7 @@ X-API-Key: <local-key>
 | `POST /v1/exports/{id}/resume` | 校验已提交结果后恢复；运行中须先取消 |
 | `GET /v1/exports/{id}/files/{name}` | 下载已提交分块或完成后的 manifest.json |
 
-任务位于 workspace 的 `exports/query/`。每个任务固定 generation、search build、查询、字段和格式。分块回执记录计数、读取位置、哈希和文件；恢复不依赖网页 cursor。默认每块约 10 万条或 256 MiB 未压缩输出，以批次为边界；单条超大记录可能超过大小目标。状态为 queued/running/paused/cancelled/failed/completed。资源不足只暂停该任务，持久文件默认保留。不要手动修改回执或删除仍被任务引用的数据和索引。
+任务位于 workspace 的 `exports/query/`。`exported` 是已提交分块中的记录数；大分块写入期间可能暂时不变，恢复只从已提交检查点继续。每个任务固定 generation、search build、查询、字段和格式。分块回执记录计数、读取位置、哈希和文件；恢复不依赖网页 cursor。默认每块约 10 万条或 256 MiB 未压缩输出，以批次为边界；单条超大记录可能超过大小目标。状态为 queued/running/paused/cancelled/failed/completed。资源不足只暂停该任务，持久文件默认保留。不要手动修改回执或删除仍被任务引用的数据和索引。
 
 ## CLI 与运行
 
