@@ -3,11 +3,32 @@
 The community toolchain is version `0.2.0rc1`. This records tested boundaries,
 not an assertion of complete official API compatibility or full-snapshot capacity.
 
-[Native CI for the toolchain implementation](https://github.com/wangjiongw/openalex-local/actions/workflows/tests.yml)
-passed all four jobs on Linux x86_64 and ARM64: unit/build and native end-to-end.
-The native jobs use pinned ClickHouse 25.8 LTS and Manticore 29.9.0. An additional
-ARMv8 compatibility profile is exercised locally with the separately pinned
-ClickHouse 26.9 runtime.
+## Candidate checks
+
+Git candidate: `v0.2.0-rc.1`; package/API version: `0.2.0rc1`.
+The runtime candidate is frozen at commit `4ed26c0`; subsequent release edits are
+documentation-only. Public CI: [native and unit/build jobs](https://github.com/wangjiongw/openalex-local/actions/runs/42830328970).
+
+| Check | Result and boundary |
+| --- | --- |
+| Unit suite | 374 passed, 76 explicitly skipped optional/live cases |
+| Native CI | Linux x86_64 and ARM64 unit/build and metadata/Earth native workflows passed |
+| Installed wheel | Outside-source ARMv8 compatibility run: both profiles passed, including dotted workspace paths |
+| Existing-data API | 784 functional checks passed locally and 784 from an actual separate Pod; candidate code remained unchanged |
+| Concurrent smoke | 60 seconds each at 1/8 concurrency: 165/639 requests, zero errors; P95 0.700/1.379 s, P99 0.902/1.910 s |
+| Browser | DOI, title+author+year+OA, journal filtering, details, all three relation tabs, JSON download, desktop/mobile layout; no page errors |
+| Existing deployment | Metadata/search pointers and generation/build manifests unchanged; no production cutover |
+
+The short candidate load check is not a replacement for full production load
+qualification. No fresh full-data reindex or large restore was performed for this
+candidate. The internal baseline retains its previously completed roughly
+501 GiB search restore, 784 recovery checks and 30-minute load evidence. This
+candidate reuses that evidence without claiming it was rerun with new code.
+
+The native jobs use pinned ClickHouse 25.8 LTS and Manticore 29.9.0. The local
+ARMv8 compatibility run uses the separately pinned ClickHouse 26.9 runtime.
+
+## Reproducible native checks
 
 Native tests exercise both the default metadata-only profile (without installing
 Manticore or creating Earth collections) and the optional Earth example.
