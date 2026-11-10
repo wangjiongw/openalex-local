@@ -180,7 +180,7 @@ def build(g, build, parent=None):
         signal.signal(signal.SIGINT, lambda *_: STOP.set())
     with lock(target / 'catalogs.lock'):
         m = prepare(g, build, parent)
-        if m['state'] in ('sealed', 'validated'):
+        if m['state'] in ('sealed', 'validated') and m.get('identity_index', {}).get('complete'):
             return m
         b, c = Backend(writer=True), Client(timeout=600)
         try:
@@ -237,6 +237,8 @@ def build(g, build, parent=None):
                     m['entities'][entity] = dict(count=sum(s['count'] for s in m['segments'] if s['entity'] == entity))
                     save(m)
                     atomic_json(target / 'progress.json', dict(state='building_catalogs', entity=entity, progress=progress, updated=time.time()))
+            from .identity_filters import build as build_identities
+            build_identities(b, m, STOP)
             m['indexes'] = {entity: ','.join(s['index'] for s in m['segments'] if s['entity'] == entity and s.get('sealed')) for entity in m['entities'] if any(s['entity'] == entity and s.get('sealed') for s in m['segments'])}
             m.update(state='sealed', sealed_at=time.time())
             save(m)
@@ -266,6 +268,12 @@ def qualify(g, build):
         raise ValueError('a sealed catalog expansion is required')
     for key in ('parent_artifact_signature', 'rebuild_source', 'source_artifact_signature', 'source_reconciliation'):
         m.pop(key, None)
+    from .identity_filters import validate as validate_identities
+    identity_backend = Backend()
+    try:
+        validate_identities(identity_backend, m)
+    finally:
+        identity_backend.close()
     parent_path = build_path(g, m['parent'])
     if file_hash(parent_path / 'build.json') != m['parent_manifest_sha256']:
         raise RuntimeError('parent manifest changed')
@@ -381,6 +389,12 @@ def publish(g, build):
     if meta['generation'] != g or not meta.get('metadata_frozen'):
         raise RuntimeError('catalog publication requires the existing active frozen metadata generation')
     require_metadata(g)
+    from .identity_filters import validate as validate_identities
+    b = Backend()
+    try:
+        validate_identities(b, m)
+    finally:
+        b.close()
     from .manticore_qualification import publish as publish_search
     publish_search(g, build)
     return dict(published=True,generation=g,build=build)

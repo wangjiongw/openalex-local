@@ -261,6 +261,8 @@ def rows(plan, after, backend):
     request['query'].pop('match_all', None)
     request['options'].pop('scroll', None)
     request['query'].setdefault('bool', {}).setdefault('must', []).append({'range': {'id': {'gt': int(after or 0)}}})
+    from .identity_filters import apply as identity_prefilter
+    identity_prefilter(request, body, manifest, backend)
     client = Client()
     try:
         result = client.search(request)

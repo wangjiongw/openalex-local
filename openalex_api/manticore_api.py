@@ -163,6 +163,8 @@ def listing(entity, body, select, page, per_page, cursor, count, scores, search_
     offset = 0 if payload else (page - 1) * per_page
     native = search_request(entity, body, [s["index"] for s in segments], per_page, offset,
                             payload["scroll"] if payload else None, manifest.get("physical_layout", "legacy"))
+    from .identity_filters import apply as identity_prefilter
+    identity_prefilter(native, body, manifest, backend())
     prepared = time.perf_counter()
     result = client().search(native)
     searched = time.perf_counter()
