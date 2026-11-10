@@ -107,7 +107,7 @@ async function search(event, more = false) {
     if (entity === "works") {
       for (const [id,field,pattern] of [["topic-filter",$("primary-topic").checked ? "primary_topic" : "topic",/^T\d+$/i],["source-filter","source",/^S\d+$/i],["author-id-filter","author",/^A\d+$/i],["institution-filter","institution",/^I\d+$/i]]) {
         const value = $(id).value.trim().replace(/^https?:\/\/openalex\.org\//i, "");
-        if (value && !pattern.test(value)) throw new Error("请从主题／期刊名称候选中选择，或直接填写 OpenAlex ID。");
+        if (value && !pattern.test(value)) throw new Error("请从名称候选中选择，或直接填写相应的 OpenAlex ID。");
         if (value) filters.push(field + ":" + value.toUpperCase());
       }
       if ($("language-filter").value.trim()) {if(!/^[a-z]{2}$/i.test($("language-filter").value.trim()))throw new Error("语言请填写两位代码，例如 en。");filters.push("language:"+$("language-filter").value.trim().toLowerCase());}
@@ -234,7 +234,7 @@ for (const [inputId, listId, entity] of [["topic-filter","topic-options","topics
 }
 
 function saveQuery(){const params=new URLSearchParams();for(const id of stateFields){const el=$(id),v=el.type==="checkbox"?(el.checked?"1":""):el.value;if(v)params.set(id,v);}history.replaceState(null,"","?"+params);}
-function restoreQuery(){const params=new URLSearchParams(location.search);for(const id of stateFields){const value=params.get(id);if(value!==null){const el=$(id);if(el.type==="checkbox")el.checked=value==="1";else el.value=value;}}}
+function restoreQuery(){const params=new URLSearchParams(location.search);for(const id of stateFields){const value=params.get(id);if(value!==null){const el=$(id);if(el.options && ![...el.options].some(option=>option.value===value))continue;if(el.type==="checkbox")el.checked=value==="1";else el.value=value;}}}
 $("search-form").addEventListener("input",()=>{searchRevision++;nextResults=null;lastQuery=null;$("more-results").hidden=true;});
 $("select-page").addEventListener("click",()=>{for(const id of loadedWorks)selectedWorks.add(id);for(const box of $("results").querySelectorAll("input[type=checkbox]"))box.checked=true;$("export-note").textContent=`已选择 ${selectedWorks.size} 篇文献。`;});
 async function createExport(selected){try{if($("entity").value!=="works")throw new Error("请先查询文献结果。");const payload={formats:[$("export-format").value]};if(selected){if(!selectedWorks.size)throw new Error("请勾选需要导出的文献。");payload.identifiers=[...selectedWorks];}else{if(!lastQuery)throw new Error("请先完成一次文献查询。");payload.query=lastQuery;}if($("export-select").value.trim())payload.select=$("export-select").value.trim();if($("export-columns").value.trim())payload.csv_fields=$("export-columns").value.split(",").map(x=>x.trim());await request("/v1/exports",null,payload);await refreshExports();}catch(error){message(error.message);}}
