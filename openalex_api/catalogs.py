@@ -165,6 +165,8 @@ def replay(b, c, manifest, segment):
 
 
 def build(g, build, parent=None):
+    from .workspace import claim
+    claim()
     from .official import source_table
     if not parent:
         from .search_versions import active
@@ -185,6 +187,9 @@ def build(g, build, parent=None):
             for entity in ('institutions', 'authors'):
                 if entity == 'authors':
                     membership(b, c, m)
+                    from .catalog_build import build_authors
+                    build_authors(b,c,m,STOP)
+                    continue
                 source = source_table(b, meta, entity)
                 progress = m['catalog_progress'].setdefault(entity, dict(after='', selected=0, missing=0, missing_sample=[]))
                 while not progress.get('done'):
@@ -245,6 +250,8 @@ def build(g, build, parent=None):
 
 def qualify(g, build):
     """Qualify added catalogs while retaining the parent's full restore evidence."""
+    from .workspace import claim
+    claim()
     import concurrent.futures
     import threading
     from .acceptance import fixtures, candidate_api
@@ -301,17 +308,24 @@ def qualify(g, build):
     atomic_json(output / 'cases.json', fixture)
     stop = threading.Event()
     def exports_during_load():
-        from .exports import create, run
+        from . import exports
+        # Qualification owns its controller process; keep test jobs out of user exports.
+        original_root = exports.ROOT
+        exports.ROOT = output / 'export-workspace'
+        create, run = exports.create, exports.run
         result = dict(jobs=0, records=0, errors=[])
         identifiers = list(fixture['records'])[:100]
-        while not stop.is_set():
-            job = create(dict(identifiers=identifiers, formats=['jsonl.gz']), read_generation(g))
-            exported = run(job['id'])
-            result['jobs'] += 1
-            result['records'] += exported['exported']
-            if exported['state'] != 'completed':
-                result['errors'].append(exported.get('error') or exported['state'])
-                break
+        try:
+            while not stop.is_set():
+                job = create(dict(identifiers=identifiers, formats=['jsonl.gz']), read_generation(g))
+                exported = run(job['id'])
+                result['jobs'] += 1
+                result['records'] += exported['exported']
+                if exported['state'] != 'completed':
+                    result['errors'].append(exported.get('error') or exported['state'])
+                    break
+        finally:
+            exports.ROOT = original_root
         return result
     with candidate_api(g, build, output) as url:
         complete = read_generation(g).get('snapshot_complete', True)
@@ -347,8 +361,16 @@ def read_json_bytes(path):
 
 
 def publish(g, build):
+    from .workspace import claim
+    claim()
     m = read(g, build)
     if not m.get('catalog_expansion') or file_hash(build_path(g,m['parent'])/'build.json') != m['parent_manifest_sha256']:
         raise RuntimeError('catalog parent identity mismatch')
-    from .community_pipeline import publish as publish_candidate
-    return publish_candidate(g, build)
+    from .config import active
+    meta = active()
+    if meta['generation'] != g or not meta.get('metadata_frozen'):
+        raise RuntimeError('catalog publication requires the existing active frozen metadata generation')
+    require_metadata(g)
+    from .manticore_qualification import publish as publish_search
+    publish_search(g, build)
+    return dict(published=True,generation=g,build=build)

@@ -99,8 +99,13 @@ def test_native_pipeline_publish_restore_and_resume(tmp_path, profile):
             manifest=json.loads((workspace/'var/generations/demo/searches/demo_catalogs/build.json').read_text())
             assert manifest['state']=='sealed' and manifest['entities']['authors']['count']==1 and manifest['entities']['institutions']['count']==1
             run('catalogs','build','--generation','demo','--build','demo_catalogs','--parent','demo_earth')
+            user_jobs_before=len(list((workspace/'exports/query').glob('*/state.json')))
             run('catalogs','validate','--generation','demo','--build','demo_catalogs')
+            assert len(list((workspace/'exports/query').glob('*/state.json')))==user_jobs_before
+            assert any((workspace/'var/generations/demo/searches/demo_catalogs/qualification/export-workspace/exports/query').glob('*/state.json'))
+            active_before=(workspace/'var/active.json').read_bytes()
             run('catalogs','publish','--generation','demo','--build','demo_catalogs')
+            assert (workspace/'var/active.json').read_bytes()==active_before
             # A separate API can pin the qualified catalogs explicitly.
             with socket.socket() as sock:
                 sock.bind(('127.0.0.1',0));candidate_port=sock.getsockname()[1]

@@ -60,7 +60,8 @@ def client():
 
 
 def coverage(manifest):
-    return dict(engine="manticore", catalog_scopes=manifest.get("catalog_scopes", {}), collection=manifest["collection"],
+    return dict(engine="manticore", catalog_scopes=manifest.get("catalog_scopes", {}),
+                catalog_counts={e: dict(selected_ids=p["selected"], missing_entities=p["missing"], indexed_entities=manifest["entities"].get(e, {}).get("count", 0)) for e,p in manifest.get("catalog_progress", {}).items()}, collection=manifest["collection"],
                 collection_signature=manifest["collection_signature"],
                 indexed_groups=manifest["expected_groups"], earth_complete=manifest.get("earth_complete", False),
                 earth_expected=manifest["earth_expected"])

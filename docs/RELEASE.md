@@ -106,3 +106,7 @@ unchanged candidate code and unchanged production pointers/manifests.
 No compulsory 24-hour observation applies. After candidate feedback, fixes and
 validation, a stable release can be considered separately. No automatic internal
 service cutover occurs when this prerelease is published.
+
+## Retrieval/export candidate
+
+The v0.2.0-rc.1 section above describes the frozen baseline. The v0.3.0-rc.1 additions, commands, worker lifecycle and coverage boundaries are documented in [SEARCH-EXPORT.md](SEARCH-EXPORT.md). Added catalogs must pass separate qualification before publication; the original work segments and metadata generation are reused.

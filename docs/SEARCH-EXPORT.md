@@ -48,7 +48,7 @@ X-API-Key: <local-key>
 | `POST /v1/exports/{id}/resume` | 校验已提交结果后恢复；运行中须先取消 |
 | `GET /v1/exports/{id}/files/{name}` | 下载已提交分块或完成后的 manifest.json |
 
-任务位于 workspace 的 `exports/query/`。每个任务固定 generation、search build、查询、字段和格式。分块回执记录计数、读取位置、哈希和文件；恢复不依赖网页 cursor。默认每块约 10 万条或 256 MiB 原始 JSON，以批次为边界；单条超大记录可能超过大小目标。状态为 queued/running/paused/cancelled/failed/completed。资源不足只暂停该任务，持久文件默认保留。不要手动修改回执或删除仍被任务引用的数据和索引。
+任务位于 workspace 的 `exports/query/`。每个任务固定 generation、search build、查询、字段和格式。分块回执记录计数、读取位置、哈希和文件；恢复不依赖网页 cursor。默认每块约 10 万条或 256 MiB 未压缩输出，以批次为边界；单条超大记录可能超过大小目标。状态为 queued/running/paused/cancelled/failed/completed。资源不足只暂停该任务，持久文件默认保留。不要手动修改回执或删除仍被任务引用的数据和索引。
 
 ## CLI 与运行
 
@@ -74,7 +74,7 @@ oa --workspace /path/to/workspace catalogs validate --generation <generation> --
 oa --workspace /path/to/workspace catalogs publish --generation <generation> --build <new_build>
 ```
 
-先新增全量机构索引，再从冻结 works 分段提取作者 ID，去重后构建作者名称索引。不会重跑地学分类或整体重建 works。新增快照保留原分段的绝对依赖，不能删除父索引；进度和估算见新 build 目录下 progress.json。失败后使用相同参数继续；已有回执可重放至丢失的未封存目录。
+先新增全量机构索引，再从冻结 works 分段提取作者 ID，去重后按互不重叠的 ID 区间并行构建作者名称索引，每段预读下一批、保留独立检查点；已完成前缀封存复用。父进程串行封存快照，避免并发封存争用。不会重跑地学分类或整体重建 works。新增快照保留原分段的绝对依赖，不能删除父索引；进度和估算见新 build 目录下 progress.json。失败后使用相同参数继续；已有回执可重放至丢失的未封存目录。
 
 验证复用父版本全量恢复证据，只检查新增分段的物理与恢复结果；完整快照执行常用查询、实体查询及 30 分钟查询／导出混合验收，之后显式发布。小样本原生测试不替代真实规模验收。发布不要求固定观察 24 小时。
 

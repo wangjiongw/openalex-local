@@ -2,7 +2,7 @@
 
 本项目将使用者自行下载的公开 OpenAlex snapshot 转换为本地可用的文献元数据、引用关系和检索服务，提供 CLI、HTTP API 和网页。完整保留源数据，按需要构建文本检索索引；地学是内置的可选范围示例，不是整个项目的数据边界。
 
-本清单结合内部版本的规模化运行验证、社区版本实现，以及官方仓库的职责划分。候选版冻结范围及命令边界见 [发布与运维](RELEASE.md)。用于区分可复用能力和扩展候选，不表示下列待扩展功能已经实现。
+本清单结合内部版本的规模化运行验证、社区版本实现，以及官方仓库的职责划分。`0.3.0rc1` 的检索、实体目录与导出增补见 [SEARCH-EXPORT.md](SEARCH-EXPORT.md)；具体目录是否上线以当前服务 capabilities 为准。候选版冻结范围及命令边界见 [发布与运维](RELEASE.md)。用于区分可复用能力和扩展候选，不表示下列待扩展功能已经实现。
 
 ## 1. 状态和边界
 
@@ -93,7 +93,7 @@
 | E02 | 标题、摘要、关键词文本检索 | 已实现；受已发布索引范围限制 |
 | E03 | 作者姓名检索论文 | 已实现；搜索论文中的作者字段，不等同于独立作者实体检索 |
 | E04 | 年份、OA、类型、作者／机构／来源／Topic 等筛选 | 已有支持；以 `/capabilities` 和已支持字段注册表为准；不是每个原始 JSON 字段都能高效过滤 |
-| E05 | 来源与 Topic 名称检索 | 内部已建立 sources／topics 名称索引；其他实体名称索引按实际构建情况开放 |
+| E05 | 来源、Topic、作者与机构名称检索 | 已有 sources／topics；0.3 增加全量机构及地学文献关联作者的目录扩建、恢复、验收与发布；实际开放范围以发布 build 为准 |
 | E06 | 排序、分页、cursor、字段选择 | 已有实现；官方 REST 风格路由与本地 `/v1` 扩展并存，不能宣称完全兼容官方 |
 | E07 | 元数据统计与抽样 | 部分支持：已有 `group_by`、`sample`／`seed` 等实现；文本检索与统计／抽样的任意组合未完成 |
 | E08 | 引用图查询 | 已实现：references、citations、related-works 及相关计数；返回可读文献信息和缺失目标状态 |
@@ -111,7 +111,7 @@
 | F03 | 结果和详情 | 已实现：可读标题、DOI、作者／机构、摘要、来源、OA、分类标签和原始 JSON |
 | F04 | 引用浏览 | 已实现：参考文献／引用本文的文献／相关文献分开显示，分页和记录跳转 |
 | F05 | 保存元数据与打开 OA 链接 | 已实现：下载单条记录 JSON、打开源记录提供的 OA 链接；**不是批量全文下载器** |
-| F06 | 结果集导出、收藏和下载队列 | 部分已有地学批次导出；通用查询结果导出、收藏、批量选择和前端下载管理仍需扩展 |
+| F06 | 结果集导出、收藏和下载队列 | 0.3 已实现查询／清单导出、批量选择、持久任务与文件下载；收藏、PDF 下载队列仍待扩展 |
 | F07 | 版本归组与发表版优先 | 待扩展；当前保留源记录，不保证预印本与正式版已跨记录合并 |
 | F08 | 页面状态说明 | 已实现基础提示；继续使控件与 capabilities 对齐，区分未建索引、范围未覆盖、源数据缺失和服务故障 |
 
@@ -134,7 +134,7 @@
 
 | 扩展 | 用户获得的能力 | 官方参考 | 接入方式及主要边界 |
 | --- | --- | --- | --- |
-| X01 通用结果集导出 | 将搜索／过滤结果保存为 work ID、DOI、JSONL、CSV，供下载或外部分析使用 | [openalex-api-tutorials](https://github.com/ourresearch/openalex-api-tutorials)、[openalex-official](https://github.com/ourresearch/openalex-official) | 把已有分页／批量接口和地学导出经验转为通用入口；固定 generation、查询条件和索引版本，保证可重现 |
+| X01 通用结果集导出（0.3 已实现） | 将搜索／过滤结果保存为 work ID、DOI、JSONL、CSV，供下载或外部分析使用 | [openalex-api-tutorials](https://github.com/ourresearch/openalex-api-tutorials)、[openalex-official](https://github.com/ourresearch/openalex-official) | 已复用既有查询、批量读取及分块回执，提供 API／CLI／网页入口；固定 generation、查询与索引版本，按稳定 ID 输出 |
 | X02 实际文献下载 | 根据查询结果或 DOI／ID 清单获取 PDF，可选 TEI XML | [openalex-official](https://github.com/ourresearch/openalex-official)、[openalex-content-api](https://github.com/ourresearch/openalex-content-api) | 先支持清单导出及官方 CLI 对接，再考虑原生下载；下载权限和可用格式以官方服务及实际文件为准 |
 | X03 本地 OA 下载 | 使用 snapshot 的 `pdf_url`／OA locations 获取可访问 PDF | [openalex-official](https://github.com/ourresearch/openalex-official)、[openalex-http](https://github.com/ourresearch/openalex-http) | 与官方内容接口分为不同来源；记录链接失效、返回 HTML、无全文等情况，不承诺每篇都有 PDF |
 | X04 内容库与下载任务 | 本地文件、元数据与 work ID 对齐，支持续传／重试、去重和失败列表 | [openalex-official](https://github.com/ourresearch/openalex-official) | 索引库与全文文件分开存储；保存文件类型、哈希、来源、获取时间和下载状态；凭据不入 Git |

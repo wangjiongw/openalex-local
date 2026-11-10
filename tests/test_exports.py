@@ -196,3 +196,15 @@ def test_csv_distinguishes_invalid_missing_and_present_abstract():
     assert exports.csv_record({'display_name':'Fallback'},columns)==['Fallback','missing','']
     assert exports.csv_record({'abstract_inverted_index':{'word':[0]}},columns)==[None,'present','word']
     assert exports.csv_record({'abstract_inverted_index':{'word':[None]}},columns)[1]=='invalid'
+
+
+def test_csv_shards_obey_byte_target_with_narrow_json_selection(workspace,monkeypatch):
+    def rows(plan,after,backend):
+        start=int(after or 0)+1
+        return [(str(i),{'id':f'W{i}','title':'x'*200}) for i in range(start,min(start+2,5))]
+    monkeypatch.setattr(exports,'rows',rows)
+    monkeypatch.setattr(exports,'SHARD_BYTES',128)
+    monkeypatch.setattr(exports,'config',lambda:dict(export_shard_rows=100000,min_free_gib=0))
+    job=exports.create({'identifiers':['W1'],'formats':['csv'],'select':'id'},dict(generation='example',metadata_frozen=True))
+    state=exports.run(job['id'])
+    assert state['state']=='completed' and state['exported']==4 and len(state['receipts'])==2

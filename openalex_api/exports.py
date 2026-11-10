@@ -24,6 +24,7 @@ FORMATS = ('jsonl.gz', 'csv', 'doi.txt', 'ids.txt')
 CSV_FIELDS = ('id', 'doi', 'title', 'publication_year', 'authors', 'abstract', 'abstract_status', 'source',
               'is_oa', 'oa_status', 'oa_url', 'cited_by_count')
 STOP = threading.Event()
+SHARD_BYTES = 256 * 1024**2
 
 
 def hash_file(file):
@@ -350,7 +351,8 @@ def run(job):
                                 streams['missing-doi.jsonl.gz'][0].write(json.dumps({'id': identifier}) + '\n')
                                 missing += 1
                             count += 1; size += len(encoded.encode()); after = cursor
-                        if count >= config().get('export_shard_rows', 100000) or size >= 256 * 1024**2 or STOP.is_set() or (directory / 'control.json').exists():
+                        size = max(size, *(stream.tell() for stream, _ in streams.values()))
+                        if count >= config().get('export_shard_rows', 100000) or size >= SHARD_BYTES or STOP.is_set() or (directory / 'control.json').exists():
                             break
                         batch = rows(plan, after, backend)
                 for _, name in streams.values():
