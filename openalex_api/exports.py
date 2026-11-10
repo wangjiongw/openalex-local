@@ -336,11 +336,10 @@ def run(job):
                         writer.writerow(plan['csv_fields'])
                     while batch:
                         for cursor, record in batch:
-                            from .api import selected
                             from .model import doi
-                            encoded = json.dumps(selected(record, plan['select']), ensure_ascii=False, separators=(',', ':')) + '\n'
                             if 'jsonl.gz' in streams:
-                                streams['jsonl.gz'][0].write(encoded)
+                                from .api import selected
+                                streams['jsonl.gz'][0].write(json.dumps(selected(record, plan['select']), ensure_ascii=False, separators=(',', ':')) + '\n')
                             if writer:
                                 writer.writerow(csv_record(record, plan['csv_fields']))
                             identifier = record['id']
@@ -352,8 +351,8 @@ def run(job):
                             if not value:
                                 streams['missing-doi.jsonl.gz'][0].write(json.dumps({'id': identifier}) + '\n')
                                 missing += 1
-                            count += 1; size += len(encoded.encode()); after = cursor
-                        size = max(size, *(stream.tell() for stream, _ in streams.values()))
+                            count += 1; after = cursor
+                        size = max(stream.tell() for stream, _ in streams.values())
                         if count >= config().get('export_shard_rows', 100000) or size >= SHARD_BYTES or STOP.is_set() or (directory / 'control.json').exists():
                             break
                         batch = rows(plan, after, backend)

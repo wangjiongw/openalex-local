@@ -208,3 +208,19 @@ def test_csv_shards_obey_byte_target_with_narrow_json_selection(workspace,monkey
     job=exports.create({'identifiers':['W1'],'formats':['csv'],'select':'id'},dict(generation='example',metadata_frozen=True))
     state=exports.run(job['id'])
     assert state['state']=='completed' and state['exported']==4 and len(state['receipts'])==2
+
+
+def test_id_only_shards_measure_written_output_without_serializing_ignored_fields(workspace, monkeypatch):
+    monkeypatch.setattr(exports, 'config', lambda: dict(export_shard_rows=100000, min_free_gib=0))
+    monkeypatch.setattr(exports, 'SHARD_BYTES', 128)
+    def records(plan, after, backend):
+        return [(key, value | {'unused': 'x' * 4096}) for key, value in fake_rows(plan, after, backend)]
+    monkeypatch.setattr(exports, 'rows', records)
+    original = exports.json.dumps
+    def encode(value, *args, **kwargs):
+        assert 'unused' not in value, 'ID exports must not serialize ignored source fields'
+        return original(value, *args, **kwargs)
+    monkeypatch.setattr(exports.json, 'dumps', encode)
+    job = exports.create(dict(identifiers=['W1'], formats=['ids.txt']), dict(generation='example', metadata_frozen=True))
+    state = exports.run(job['id'])
+    assert state['state'] == 'completed' and state['exported'] == 3 and len(state['receipts']) == 1
