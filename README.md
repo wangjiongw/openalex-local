@@ -30,7 +30,7 @@ The source package is currently named `openalex-local-api`, imports remain
 `openalex_api`, and the CLI remains `oa`. Linux x86_64 and ARM64 are the target
 platforms; support is declared only after native end-to-end checks pass.
 
-See [API coverage and limits](docs/API-COVERAGE.md), [snapshot formats](docs/SNAPSHOT.md), [architecture](docs/ARCHITECTURE.md),
+See [validation status](docs/VALIDATION.md), [API coverage and limits](docs/API-COVERAGE.md), [snapshot formats](docs/SNAPSHOT.md), [architecture](docs/ARCHITECTURE.md),
 [contributing](CONTRIBUTING.md), and [中文说明](docs/README.zh-CN.md).
 
 ## License and affiliation
