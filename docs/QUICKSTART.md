@@ -73,7 +73,9 @@ an optional index is built. `/readyz` can report a ready metadata-only deploymen
 while `/status` explicitly reports `search_ready: false`.
 
 Resume reuses completed stages and rejects changed inputs/profile. No mandatory
-24-hour wait applies. A new snapshot requires a new generation.
+24-hour wait applies. A new snapshot requires a new generation. Existing saved Earth plans must now
+resume with `--profile earth_sciences`; their profile cannot be silently changed
+in place.
 
 ## Optional example: Earth-science text search
 

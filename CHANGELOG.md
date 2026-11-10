@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Removed `oa snapshot plan/download`; snapshot acquisition is now documented
+  as a user-managed step. `snapshot verify` remains local-only.
+- Default pipeline profile is now `metadata`; saved Earth plans must resume with
+  `--profile earth_sciences`. `engines ensure --search` opts into Manticore.
+
 - Community baseline extracted with a fresh public history.
 - MIT licensing, contributor documentation, source/data separation policy.
 - Separate installed code, packaged rules and local data workspaces.
