@@ -35,13 +35,16 @@ def prepare(source, generation, build, port=8088):
                    api_workers=1, api_keys=[secrets.token_urlsafe(32)], cursor_secret=secrets.token_hex(32))
         cfg.pop('manticore_runtime', None)
         atomic_json(ROOT / 'config/local.json', cfg)
-        for name in ['var/engines', 'var/generations', 'exports']:
+        for name in ['var/engines', 'var/generations']:
             path = ROOT / name
             if path.exists() and not path.is_symlink():
                 if any(path.iterdir()):
                     raise ValueError('adoption target has existing artifacts: ' + name)
                 path.rmdir()
             path.symlink_to(source / name, target_is_directory=True)
+        (ROOT / 'exports').mkdir(exist_ok=True)
+        if (source / 'exports/earth_collections').exists():
+            (ROOT / 'exports/earth_collections').symlink_to(source / 'exports/earth_collections', target_is_directory=True)
         atomic_json(ROOT / 'var/active.json', dict(generation=generation, read_only_adoption=True))
         atomic_json(ROOT / 'adoption.json', binding | dict(state='bound', validated=False,
                     note='Binding is not deployment acceptance; run verify and fresh-engine restore.'))

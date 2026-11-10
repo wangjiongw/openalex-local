@@ -31,3 +31,5 @@ name index and all-discipline text search are not promised. Parquet ingestion,
 live deletion/merge application, arXiv integration and external A/D graph writing
 are outside the community core release. Do not interpret a lexical text index as
 an embedding index or missing references as zero true bibliographic references.
+
+Development additions and export contracts are described in [SEARCH-EXPORT.md](SEARCH-EXPORT.md). Entity names become searchable only after their added catalog is qualified and published; identifier lookup retains full imported coverage.

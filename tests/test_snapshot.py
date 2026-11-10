@@ -14,7 +14,8 @@ def test_layout_and_full_content_verification(tmp_path, legacy):
     value = snapshot.inventory(root)
     assert value['entities']['works']['records'] == 12
     assert value['entities']['keywords']['records'] == 0
-    assert len(value['files']) == 7
+    assert value['entities']['institutions']['records'] == 1
+    assert len(value['files']) == 8
     assert snapshot.verify(root, deep=True)['passed']
     assert value['complete'] is legacy
     with gzip.open(next(v['path'] for v in value['files'] if v['entity'] == 'works'), 'rt') as stream:

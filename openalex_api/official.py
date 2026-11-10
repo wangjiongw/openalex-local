@@ -496,6 +496,9 @@ def execute(b, meta, entity, params):
         if group or sample:
             raise ValueError("text search with group_by or sample is not implemented yet")
         body = build(entity, params, filters)
+        if entity in ("authors", "institutions"):
+            from .catalogs import include_aliases
+            include_aliases(body["query"])
         result = search_listing(entity, body, params.get("select"), page, per_page, cursor, scores=True, search_scope=params.get("search_scope", "available"))
         result["group_by"] = []
         result["meta"].update(page=None if cursor else page, groups_count=None,

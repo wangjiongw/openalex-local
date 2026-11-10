@@ -19,6 +19,16 @@ def main():
     )
     p.add_argument("--workspace", help="local data/config workspace; overrides OPENALEX_HOME")
     s = p.add_subparsers(dest="command", required=True)
+    q = s.add_parser('export')
+    q.add_argument('action', choices=['create', 'list', 'status', 'cancel', 'resume'])
+    q.add_argument('--request', help='JSON export request file')
+    q.add_argument('--job')
+    q = s.add_parser('catalogs')
+    q.add_argument('action', choices=['build', 'status', 'validate', 'publish', 'stop'])
+    q.add_argument('--generation', required=True)
+    q.add_argument('--build', required=True)
+    q.add_argument('--parent')
+    q.add_argument('--background', action='store_true')
     q = s.add_parser("init")
     q.add_argument("--snapshot")
     q = s.add_parser("snapshot")
@@ -98,7 +108,7 @@ def main():
         q = s.add_parser(name)
         q.add_argument(
             "service",
-            choices=["all", "clickhouse", "opensearch", "manticore", "api", "monitor", "canary"],
+            choices=["all", "clickhouse", "opensearch", "manticore", "api", "monitor", "canary", "export-worker"],
         )
     q = s.add_parser("status")
     q.add_argument("--generation")
@@ -180,12 +190,39 @@ def main():
             from .community_cli import execute
             emit(execute(a))
             return
+        if a.command == 'export':
+            from . import exports, api
+            if a.action == 'create':
+                if not a.request:
+                    raise ValueError('--request is required')
+                emit(exports.create(json.loads(Path(a.request).read_text()), api.generation()))
+            elif a.action == 'list':
+                emit(exports.listing())
+            else:
+                if not a.job:
+                    raise ValueError('--job is required')
+                emit(exports.get(a.job) if a.action == 'status' else exports.control(a.job, a.action))
+            return
+        if a.command == 'catalogs':
+            from . import catalogs
+            if a.action != 'status' and config().get('adopted_from'):
+                raise ValueError('adopted workspaces cannot build, qualify, stop or publish source catalogs')
+            if a.action == 'stop':
+                emit(manage.stop('build-catalogs-' + a.generation))
+            elif a.action == 'build' and a.background:
+                emit(manage.start('build-catalogs-' + a.generation, ['--build', a.build] + (['--parent', a.parent] if a.parent else [])))
+            else:
+                if a.action == 'build':
+                    emit(catalogs.build(a.generation, a.build, a.parent))
+                else:
+                    emit(getattr(catalogs, {'status':'status','validate':'qualify','publish':'publish'}[a.action])(a.generation,a.build))
+            return
         cfg = config()
         if cfg.get("adopted_from"):
             if a.command not in ("start", "stop", "restart", "status", "logs", "_supervise"):
                 raise ValueError("adopted workspace is read-only; use a separate workspace for data processing")
-            if a.command in ("start", "stop", "restart", "_supervise") and a.service != "api":
-                raise ValueError("adopted workspace only manages its own API")
+            if a.command in ("start", "stop", "restart", "_supervise") and a.service not in ("api", "export-worker"):
+                raise ValueError("adopted workspace only manages its own API and export worker")
         if a.command in ("search-build", "search-validate", "search-publish") and config().get("search_engine") == "manticore":
             if getattr(a, "background", False) or getattr(a, "scope", None):
                 raise ValueError("use the community pipeline entrypoint; legacy background/scope flags are not supported")
@@ -327,7 +364,7 @@ def main():
             )
         elif a.command in ["start", "stop", "restart"]:
             names = list(manage.SERVICES) if a.service == "all" else [a.service]
-            if a.service == "all" and a.command == "start":
+            if a.service == "all" and a.command in ("start", "restart"):
                 names.remove("opensearch" if config().get("search_engine") == "manticore" else "manticore")
             if a.service == "all" and a.command in ["stop", "restart"]:
                 names += [

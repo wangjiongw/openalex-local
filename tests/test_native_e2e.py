@@ -4,6 +4,7 @@ import os
 import socket
 import subprocess
 import sys
+import time
 
 import httpx
 import pytest
@@ -38,7 +39,7 @@ def test_native_pipeline_publish_restore_and_resume(tmp_path, profile):
     cfg = json.loads(path.read_text())
     cfg.update(host='127.0.0.1', port=api, ch_url=f'http://127.0.0.1:{ch}',
                ch_tcp_port=tcp, manticore_url=f'http://127.0.0.1:{search}',
-               cpus=2, workers=2, memory_gib=8, clickhouse_memory_gib=4)
+               cpus=2, workers=2, memory_gib=8, clickhouse_memory_gib=4, export_shard_rows=2, export_batch_rows=2)
     path.write_text(json.dumps(cfg))
     options = ['--profile', os.environ.get('OPENALEX_ENGINE_PROFILE', 'standard')]
     if os.environ.get('OPENALEX_ENGINE_CACHE'):
@@ -70,8 +71,55 @@ def test_native_pipeline_publish_restore_and_resume(tmp_path, profile):
                 result = client.get('/v1/works', params={'search': 'syntheticpaper2', 'search_field': 'title'})
                 result.raise_for_status()
                 assert any(v['doi'] == 'https://doi.org/10.99999/demo.2' for v in result.json()['results'])
+            run('start', 'export-worker')
+            requests = [dict(query=dict(route='/works',params={'filter':'publication_year:2022'}),formats=['jsonl.gz','csv','ids.txt','doi.txt'])]
+            if profile == 'earth_sciences':
+                requests.append(dict(query=dict(route='/v1/works',params={})))
+                requests.append(dict(query=dict(route='/v1/works',params={'search':'Climate','search_field':'title','filter':'language:en,author:A1,institution:I1'})))
+            for payload in requests:
+                reply=client.post('/v1/exports',json=payload)
+                reply.raise_for_status()
+                job=reply.json()
+                for _ in range(90):
+                    job=client.get('/v1/exports/'+job['id']).json()
+                    if job['state'] in ('completed','failed'):break
+                    time.sleep(.3)
+                assert job['state']=='completed',job
+                assert job['exported']==(12 if payload['query']['route']=='/v1/works' else 3)
+                assert len(job['receipts'])>=2
+                for file in job['files']:
+                    downloaded=client.get('/v1/exports/'+job['id']+'/files/'+file['name'])
+                    downloaded.raise_for_status()
+                    import hashlib
+                    assert hashlib.sha256(downloaded.content).hexdigest()==file['sha256']
             detail = client.get('/works/W2').json()
             assert detail['unknown_future_field'] == {'preserved': 'yes'}
+        if profile=='earth_sciences':
+            run('catalogs','build','--generation','demo','--build','demo_catalogs','--parent','demo_earth')
+            manifest=json.loads((workspace/'var/generations/demo/searches/demo_catalogs/build.json').read_text())
+            assert manifest['state']=='sealed' and manifest['entities']['authors']['count']==1 and manifest['entities']['institutions']['count']==1
+            run('catalogs','build','--generation','demo','--build','demo_catalogs','--parent','demo_earth')
+            run('catalogs','validate','--generation','demo','--build','demo_catalogs')
+            run('catalogs','publish','--generation','demo','--build','demo_catalogs')
+            # A separate API can pin the qualified catalogs explicitly.
+            with socket.socket() as sock:
+                sock.bind(('127.0.0.1',0));candidate_port=sock.getsockname()[1]
+            env=os.environ|dict(OPENALEX_HOME=str(workspace),OPENALEX_GENERATION='demo',OPENALEX_SEARCH_BUILD='demo_catalogs',OPENALEX_SEARCH_VALIDATION='1')
+            proc=subprocess.Popen([sys.executable,'-m','uvicorn','openalex_api.api:app','--port',str(candidate_port)],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+            try:
+                with httpx.Client(base_url=f'http://127.0.0.1:{candidate_port}',trust_env=False,headers={'X-API-Key':cfg['api_keys'][0]}) as candidate:
+                    for _ in range(60):
+                        try:
+                            if candidate.get('/healthz').status_code==200:break
+                        except httpx.HTTPError:pass
+                        time.sleep(.2)
+                    for entity,name,key in [('authors','Demo Scientist','A1'),('institutions','Demo University','I1')]:
+                        for route,params in [(f'/v1/{entity}',{'search':name}), (f'/{entity}',{'search':name})]:
+                            reply=candidate.get(route,params=params)
+                            reply.raise_for_status()
+                            assert reply.json()['results'][0]['id'].endswith('/'+key),reply.json()
+            finally:
+                proc.terminate();proc.wait(timeout=15)
     finally:
-        for service in ('api', 'manticore', 'clickhouse'):
+        for service in ('export-worker', 'api', 'manticore', 'clickhouse'):
             run('stop', service)

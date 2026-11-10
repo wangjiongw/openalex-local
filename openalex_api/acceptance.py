@@ -73,6 +73,17 @@ def fixtures(g, manifest, output):
             records.update(b.details(g, 'works', sorted(targets)[start:start+100]))
     finally:
         b.close()
+    if read_generation(g).get('snapshot_complete', False):
+        from .search_acceptance import EARTH_GOLD
+        for gold in EARTH_GOLD:
+            bibliography = {field: gold[field] for field in ('doi','title','year')}
+            for label, params in [
+                ('complete-title',dict(search=gold['title'],search_field='title',per_page=10)),
+                ('title-fragment',dict(search=' '.join(gold['title'].split()[:6]),search_field='title',per_page=25)),
+                ('author-year',dict(search=gold['title'],search_field='title',author_search=gold['author'],filter='year:'+str(gold['year']),per_page=10)),
+            ]:
+                add('gold:'+label+':'+gold['doi'],'search','/v1/works',params|{'select':SELECT},shape='search',bibliography=bibliography)
+        add('negative:unmatched-title','search','/v1/works',dict(search='openalexlocalnonexistentgold00000001',search_field='title',select=SELECT),shape='search',ids=[])
     fixture = dict(schema=1, generation=g, search_build=manifest['build'], cases=cases,
                    records={k: {field: work.get(field) for field in SELECT.split(',')} for k, work in records.items()},
                    snapshot_complete=read_generation(g).get('snapshot_complete', False),

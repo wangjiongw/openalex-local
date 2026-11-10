@@ -18,7 +18,7 @@ def exact(entity, node):
             clause = {"equals": {field: int(value)}} if operator == "term" else {"range": {field: value}}
             return {"bool": {"must": [{"equals": {"has_" + field: 1}}, clause]}}
         if operator == "term" and (field in FILTERS or field == "id"):
-            name, prefix = FILTERS[field][:2] if field in FILTERS else ("id", {"works": "W", "topics": "T", "sources": "S"}[entity])
+            name, prefix = FILTERS[field][:2] if field in FILTERS else ("id", {"works": "W", "topics": "T", "sources": "S", "authors": "A", "institutions": "I"}[entity])
             if field in FILTERS and FILTERS[field][2] == "multi64":
                 name = "any(" + name + ")"
             try:

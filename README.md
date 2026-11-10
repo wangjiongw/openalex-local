@@ -5,7 +5,7 @@ citation service with a web UI and HTTP API. Point the toolchain at its local
 path, validate and import it, then optionally classify a subset and build text
 search indexes.
 
-**Community release candidate, v0.2.0-rc.1.** Snapshot acquisition is user-managed;
+**Development: 0.3.0rc1; latest published candidate: v0.2.0-rc.1.** Snapshot acquisition is user-managed;
 this project provides [download and format guidance](docs/SNAPSHOT.md), local
 readers, resumable processing, native engine installation, validation/recovery
 and deployment. Start with the [native deployment guide](docs/QUICKSTART.md).
@@ -33,7 +33,7 @@ python3 -m venv .venv
 ```
 
 See [release scope, supported commands and operations](docs/RELEASE.md).
-This candidate freezes the existing feature set; optional content downloads,
+The published candidate freezes its existing feature set. This development branch adds [query, entity catalogs and durable batch exports](docs/SEARCH-EXPORT.md); production-scale catalog acceptance is recorded separately. Optional content downloads,
 version grouping and continuous snapshot updates remain future work.
 
 The source package is named `openalex-local-api`, imports remain

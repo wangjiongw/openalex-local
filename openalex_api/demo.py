@@ -11,7 +11,8 @@ def make_snapshot(target, legacy=False):
     target = Path(target)
     if target.exists() and any(target.iterdir()):
         raise ValueError('demo target must be empty')
-    author = dict(id='https://openalex.org/A1', display_name='Example Researcher')
+    institution = dict(id='https://openalex.org/I1', display_name='Example Institute', display_name_alternatives=['Demo University'], country_code='US', type='education', works_count=12)
+    author = dict(id='https://openalex.org/A1', display_name='Example Researcher', display_name_alternatives=['Demo Scientist'], last_known_institutions=[institution])
     source = dict(id='https://openalex.org/S1', display_name='Geology', type='journal', issn_l='0091-7613', issn=['0091-7613'], works_count=100)
     topic = dict(id='https://openalex.org/T1', display_name='Geology and tectonics', score=.9,
                  field=dict(id='https://openalex.org/fields/19', display_name='Earth and Planetary Sciences'),
@@ -23,7 +24,7 @@ def make_snapshot(target, legacy=False):
             title='Climate geology syntheticpaper' + str(number), publication_year=2020 + number % 5,
             publication_date=str(2020 + number % 5) + '-01-01', type='article', language='en', is_xpac=False,
             cited_by_count=1 if number < 12 else 0,
-            authorships=[dict(author=author, author_position='first', institutions=[])],
+            authorships=[dict(author=author, author_position='first', institutions=[institution])],
             topics=[topic], primary_topic=topic, concepts=[], keywords=[dict(id='https://openalex.org/keywords/geology', display_name='Geology', score=.9)],
             primary_location=dict(source=source, is_published=True, version='publishedVersion'),
             locations=[dict(source=source, is_published=True, version='publishedVersion')],
@@ -33,7 +34,7 @@ def make_snapshot(target, legacy=False):
             related_works=['https://openalex.org/W1'] if number != 1 else [],
             unknown_future_field=dict(preserved='yes')))
     records = {entity: [] for entity in ENTITIES}
-    records.update(works=works, authors=[author], sources=[source], topics=[topic],
+    records.update(works=works, authors=[author], institutions=[institution], sources=[source], topics=[topic],
                    fields=[topic['field']], subfields=[topic['subfield']], domains=[topic['domain']])
     base = target / ('data' if legacy else 'data/jsonl')
     manifests = []

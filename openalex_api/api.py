@@ -33,7 +33,7 @@ api_key_scheme = APIKeyHeader(name="X-API-Key", auto_error=False)
 app = FastAPI(
     dependencies=[Security(api_key_scheme)],
     title="Local OpenAlex",
-    version="0.1.0",
+    version=__import__("openalex_api").__version__,
     description="Search local OpenAlex snapshot records, authors, institutions and citation edges. Completeness is reported per generation; no upstream API calls.",
 )
 clients = threading.local()
@@ -360,7 +360,10 @@ def capabilities(request: Request):
         meta = {}
     from . import official
     from .official_text import PROJECTED
+    from .exports import status as export_capabilities
     return {
+        "exports": export_capabilities(),
+        "query_combinations": {"works": ["text+author_name+year", "text+author_id+institution_id", "text+source+topic+oa+type+language"], "local_authorship": "same authorship", "official_authorship": "work-level intersection"},
         "generation": meta.get("generation"),
         **availability(meta),
         "search_coverage": search_coverage(meta),
@@ -416,6 +419,47 @@ def capabilities(request: Request):
     }
 
 
+# Specific task routes must precede the generic entity listing/detail routes.
+@app.post("/v1/exports", status_code=202)
+def export_create(payload: dict):
+    from .exports import create
+    return create(payload, generation())
+
+
+@app.get("/v1/exports")
+def export_list(request: Request, offset: int = Query(0, ge=0), limit: int = Query(25, ge=1, le=100)):
+    from .exports import listing
+    params_only(request, ['offset', 'limit'])
+    return listing(offset, limit)
+
+
+@app.get("/v1/exports/{job}")
+def export_status(job: str):
+    from .exports import get
+    try:
+        return get(job)
+    except FileNotFoundError:
+        raise HTTPException(404, 'export not found')
+
+
+@app.post("/v1/exports/{job}/{action}")
+def export_control(job: str, action: Literal['cancel', 'resume']):
+    from .exports import control
+    try:
+        return control(job, action)
+    except FileNotFoundError:
+        raise HTTPException(404, 'export not found')
+
+
+@app.get("/v1/exports/{job}/files/{name}")
+def export_download(job: str, name: str):
+    from .exports import download
+    try:
+        return FileResponse(download(job, name), filename=name, media_type='application/octet-stream')
+    except FileNotFoundError:
+        raise HTTPException(404, 'export file not found')
+
+
 @app.get("/v1/{entity}")
 def listing(
     entity: str,
@@ -463,6 +507,9 @@ def listing(
                 "filter": [{"term": {"name_exact": normalize_title(title_equal)}}],
             }
         }
+    if entity in ("authors", "institutions"):
+        from .catalogs import include_aliases
+        include_aliases(body["query"])
     return search_listing(entity, body, select, page, per_page, cursor, count, search_scope=search_scope)
 
 

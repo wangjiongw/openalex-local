@@ -178,7 +178,7 @@ def build(entity, params, filters):
         predicates.append(indexed_predicate(field, kind, value))
     for scope, value in searches:
         fs = SCOPES[scope] if entity == "works" else ("name", "aliases", "description")
-        must.append(text_query(value, fs, scope.endswith(".exact")))
+        must.append(text_query(value, fs, scope.endswith(".exact") or entity != "works"))
     sorts = []
     allowed = {"id": "id", "publication_year": "publication_year", "publication_date": "publication_date",
                "cited_by_count": "cited_by_count", "works_count": "works_count", "relevance_score": "_score", "display_name": "name_exact"}

@@ -9,7 +9,7 @@ from .config import ROOT, config, atomic_json
 from .ingest import lock
 from . import diagnostics
 
-SERVICES = ["clickhouse", "opensearch", "manticore", "api", "monitor"]
+SERVICES = ["clickhouse", "opensearch", "manticore", "api", "monitor", "export-worker"]
 
 
 def engine_configs():
@@ -273,7 +273,7 @@ def start(service, extra=None):
         proc = subprocess.Popen(
             [sys.executable, "-m", "openalex_api.cli", "_supervise", service]
             + (extra or []),
-            cwd=ROOT,
+            cwd=CODE_ROOT,
             env=os.environ | {"PYTHONPATH": str(CODE_ROOT), "OPENALEX_HOME": str(ROOT)},
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
@@ -374,6 +374,10 @@ def command(service, extra):
     env["OPENALEX_HOME"] = str(ROOT)
     env["PYTHONUNBUFFERED"] = "1"
     env["PYTHONFAULTHANDLER"] = "1"
+    if service.startswith("build-catalogs-"):
+        return [sys.executable, "-m", "openalex_api.cli", "catalogs", "build", "--generation", service[len("build-catalogs-"):], *(extra or [])], env
+    if service == "export-worker":
+        return [sys.executable, "-m", "openalex_api.exports"], env
     if service == "manticore":
         return [sys.executable, "-m", "openalex_api.manticore_runtime"], env
     if service.startswith("export-graph-enrichment-"):
@@ -499,7 +503,7 @@ def supervise(service, extra=None):
             cmd, env = command(service, extra or [])
             child = subprocess.Popen(
                 cmd,
-                cwd=ROOT,
+                cwd=CODE_ROOT,
                 env=env,
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,

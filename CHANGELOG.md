@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0rc1 — v0.3.0-rc.1 (under qualification)
+
+- Durable, pinned works exports through API, CLI and web: JSONL.gz, CSV, DOI and ID lists; chunk hashes, cancellation, checkpoint recovery and independent worker.
+- Incremental full institution and Earth-linked author catalogs reuse published work segments; parallel author membership extraction, snapshot/replay and explicit validation/publication.
+- Author identity, institution and language filters, entity-to-works navigation, saved query URLs and batch selection in the web UI.
+- Independent Earth bibliography regressions and query/export mixed-load qualification; native end-to-end checks include catalog publication and export downloads.
+- Batch identifier resolution avoids per-record metadata queries. Source code and workspace remain separate for supervised services; read-only adoption writes new exports locally.
+
+
 ## 0.2.0rc1 — v0.2.0-rc.1
 
 - Handle dotted snapshot directories when importing persisted Manticore tables,

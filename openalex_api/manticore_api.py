@@ -22,7 +22,7 @@ def native_filters(entity, node):
     if "term" in node:
         field, value = next(iter(node["term"].items()))
         value = value["value"] if isinstance(value, dict) else value
-        prefix = {"works": "W", "topics": "T", "sources": "S"}.get(entity)
+        prefix = {"works": "W", "topics": "T", "sources": "S", "authors": "A", "institutions": "I"}.get(entity)
         if field == "id" and prefix and re.fullmatch(prefix + r"[1-9]\d*", str(value)):
             number = int(value[1:])
             if number < 2**63:
@@ -60,7 +60,7 @@ def client():
 
 
 def coverage(manifest):
-    return dict(engine="manticore", collection=manifest["collection"],
+    return dict(engine="manticore", catalog_scopes=manifest.get("catalog_scopes", {}), collection=manifest["collection"],
                 collection_signature=manifest["collection_signature"],
                 indexed_groups=manifest["expected_groups"], earth_complete=manifest.get("earth_complete", False),
                 earth_expected=manifest["earth_expected"])

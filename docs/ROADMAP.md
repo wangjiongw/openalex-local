@@ -19,9 +19,13 @@ Fix reproduced defects within the frozen scope, maintain compatibility and
 validation evidence, then decide whether to promote to `v0.2.0`. There is no fixed
 24-hour wait and no automatic production cutover.
 
+## Retrieval and export development
+
+The next iteration adds scoped author and full institution catalogs, richer query controls, durable works exports and quality regression. See [implementation and usage](SEARCH-EXPORT.md). Existing works indexes remain reusable; newly built catalog coverage must pass its own qualification before publication.
+
 ## Optional later work
 
-- General query-result/DOI-list export and PDF/TEI download integration.
+- PDF/TEI download integration after the query/export workflow.
 - More entity-name indexes, user-defined indexing scopes and query combinations.
 - Calibrated bibliographic matching and cross-record version associations.
 - Parquet input, new-snapshot updates, deleted/merged ID application.

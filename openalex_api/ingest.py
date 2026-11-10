@@ -1086,6 +1086,13 @@ def capacity(g):
 
 
 def cleanup(g, confirmation):
+    from .exports import path as export_path
+    for p in export_path().glob('*/state.json'):
+        from .earth_control import read_json
+        state = read_json(p)
+        if state['generation'] == g and state['state'] != 'completed':
+            raise RuntimeError('generation is pinned by export ' + state['id'])
+
     import shutil
 
     generation_name(g)

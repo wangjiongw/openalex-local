@@ -193,3 +193,5 @@ its own API, run `oa verify`, and run `oa restore` separately before declaring a
 adoption validated. Binding alone is not an acceptance result. It requires the
 source metadata/search backends and paths to remain reachable; this is not a
 portable backup or a full redeployment of the databases.
+
+For scoped author/institution catalog expansion, durable batch exports and the export worker, see [SEARCH-EXPORT.md](SEARCH-EXPORT.md).
