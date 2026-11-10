@@ -2,6 +2,9 @@
 
 ## 0.2.0rc1 — v0.2.0-rc.1
 
+- Handle dotted snapshot directories when importing persisted Manticore tables,
+  using a temporary path alias without changing snapshot bytes or index layout.
+
 - Removed `oa snapshot plan/download`; snapshot acquisition is now documented
   as a user-managed step. `snapshot verify` remains local-only.
 - Default pipeline profile is now `metadata`; saved Earth plans must resume with

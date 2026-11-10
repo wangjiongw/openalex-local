@@ -16,7 +16,7 @@ from openalex_api.demo import make_snapshot
 def test_native_pipeline_publish_restore_and_resume(tmp_path, profile):
     snapshot = tmp_path / 'snapshot'
     make_snapshot(snapshot)
-    workspace = tmp_path / 'workspace'
+    workspace = tmp_path / 'workspace.v1'
     command = [sys.executable, '-m', 'openalex_api.cli', '--workspace', str(workspace)]
     def run(*args):
         result = subprocess.run(command + list(args), timeout=900)

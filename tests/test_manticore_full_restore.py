@@ -69,3 +69,29 @@ def test_inventory_detects_escaping_symlinks_and_wrong_size(tmp_path, monkeypatc
     (root / "data").write_bytes(b"shorter")
     with pytest.raises(ValueError, match="size mismatch"):
         recovery.inventory(root, m)
+
+
+def test_import_alias_handles_dotted_parent_without_copying_or_changing_source(tmp_path, monkeypatch):
+    from openalex_api import manticore_build as build
+    from unittest.mock import Mock
+    directory = tmp_path / 'release.v1' / 'snapshot'
+    directory.mkdir(parents=True)
+    source = directory / 'test_table.meta'
+    source.write_bytes(b'persisted snapshot')
+    segment = dict(index='test_table', snapshot=dict(path='release.v1/snapshot', files=[
+        dict(name=source.name, sha256=hashlib.sha256(source.read_bytes()).hexdigest())]))
+    monkeypatch.setattr(build, 'tables', lambda _: set())
+    verify = Mock()
+    monkeypatch.setattr(build, 'verify_segment', verify)
+    imported = []
+    class Client:
+        def sql(self, query):
+            prefix = query.split(" FROM '", 1)[1][:-1]
+            alias = __import__('pathlib').Path(prefix)
+            assert '.' not in str(alias)
+            assert alias.with_suffix('.meta').read_bytes() == b'persisted snapshot'
+            imported.append(alias.parent)
+    build.restore(Client(), tmp_path, segment)
+    assert imported and not imported[0].exists()
+    assert source.read_bytes() == b'persisted snapshot'
+    verify.assert_called_once()

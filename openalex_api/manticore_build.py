@@ -97,7 +97,14 @@ def restore(c, path, segment, target=None):
             raise RuntimeError("snapshot checksum mismatch")
     target = checked_name(target or segment["index"])
     if target not in tables(c):
-        c.sql(f"IMPORT TABLE {target} FROM {sql_string(str(directory / segment['index']))}")
+        if "." in str(directory):
+            # Manticore splits the import path at its first dot, including parent directories.
+            with tempfile.TemporaryDirectory(prefix="openalex-import-", dir="/tmp") as temporary:
+                alias = Path(temporary) / "source"
+                alias.symlink_to(directory.resolve(), target_is_directory=True)
+                c.sql(f"IMPORT TABLE {target} FROM {sql_string(str(alias / segment['index']))}")
+        else:
+            c.sql(f"IMPORT TABLE {target} FROM {sql_string(str(directory / segment['index']))}")
     verify_segment(c, path, segment, target)
     if segment.get("physical_layout") == "native_v2":
         from .manticore_formats import check_indexes
