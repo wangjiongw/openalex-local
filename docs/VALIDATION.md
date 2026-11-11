@@ -2,8 +2,17 @@
 
 [中文](VALIDATION.zh-CN.md) · [Documentation](INDEX.md)
 
-The community toolchain is stable version `0.3.0`. This records tested boundaries,
+The community toolchain is stable version `0.3.1`. This records tested boundaries,
 not an assertion of complete official API compatibility or full-snapshot capacity.
+
+## v0.3.1 authentication policy checks
+
+The patch adds an opt-in keyless deployment mode, preserving authenticated defaults.
+Regression cases cover missing/wrong keys in both modes, OpenAPI security,
+malformed configuration, retained body/deadline/rate guards and export routes.
+The local deployment setting is separate from repository defaults. Query
+projections, index layouts and engine versions remain unchanged; prior data and
+search-recovery evidence is reused without claiming a new full-data rebuild.
 
 ## v0.3.0 stable promotion checks
 

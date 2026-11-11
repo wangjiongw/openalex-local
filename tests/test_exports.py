@@ -115,11 +115,12 @@ def test_metadata_query_preserves_full_scope():
     assert '2020' in plan['where']
 
 
-def test_specific_export_routes_precede_entity_routes(workspace, monkeypatch):
-    cfg = api.config() | dict(qps=0, concurrency=0)
+@pytest.mark.parametrize('auth_required', [True, False])
+def test_specific_export_routes_precede_entity_routes(workspace, monkeypatch, auth_required):
+    cfg = api.config() | dict(qps=0, concurrency=0, auth_required=auth_required)
     monkeypatch.setattr(api,'config',lambda:cfg)
     monkeypatch.setattr(api,'generation',lambda:dict(generation='example', metadata_frozen=True))
-    with TestClient(api.app, headers={'X-API-Key':cfg['api_keys'][0]}) as client:
+    with TestClient(api.app, headers={'X-API-Key':cfg['api_keys'][0]} if auth_required else {}) as client:
         created = client.post('/v1/exports',json={'identifiers':['W1']})
         assert created.status_code == 202
         job = created.json()['id']

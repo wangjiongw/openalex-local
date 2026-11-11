@@ -11,7 +11,7 @@ function button(text, action, cls = "secondary") { const el = node("button", tex
 function message(text = "") { $("message").textContent = text; }
 async function request(path, params, payload) {
   const url = new URL(path, location.origin); if (params) url.search = new URLSearchParams(params).toString();
-  const res = await fetch(url, {method:payload === undefined ? "GET" : "POST",headers:{"X-API-Key":key,"Content-Type":"application/json"},body:payload === undefined ? undefined : JSON.stringify(payload)}); const text = await res.text(); let data;
+  const res = await fetch(url, {method:payload === undefined ? "GET" : "POST",headers:{...(key ? {"X-API-Key":key} : {}),"Content-Type":"application/json"},body:payload === undefined ? undefined : JSON.stringify(payload)}); const text = await res.text(); let data;
   try { data = JSON.parse(text); } catch { throw new Error("服务返回了无法读取的响应，请稍后重试。"); }
   if (!res.ok && res.status !== 409) {
     if (res.status === 401) throw new Error("API 密钥无效，请断开连接后重新输入。");
@@ -74,7 +74,7 @@ async function refreshStatus() {
 async function connect(event) {
   event?.preventDefault(); const supplied = $("api-key").value.trim(); if (supplied) key = supplied;
   message();
-  try { await refreshStatus(); sessionStorage.setItem("openalex-key", key); $("api-key").value = ""; $("workspace").hidden = false; $("connection").hidden = true; $("disconnect").hidden = false; }
+  try { await refreshStatus(); if(status.auth_required === false) {key = "";sessionStorage.removeItem("openalex-key");} else sessionStorage.setItem("openalex-key", key); $("api-key").value = ""; $("workspace").hidden = false; $("connection").hidden = true; $("disconnect").hidden = status.auth_required === false; }
   catch (error) { message(error.message); }
 }
 function card(r, entity) {
@@ -215,8 +215,15 @@ $("connect-form").addEventListener("submit",connect);$("search-form").addEventLi
 $("refresh-status").addEventListener("click",()=>refreshStatus().then(()=>message()).catch(error=>message(error.message)));
 $("disconnect").addEventListener("click",()=>{sessionStorage.removeItem("openalex-key");location.reload();});
 restoreQuery();
-if(key) connect().then(refreshExports);
-setInterval(()=>{if(key && !$("workspace").hidden)refreshExports();},5000);
+async function initializeConnection() {
+  if(key) return connect().then(refreshExports);
+  try {
+    const response = await fetch("/status");
+    if(response.ok) await connect().then(refreshExports);
+  } catch { message("暂时无法连接文献库，请稍后重试。"); }
+}
+initializeConnection();
+setInterval(()=>{if(!$("workspace").hidden)refreshExports();},5000);
 
 for (const [inputId, listId, entity] of [["topic-filter","topic-options","topics"],["source-filter","source-options","sources"],["author-id-filter","author-options","authors"],["institution-filter","institution-options","institutions"]]) {
   let timer, revision = 0;
@@ -239,5 +246,5 @@ $("search-form").addEventListener("input",()=>{searchRevision++;nextResults=null
 $("select-page").addEventListener("click",()=>{for(const id of loadedWorks)selectedWorks.add(id);for(const box of $("results").querySelectorAll("input[type=checkbox]"))box.checked=true;$("export-note").textContent=`已选择 ${selectedWorks.size} 篇文献。`;});
 async function createExport(selected){try{if($("entity").value!=="works")throw new Error("请先查询文献结果。");const payload={formats:[$("export-format").value]};if(selected){if(!selectedWorks.size)throw new Error("请勾选需要导出的文献。");payload.identifiers=[...selectedWorks];}else{if(!lastQuery)throw new Error("请先完成一次文献查询。");payload.query=lastQuery;}if($("export-select").value.trim())payload.select=$("export-select").value.trim();if($("export-columns").value.trim())payload.csv_fields=$("export-columns").value.split(",").map(x=>x.trim());await request("/v1/exports",null,payload);await refreshExports();}catch(error){message(error.message);}}
 $("export-query").addEventListener("click",()=>createExport(false));$("export-selected").addEventListener("click",()=>createExport(true));$("refresh-exports").addEventListener("click",refreshExports);
-async function downloadExport(job,name){try{const res=await fetch(`/v1/exports/${job}/files/${encodeURIComponent(name)}`,{headers:{"X-API-Key":key}});if(!res.ok)throw new Error("文件下载失败，请刷新任务后重试。");const url=URL.createObjectURL(await res.blob()),a=node("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch(error){message(error.message);}}
-async function refreshExports(){if(!key)return;try{const {data}=await request("/v1/exports");const root=$("export-jobs");root.replaceChildren();const names={queued:"排队",running:"运行",paused:"暂停",cancelled:"已取消",failed:"失败",completed:"完成"};for(const job of data.results){const row=node("article",undefined,"edge-item");row.dataset.jobId=job.id;row.append(node("p",`任务 ${job.id.slice(-8)} · ${new Date(job.created*1000).toLocaleString("zh-CN")} · ${names[job.state]||job.state} · ${fmt(job.exported)} 篇 · 缺 DOI ${fmt(job.missing_doi)} · ${job.generation}`));if(job.error)row.append(node("p",job.error,"subtle"));if(!["completed","cancelled","failed","paused"].includes(job.state))row.append(button("取消",async()=>{try{await request(`/v1/exports/${job.id}/cancel`,null,{});refreshExports();}catch(error){message(error.message);}}));if(["cancelled","paused","failed"].includes(job.state))row.append(button("恢复",async()=>{try{await request(`/v1/exports/${job.id}/resume`,null,{});refreshExports();}catch(error){message(error.message);}}));for(const f of job.files)row.append(button(f.name,()=>downloadExport(job.id,f.name),"quiet"));if(job.state==="completed")row.append(button("下载 manifest",()=>downloadExport(job.id,"manifest.json"),"quiet"));root.append(row);}}catch(error){$("export-note").textContent=error.message;}}
+async function downloadExport(job,name){try{const res=await fetch(`/v1/exports/${job}/files/${encodeURIComponent(name)}`,{headers:key ? {"X-API-Key":key} : {}});if(!res.ok)throw new Error("文件下载失败，请刷新任务后重试。");const url=URL.createObjectURL(await res.blob()),a=node("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch(error){message(error.message);}}
+async function refreshExports(){if($("workspace").hidden)return;try{const {data}=await request("/v1/exports");const root=$("export-jobs");root.replaceChildren();const names={queued:"排队",running:"运行",paused:"暂停",cancelled:"已取消",failed:"失败",completed:"完成"};for(const job of data.results){const row=node("article",undefined,"edge-item");row.dataset.jobId=job.id;row.append(node("p",`任务 ${job.id.slice(-8)} · ${new Date(job.created*1000).toLocaleString("zh-CN")} · ${names[job.state]||job.state} · ${fmt(job.exported)} 篇 · 缺 DOI ${fmt(job.missing_doi)} · ${job.generation}`));if(job.error)row.append(node("p",job.error,"subtle"));if(!["completed","cancelled","failed","paused"].includes(job.state))row.append(button("取消",async()=>{try{await request(`/v1/exports/${job.id}/cancel`,null,{});refreshExports();}catch(error){message(error.message);}}));if(["cancelled","paused","failed"].includes(job.state))row.append(button("恢复",async()=>{try{await request(`/v1/exports/${job.id}/resume`,null,{});refreshExports();}catch(error){message(error.message);}}));for(const f of job.files)row.append(button(f.name,()=>downloadExport(job.id,f.name),"quiet"));if(job.state==="completed")row.append(button("下载 manifest",()=>downloadExport(job.id,"manifest.json"),"quiet"));root.append(row);}}catch(error){$("export-note").textContent=error.message;}}

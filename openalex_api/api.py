@@ -1,6 +1,6 @@
 """Snapshot-only search API. OpenAlex JSON is returned without fabricating metadata."""
 
-import asyncio, contextlib, difflib, hmac, json, logging, threading, time, re
+import asyncio, contextlib, copy, difflib, hmac, json, logging, threading, time, re
 from pathlib import Path
 from typing import Literal
 from fastapi import FastAPI, HTTPException, Query, Request, Security
@@ -36,6 +36,21 @@ app = FastAPI(
     version=__import__("openalex_api").__version__,
     description="Search local OpenAlex snapshot records, authors, institutions and citation edges. Completeness is reported per generation; no upstream API calls.",
 )
+_authenticated_openapi = app.openapi
+
+
+def deployment_openapi():
+    schema = copy.deepcopy(_authenticated_openapi())
+    if not config().get("auth_required", True):
+        for operations in schema["paths"].values():
+            for operation in operations.values():
+                if isinstance(operation, dict):
+                    operation.pop("security", None)
+        schema.get("components", {}).pop("securitySchemes", None)
+    return schema
+
+
+app.openapi = deployment_openapi
 clients = threading.local()
 STATIC = Path(__file__).parent / "static"
 app.mount("/assets", StaticFiles(directory=STATIC), name="assets")
@@ -188,8 +203,10 @@ async def controls(request: Request, call_next):
         supplied = request.headers["authorization"][7:]
     if not supplied:
         supplied = request.query_params.get("api_key", "")
-    if not any(hmac.compare_digest(supplied.encode(), k.encode()) for k in c["api_keys"]):
+    if c.get("auth_required", True) and not any(hmac.compare_digest(supplied.encode(), k.encode()) for k in c["api_keys"]):
         return JSONResponse({"detail": "valid X-API-Key required"}, 401)
+    if not c.get("auth_required", True):
+        supplied = ""
     if c["qps"] > 0:
         now = time.monotonic()
         tokens, last = limiter.get(supplied, (c["burst"], now))
@@ -335,6 +352,7 @@ def status(request: Request):
             pipeline = read_json(legacy)
     return {
         "application_version": __import__("openalex_api").__version__,
+        "auth_required": config().get("auth_required", True),
         "search_pipeline": pipeline,
         "generation": g,
         "search_build": (meta.get("_search_build") or {}).get("build"),
@@ -410,7 +428,8 @@ def capabilities(request: Request):
             "metadata_execution": "Qualified search indexes execute registered common filters; identifier, graph and unindexed metadata predicates use ClickHouse. Filters precede counts/sorting/pagination; broad JSON scans can exceed the deadline.",
             "indexed_filters": {e: sorted(k for k in PROJECTED if k in official.fields(e)) for e in ENTITIES},
             "default_sort": "id:asc (local stable order)",
-            "auth": ["X-API-Key", "Authorization: Bearer", "api_key query parameter (local key)"],
+            "auth_required": config().get("auth_required", True),
+            "auth": ["X-API-Key", "Authorization: Bearer", "api_key query parameter (local key)"] if config().get("auth_required", True) else [],
             "pending": ([] if (meta.get("_search_build") or {}).get("global_complete") else ["remaining subject/entity text index qualification"]) + ["upstream fulltext search",
                 "metric group sorts and numeric range buckets", "text search combined with every metadata filter",
                 "semantic search and reranking", "merged ID maps and observed ORCID lookup",

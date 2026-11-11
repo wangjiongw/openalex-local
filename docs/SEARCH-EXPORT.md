@@ -2,7 +2,7 @@
 
 [中文](SEARCH-EXPORT.zh-CN.md) · [Documentation](INDEX.md)
 
-Stable version v0.3.0 (package/API `0.3.0`) retains the qualified entity
+Stable version v0.3.1 (package/API `0.3.1`) retains the qualified entity
 catalogs and durable exports from v0.3.0-rc.1. Catalog construction, physical recovery and mixed
 query/export qualification passed on an existing dataset; see [validation](VALIDATION.md).
 Each installation must build, qualify and publish its own catalogs. Data,
@@ -25,6 +25,10 @@ contains authors linked to published Earth candidates; the institution catalog
 covers imported institutions. Identifier lookup has a different scope from text search.
 
 ## Create an export
+
+For v0.3.1 keyless internal deployments (`auth_required: false`), the same export
+and file endpoints work without credentials. The default remains authenticated;
+see [deployment settings](QUICKSTART.md#optional-keyless-internal-deployment).
 
 All endpoints use the existing API authentication:
 

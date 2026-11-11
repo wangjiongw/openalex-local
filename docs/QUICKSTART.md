@@ -10,7 +10,7 @@ No root install of a database is required. Keep source and workspace in separate
 ```bash
 git clone https://github.com/wangjiongw/openalex-local.git
 cd openalex-local
-git checkout v0.3.0
+git checkout v0.3.1
 python3 -m venv .venv
 .venv/bin/pip install .
 export PATH="$PWD/.venv/bin:$PATH"
@@ -19,8 +19,8 @@ oa init
 ```
 
 For a packaged installation, download the wheel and `SHA256SUMS.txt` from the
-[GitHub release](https://github.com/wangjiongw/openalex-local/releases/tag/v0.3.0),
-verify its SHA-256, and run `python -m pip install /path/to/openalex_local_api-0.3.0-py3-none-any.whl`
+[GitHub release](https://github.com/wangjiongw/openalex-local/releases/tag/v0.3.1),
+verify its SHA-256, and run `python -m pip install /path/to/openalex_local_api-0.3.1-py3-none-any.whl`
 in your virtual environment. No PyPI publication is required. The wheel contains
 the UI and packaged rules; raw snapshots and engine binaries are separate.
 
@@ -177,6 +177,21 @@ ClickHouse data directory into two writers. A hostname ownership marker refuses
 automatic takeover; after verifying all old processes stopped, release
 `var/run/workspace-owner.json` explicitly. Do not delete parent segments still
 referenced by a published index. Retain independent backups.
+
+## Optional keyless internal deployment
+
+Authentication is enabled by default. From v0.3.1, set `"auth_required": false`
+in the existing workspace `config/local.json` to disable API-key checks. Keep
+other settings and existing keys intact. Install the updated package and restart
+the API; later configuration changes are read on requests. The web UI connects
+automatically without a key, and OpenAPI no longer requires API authentication.
+All reachable clients can query, manage exports and download files. Database
+credentials, timeouts, upload limits and configured resource controls remain.
+Set `"auth_required": true` and reload the web page to require keys again.
+
+```bash
+curl http://POD_IP:8088/status
+```
 
 ## Existing installation adoption
 

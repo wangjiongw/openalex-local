@@ -309,7 +309,7 @@ def check(cases_file, output, base_url=None, phase='auto', load_seconds=0):
             except (httpx.HTTPError,ValueError,KeyError,AssertionError,TypeError) as ex:
                 results.append(dict(case=case['name'],passed=False,error=type(ex).__name__+': '+str(ex)[:200]))
         unauthorized=httpx.get(url+'/status',timeout=cfg['query_timeout']+5,trust_env=False)
-        results.append(dict(case='missing-api-key',passed=unauthorized.status_code in (401,403)))
+        results.append(dict(case='missing-api-key',passed=unauthorized.status_code in ((401,403) if cfg.get('auth_required', True) else (200,))))
     matrix=[];sustained=None
     if load_seconds and selected and all(r['passed'] for r in results):
         for n in (1,4,8,16,32):

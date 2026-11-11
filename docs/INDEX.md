@@ -23,7 +23,7 @@ operate the metadata service before choosing a text-search scope.
 
 ## Releases and development tools
 
-- Current stable release: [v0.3.0](releases/v0.3.0.md).
+- Current stable release: [v0.3.1](releases/v0.3.1.md). Previous stable: [v0.3.0](releases/v0.3.0.md).
 - Release history: [v0.3.0-rc.1](releases/v0.3.0-rc.1.md), [v0.2.0-rc.1](releases/v0.2.0-rc.1.md).
 - Human-facing documents have English/Chinese counterparts with language links.
   Code, commands, API field names and identifiers use the same spelling in both.

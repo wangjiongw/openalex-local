@@ -19,6 +19,7 @@ DEFAULT = dict(
     disk_budget_gib=None,
     min_free_gib=1,
     execution_profile="community",
+    auth_required=True,
     concurrency=0,  # Zero disables caller concurrency rejection.
     qps=0,  # Zero disables per-key rate limiting.
     burst=10,
@@ -67,7 +68,10 @@ def config():
     p = ROOT / "config/local.json"
     for attempt in range(4):
         try:
-            return DEFAULT | json.loads(p.read_text())
+            value = DEFAULT | json.loads(p.read_text())
+            if type(value["auth_required"]) is not bool:
+                raise ValueError("auth_required must be a boolean")
+            return value
         except FileNotFoundError:
             if attempt == 3:
                 raise RuntimeError("Run ./oa init first; config/local.json is unavailable") from None

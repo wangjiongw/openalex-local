@@ -2,6 +2,12 @@
 
 [中文](CHANGELOG.zh-CN.md) · [Documentation](docs/INDEX.md)
 
+## 0.3.1 — v0.3.1
+
+- Add explicit `auth_required: false` for keyless internal deployments; authentication remains enabled by default and invalid flag types are rejected.
+- Automatically connect the web UI without a key, including export polling/downloads; report the policy in status, capabilities and OpenAPI.
+- Preserve request limits and anonymous rate-limit accounting; keep existing data, keys and indexes.
+
 ## 0.3.0 — v0.3.0
 
 - Promote the qualified retrieval/export implementation to a stable local-service release; only the application/package version changes.

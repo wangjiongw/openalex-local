@@ -168,3 +168,44 @@ def test_bounded_count_keeps_cursor_at_10000_boundary(monkeypatch):
         r = c.get("/v1/works", params={"page": 100, "per_page": 100})
         assert r.status_code == 200, r.text
         assert r.json()["meta"]["next_cursor"] is not None
+
+
+@pytest.mark.parametrize('required', [True, False])
+@pytest.mark.parametrize('headers', [{}, {'X-API-Key':'wrong'}])
+def test_explicit_auth_mode_and_openapi(monkeypatch, required, headers):
+    cfg = config() | {'auth_required':required, 'qps':0, 'concurrency':0}
+    monkeypatch.setattr(api, 'config', lambda:cfg)
+    original = api.app.router.routes[:]
+
+    @api.app.post('/__test_auth_mode')
+    def work():
+        return {'guard_active':api.DEADLINE.get() is not None}
+
+    try:
+        with TestClient(api.app) as client:
+            response = client.post('/__test_auth_mode', headers=headers, json={})
+            assert response.status_code == (401 if required else 200)
+            if not required:
+                assert response.json()['guard_active']
+                assert client.post('/__test_auth_mode', content=b'x'*(1024*1024+1)).status_code == 413
+            schema = client.get('/openapi.json').json()
+            assert bool(schema.get('components',{}).get('securitySchemes')) == required
+    finally:
+        api.app.router.routes[:] = original
+        api.app.openapi_schema = None
+
+
+def test_anonymous_mode_preserves_rate_limits(monkeypatch):
+    cfg = config() | {'auth_required':False,'qps':0.001,'burst':1,'concurrency':0}
+    monkeypatch.setattr(api,'config',lambda:cfg)
+    api.limiter.clear()
+    original = api.app.router.routes[:]
+    @api.app.get('/__test_anonymous_limit')
+    def work():return {'ok':True}
+    try:
+        with TestClient(api.app) as client:
+            assert client.get('/__test_anonymous_limit').status_code == 200
+            assert client.get('/__test_anonymous_limit', headers={'X-API-Key':'ignored'}).status_code == 429
+    finally:
+        api.app.router.routes[:] = original
+        api.limiter.clear()

@@ -33,3 +33,11 @@ def test_malformed_config_is_not_retried(monkeypatch):
     with pytest.raises(ValueError):
         cfg.config()
     assert read.call_count == 1
+
+
+@pytest.mark.parametrize('value', ['false', 0, None])
+def test_authentication_flag_rejects_non_boolean_values(monkeypatch, value):
+    import json
+    monkeypatch.setattr(Path,'read_text',lambda _:json.dumps({'auth_required':value}))
+    with pytest.raises(ValueError,match='auth_required must be a boolean'):
+        cfg.config()

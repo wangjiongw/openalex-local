@@ -10,7 +10,7 @@ AWS CLI 仅用于用户自行获取数据，不是后续处理依赖。
 ```bash
 git clone https://github.com/wangjiongw/openalex-local.git
 cd openalex-local
-git checkout v0.3.0
+git checkout v0.3.1
 python3 -m venv .venv
 .venv/bin/pip install .
 export PATH="$PWD/.venv/bin:$PATH"
@@ -18,9 +18,9 @@ export OPENALEX_HOME="$HOME/openalex-workspace"
 oa init
 ```
 
-也可以从 [GitHub 稳定版](https://github.com/wangjiongw/openalex-local/releases/tag/v0.3.0)
+也可以从 [GitHub 稳定版](https://github.com/wangjiongw/openalex-local/releases/tag/v0.3.1)
 下载 wheel 和 `SHA256SUMS.txt`，验证 SHA-256 后，在虚拟环境运行
-`python -m pip install /path/to/openalex_local_api-0.3.0-py3-none-any.whl`。
+`python -m pip install /path/to/openalex_local_api-0.3.1-py3-none-any.whl`。
 无需依赖 PyPI 发布。wheel 包含网页和规则，原始快照与引擎二进制另行准备。
 
 `--workspace /absolute/path` 优先于 `OPENALEX_HOME`；均未指定时使用当前目录。
@@ -150,6 +150,19 @@ oa verify --generation earth_example --base-url "$OA_URL" \
 迁移前停止原 writer，不能让两个 writer 打开同一 ClickHouse 数据目录。
 主机所有权标记会拒绝自动接管；确认旧进程全部停止后，再显式释放 `var/run/workspace-owner.json`。
 不要删除仍被已发布索引引用的父分段，并保留独立备份。
+
+## 可选：内部免密部署
+
+默认开启认证。从 v0.3.1 起，可在现有 workspace 的 `config/local.json` 中设置
+`"auth_required": false`，关闭 API key 检查。保留其他设置和已有密钥。
+安装更新包并重启 API；之后配置变化会在请求时读取。网页自动进入文献库，无需输入密钥，
+OpenAPI 也不再要求认证。所有能访问端口的客户端均可查询、管理导出及下载文件。
+数据库凭据、超时、上传限制及已配置的资源控制保持生效。
+改回 `"auth_required": true` 并刷新网页即可恢复密钥要求。
+
+```bash
+curl http://POD_IP:8088/status
+```
 
 ## 接入已有部署
 

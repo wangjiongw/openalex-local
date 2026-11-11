@@ -24,5 +24,6 @@
   "manticore_url": "http://127.0.0.1:19308",
   "workers": 4,
   "min_free_gib": 1,
-  "execution_profile": "community"
+  "execution_profile": "community",
+  "auth_required": true
 }

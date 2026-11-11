@@ -20,8 +20,8 @@
     </section>
 
     <section id="connection" class="connection" aria-labelledby="connect-title">
-      <div><h2 id="connect-title">连接你的文献库</h2><p>输入 API 密钥。密钥仅保留在当前浏览器标签页的会话中。</p></div>
-      <form id="connect-form"><label for="api-key">API 密钥</label><div class="input-action"><input id="api-key" type="password" autocomplete="off" required placeholder="请输入 API 密钥"><button type="submit">连接</button></div></form>
+      <div><h2 id="connect-title">连接你的文献库</h2><p>启用认证的部署需输入 API 密钥；内部免密部署会自动连接。密钥仅保留在当前标签页会话中。</p></div>
+      <form id="connect-form"><label for="api-key">API 密钥</label><div class="input-action"><input id="api-key" type="password" autocomplete="off" placeholder="启用认证时填写 API 密钥"><button type="submit">连接</button></div></form>
     </section>
     <p id="message" role="status" aria-live="polite"></p>
     <div id="workspace" hidden>
