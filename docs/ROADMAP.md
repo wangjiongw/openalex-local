@@ -1,5 +1,7 @@
 # Delivery status and follow-up work
 
+[中文](ROADMAP.zh-CN.md) · [Documentation](INDEX.md)
+
 ## Candidate v0.3.0-rc.1
 
 The local snapshot reader, full raw metadata and citation import/audit, metadata API/web service, optional Earth collections and Manticore indexes, native installers and search recovery are implemented. This candidate adds Earth-linked author and full institution catalogs, query combinations, durable works exports and corresponding web controls. Existing work indexes are reused; identity-to-work candidates accelerate mandatory identity filters without changing authorship semantics.

@@ -1,16 +1,32 @@
-# 检索与批量导出增强版
+# Search and durable batch exports
 
-本轮基于 v0.2.0-rc.1，候选版本为 v0.3.0-rc.1（包与 API 为 0.3.0rc1）。新功能及已有数据上的目录构建、物理恢复、查询／导出混合验收已通过；验收范围见 [VALIDATION.md](VALIDATION.md)。使用者的目录仍须单独构建、验收和发布。数据、私有配置、任务与输出不加入 Git。
+[中文](SEARCH-EXPORT.zh-CN.md) · [Documentation](INDEX.md)
 
-## 查询与网页
+Version v0.3.0-rc.1 (package/API `0.3.0rc1`) extends v0.2.0-rc.1 with entity
+catalogs and durable exports. Catalog construction, physical recovery and mixed
+query/export qualification passed on an existing dataset; see [validation](VALIDATION.md).
+Each installation must build, qualify and publish its own catalogs. Data,
+private configuration, jobs and output files stay outside Git.
 
-继续使用 `/works`、`/authors`、`/institutions`、`/sources`、`/topics` 及对应 `/v1` 路由。标题、摘要、关键词、作者姓名可以与年份、OA、作者／机构身份、来源、Topic、类型和语言组合；支持范围以 `/capabilities` 为准。网页新增作者身份、机构与语言筛选、查询 URL、文献勾选及导出任务面板。
+## Queries and the web UI
 
-`/v1` 正向作者／机构条件要求落在同一 authorship，官方风格路由保持作品层面的交集；不改变既有语义。姓名检索不推断身份，选择作者 ID 不自动合并同名作者。实体名称检索包含源记录的别名；作者目录限于已发布地学候选文献关联作者，机构目录覆盖已导入机构。标识符详情与文本覆盖不同。
+Use `/works`, `/authors`, `/institutions`, `/sources`, `/topics` and the
+corresponding `/v1` routes. Title, abstract, keyword and author-name searches can
+combine with supported year, OA, author/institution identity, source, topic,
+type and language predicates. Inspect `/capabilities` for the actual contract.
+The UI adds author identity, institution and language controls, query URLs,
+result selection and an export-job panel.
 
-## 导出接口
+Positive author/institution conditions on `/v1` must hold within the same
+authorship. Official-style routes preserve work-level intersection. Name search
+does not establish identity, and selecting an author ID does not merge namesakes.
+Entity-name searches include aliases from source records. The author catalog
+contains authors linked to published Earth candidates; the institution catalog
+covers imported institutions. Identifier lookup has a different scope from text search.
 
-所有接口使用现有 API 认证。创建任务：
+## Create an export
+
+All endpoints use the existing API authentication:
 
 ```http
 POST /v1/exports
@@ -32,25 +48,48 @@ X-API-Key: <local-key>
 }
 ```
 
-或用 `"identifiers": ["W1", "10.1234/example"]` 替代 `query`。这两种输入互斥。`query.route` 仅接受 `/v1/works` 或 `/works`，不访问外部 URL。查询不接收分页、cursor、分组、抽样或认证参数；输出为完整匹配集合，按稳定 ID 顺序排列，与网页显示排序独立。官方风格的纯元数据查询覆盖导入的元数据，文本查询及 `/v1` 查询覆盖已发布索引。
+Alternatively, replace `query` with `"identifiers": ["W1", "10.1234/example"]`.
+The two inputs are mutually exclusive. `query.route` accepts only `/v1/works`
+and `/works`, never external URLs. Export queries exclude pagination, cursors,
+grouping, sampling and authentication parameters. They export the complete
+matching set in stable ID order, independently of UI ranking. Official-style
+metadata-only queries cover imported metadata; text queries and `/v1` queries
+cover the published index.
 
-- 可选 `select`：逗号分隔的顶层原始字段，用于 JSONL；留空保存完整原记录。
-- 可选 `csv_fields`：列名数组。默认 `id,doi,title,publication_year,authors,abstract,abstract_status,source,is_oa,oa_status,oa_url,cited_by_count`。
-- CSV 多值字段使用 JSON 单元格；`authors`、`abstract`、`source` 和 OA 列为源字段的方便投影。缺失／无效摘要留空，`abstract_status` 区分 missing／invalid／present；完整 JSON 不改写源数据。
-- 缺 DOI 不丢弃论文；单独生成 missing-doi 分块。清单输入中的无效、未找到或歧义记录在 manifest 中报告，不自动选取候选。
-- 原始引用 ID 会随完整 JSON 导出；本轮不批量展开引用目标全文记录。
+- Optional `select`: comma-separated top-level original fields for JSONL;
+  omit it to preserve the complete source record.
+- Optional `csv_fields`: column-name array. Defaults to
+  `id,doi,title,publication_year,authors,abstract,abstract_status,source,is_oa,oa_status,oa_url,cited_by_count`.
+- CSV multi-value cells contain JSON. Authors, abstract, source and OA columns
+  are convenient projections of source fields. Missing/invalid abstracts remain
+  blank; `abstract_status` distinguishes missing/invalid/present. Full JSON does
+  not rewrite the original record.
+- Works without a DOI are retained and have separate missing-doi chunks.
+  Invalid, not-found and ambiguous list inputs are reported in the manifest;
+  candidates are not selected automatically.
+- Complete JSON includes original reference IDs. This version does not export
+  every referenced target as an additional full record.
 
-| 接口 | 功能 |
+| Endpoint | Behavior |
 | --- | --- |
-| `GET /v1/exports?offset=0&limit=25` | 任务列表 |
-| `GET /v1/exports/{id}` | 进度、错误、已提交文件 |
-| `POST /v1/exports/{id}/cancel` | 提交当前检查点后取消 |
-| `POST /v1/exports/{id}/resume` | 校验已提交结果后恢复；运行中须先取消 |
-| `GET /v1/exports/{id}/files/{name}` | 下载已提交分块或完成后的 manifest.json |
+| `GET /v1/exports?offset=0&limit=25` | List jobs |
+| `GET /v1/exports/{id}` | Read progress, errors and committed files |
+| `POST /v1/exports/{id}/cancel` | Cancel after committing the current checkpoint |
+| `POST /v1/exports/{id}/resume` | Verify committed output and resume; cancel running jobs first |
+| `GET /v1/exports/{id}/files/{name}` | Download committed chunks, or manifest.json after completion |
 
-任务位于 workspace 的 `exports/query/`。`exported` 是已提交分块中的记录数；大分块写入期间可能暂时不变，恢复只从已提交检查点继续。每个任务固定 generation、search build、查询、字段和格式。分块回执记录计数、读取位置、哈希和文件；恢复不依赖网页 cursor。默认每块约 10 万条或 256 MiB 未压缩输出，以批次为边界；单条超大记录可能超过大小目标。状态为 queued/running/paused/cancelled/failed/completed。资源不足只暂停该任务，持久文件默认保留。不要手动修改回执或删除仍被任务引用的数据和索引。
+Jobs live in the workspace's `exports/query/`. `exported` counts records in
+committed chunks; it can remain unchanged while a large chunk is being written.
+Recovery continues from committed checkpoints. Every job pins its generation,
+applicable search build, query, fields and formats. Shard receipts record counts,
+read positions, hashes and files; recovery does not use a browser cursor.
+The default chunk target is about 100,000 records or 256 MiB of uncompressed
+output, applied at batch boundaries; a single large record can exceed the target.
+States are queued/running/paused/cancelled/failed/completed. Resource shortage
+pauses the affected job; persistent files are retained by default. Never edit
+receipts or remove data/index versions still referenced by jobs.
 
-## CLI 与运行
+## CLI and worker lifecycle
 
 ```bash
 oa --workspace /path/to/workspace start export-worker
@@ -61,11 +100,18 @@ oa --workspace /path/to/workspace export cancel --job <id>
 oa --workspace /path/to/workspace export resume --job <id>
 ```
 
-`start all` 包含 export-worker；单独重启 API 不终止导出。默认两个任务并行；目录提取默认最多 8 个进程、每批 10,000 篇，可配置 `catalog_workers` 和 `catalog_batch_rows`。导出可配置 `export_workers`、`export_batch_rows`、`export_shard_rows`。不增加查询 QPS 配额。worker 停止时任务排队；服务的元数据可用状态不因此失效。
+`start all` includes the export worker. Restarting only the API does not stop
+exports. By default two jobs run concurrently. Catalog extraction defaults to
+at most eight processes and 10,000 works per batch, configurable through
+`catalog_workers` and `catalog_batch_rows`. Export controls include
+`export_workers`, `export_batch_rows` and `export_shard_rows`. No extra query
+QPS quota is introduced. Jobs queue while the worker is stopped; metadata API
+readiness is independent of worker availability.
 
-只读 adopt 继续复用源引擎及冻结数据，但新导出写入自己的 workspace，不写入源 workspace 的导出目录。
+Read-only adoption continues to use source engines/frozen data; new exports
+write to the adopted workspace, not the source workspace's export directory.
 
-## 可复用实体索引扩建
+## Expand catalogs while reusing works
 
 ```bash
 oa --workspace /path/to/workspace catalogs build --generation <generation> --build <new_build> --parent <published_earth_build> --background
@@ -74,8 +120,35 @@ oa --workspace /path/to/workspace catalogs validate --generation <generation> --
 oa --workspace /path/to/workspace catalogs publish --generation <generation> --build <new_build>
 ```
 
-先新增全量机构索引，再从冻结 works 分段提取作者 ID，去重后按互不重叠的 ID 区间并行构建作者名称索引，每段预读下一批、保留独立检查点；已完成前缀封存复用。父进程串行封存快照，避免并发封存争用。不会重跑地学分类或整体重建 works。 同时从这些 works 提取可恢复的作者／机构 ID → 文献 ID 辅助索引，存放在同一代 ClickHouse 的派生表中。查询和批量导出先使用必需的正向身份条件缩小候选集，再执行原来的署名条件，保持同一 authorship 语义。 大候选集通过同一 Manticore HTTP 服务的 SQL 入口强制 docid 查找，避免优化器退回整表扫描；HTTP API、总数和分页 token 对调用者保持一致。单个身份超过 25 万候选，或只有否定／可选 OR 条件时，保留完整扫描，不截断结果；此类宽泛条件可能较慢。辅助表和 identity-progress.json 属于持久数据，不能单独清理；缺失时必须恢复或在新 build 重建。新增快照保留原分段的绝对依赖，不能删除父索引；进度和估算见新 build 目录下 progress.json。失败后使用相同参数继续；已有回执可重放至丢失的未封存目录。
+Construction adds the full imported institution catalog, extracts and
+deduplicates author IDs from frozen work segments, and builds author-name
+indexes in parallel over disjoint ID ranges. Each block prefetches its next
+batch and maintains a checkpoint. Sealed prefixes are reused; the parent
+process seals snapshots sequentially to limit contention. Classification and
+the complete works build are not repeated.
 
-验证复用父版本全量恢复证据，只检查新增分段的物理与恢复结果；完整快照执行常用查询、实体查询及 30 分钟查询／导出混合验收，之后显式发布。小样本原生测试不替代真实规模验收。发布不要求固定观察 24 小时。
+The same works produce recoverable author/institution-ID-to-work-ID candidate
+mappings in a derived ClickHouse table within the generation. Queries and
+exports narrow mandatory positive identity conditions first, then apply the
+original authorship predicate. Large candidate sets use the existing Manticore
+HTTP SQL endpoint to force docid lookup rather than an optimizer full scan;
+API counts and pagination tokens retain their meaning.
 
-本轮不包含全量作者目录、PDF 下载、版本自动关联、语义检索、任意学科 profile、快照更新或独立 ClickHouse 灾备。
+An identity exceeding 250,000 candidates, or negative-only/optional OR
+conditions, keeps exact scanning without truncating results and may be slower.
+The derived table and `identity-progress.json` are persistent dependencies;
+restore them or rebuild in a new build if missing. Added snapshots retain
+absolute dependencies on original segments: do not delete parent indexes.
+Read `progress.json` in the new build directory for progress and estimates.
+Retry failed construction with the same parameters; receipts can replay missing
+unsealed data.
+
+Qualification reuses parent full-index recovery evidence and physically checks
+and restores the added segments. Complete snapshots receive common-query,
+entity-query and 30-minute mixed query/export acceptance before explicit
+publication. Synthetic native checks do not establish real-scale performance.
+There is no compulsory 24-hour observation wait.
+
+This version does not include the full all-discipline author-name catalog, PDF
+downloads, automatic version association, semantic retrieval, arbitrary-discipline
+profiles, snapshot updates or independent ClickHouse disaster recovery.

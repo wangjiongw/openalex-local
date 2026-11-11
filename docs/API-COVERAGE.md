@@ -1,5 +1,7 @@
 # Query coverage and limits
 
+[中文](API-COVERAGE.zh-CN.md) · [Documentation](INDEX.md)
+
 The default metadata profile serves source records and citation relationships.
 Text indexing is optional; Earth science is the included example.
 

@@ -1,5 +1,13 @@
 # Changelog
 
+[中文](CHANGELOG.zh-CN.md) · [Documentation](docs/INDEX.md)
+
+## Unreleased — documentation
+
+- Paired English/Chinese reader guides, shared concepts, workflow diagrams and documentation navigation.
+- Agent-specific development instructions, implementation map and persistent-state/verification contracts.
+- Clarified the common internal/community package and recorded post-upgrade capacity separately from isolated qualification.
+
 ## 0.3.0rc1 — v0.3.0-rc.1
 
 - Durable, pinned works exports through API, CLI and web: JSONL.gz, CSV, DOI and ID lists; chunk hashes, cancellation, checkpoint recovery and independent worker.

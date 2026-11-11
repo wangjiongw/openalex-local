@@ -1,5 +1,7 @@
 # Validation status
 
+[中文](VALIDATION.zh-CN.md) · [Documentation](INDEX.md)
+
 The community toolchain is version `0.3.0rc1`. This records tested boundaries,
 not an assertion of complete official API compatibility or full-snapshot capacity.
 
@@ -16,6 +18,22 @@ Application code frozen at `51b00dc`; subsequent release documentation edits do 
 - At the 32-client stress point, matrix P95 was 3.798 s and P99 5.001 s, with 0 errors. Latency at this stress point is not a promise that every concurrency level stays below two seconds.
 - A real 111,702-work institution query export passed cancellation/recovery across the worker update, with every unique output ID reconciled against the identity index and all downloaded shard hashes verified.
 - Browser checks cover title/author/year, selection and CSV task creation, exact-job manifest download, query exports, saved URLs including invalid selectors, and desktop/mobile overflow. Local and real separate-Pod checks also exercise the installed package.
+
+### Post-upgrade internal deployment checks
+
+After deploying the same release package, actual-IP local checks and a real
+separate Pod each passed 202 cases. The production API has four workers. A short
+load check alongside other verification and internal traffic measured:
+
+| Concurrent clients | Requests | P95 | P99 | Errors |
+| --- | --- | --- | --- | --- |
+| 8 | 349 | 0.784 s | 1.148 s | 0 |
+| 32 | 202 | 8.757 s | 11.244 s | 0 |
+
+This records capacity under the background load at that time, separately from
+the single-process isolated qualification above. Zero errors at high concurrency
+does not establish low latency; isolated measurements are not a promise for
+other deployments.
 
 These results describe this dataset and hardware. They are not a universal throughput promise, complete official API parity, or a measured classification recall guarantee. Workspace data, credentials, generated files and detailed internal acceptance reports remain outside Git.
 

@@ -1,5 +1,7 @@
 # OpenAlex snapshots
 
+[中文](SNAPSHOT.zh-CN.md) · [Documentation](INDEX.md)
+
 Official reference: https://help.openalex.org/access/snapshot/
 
 The public S3 bucket is `s3://openalex`, anonymously readable using AWS CLI v2

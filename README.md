@@ -1,53 +1,68 @@
 # OpenAlex Local
 
-Use an OpenAlex snapshot you have downloaded to build a local metadata and
-citation service with a web UI and HTTP API. Point the toolchain at its local
-path, validate and import it, then optionally classify a subset and build text
-search indexes.
+[中文](docs/README.zh-CN.md) · [Documentation](docs/INDEX.md)
 
-**Candidate: v0.3.0-rc.1; package/API version: 0.3.0rc1.** Snapshot acquisition is user-managed;
-this project provides [download and format guidance](docs/SNAPSHOT.md), local
-readers, resumable processing, native engine installation, validation/recovery
-and deployment. Start with the [native deployment guide](docs/QUICKSTART.md).
+Build a local literature metadata and citation service from an OpenAlex snapshot
+you have downloaded. The toolchain reads your local files, preserves complete
+records, and serves a web UI and HTTP API. Optional indexes add efficient text retrieval.
 
-- The default pipeline imports and audits source records, DOI/ID mappings and
-  reference/citation relationships in ClickHouse, independently of discipline.
-- Text indexing is optional. The included **Earth-science example** demonstrates
-  subset classification, collection export and Manticore indexing; it does not
-  restrict the metadata service to Earth science. Other text indexing profiles
-  are not supplied in this release.
-- Title, abstract, keyword and author-name text searches require a published
-  text index; DOI/ID lookup and citation expansion do not.
-- Official-style OpenAlex routes coexist with local `/v1` extensions; full
-  compatibility with the live official API is not claimed.
-- Snapshots may stay at any readable local path. Workspace data, indexes,
-  binaries, credentials and reports are never part of this Git repository.
+**Release candidate: v0.3.0-rc.1. Package/API: `0.3.0rc1`.**
+Start with [native deployment](docs/QUICKSTART.md); see [validation](docs/VALIDATION.md)
+for tested scope rather than assuming full live OpenAlex API parity.
 
-## Development
+## How it works
+
+1. Download a consistent snapshot yourself using the [format/acquisition guide](docs/SNAPSHOT.md).
+2. Point the toolchain at its local path; verify, import and audit records,
+   DOI/ID mappings and forward/reverse citation relationships in ClickHouse.
+3. Publish the metadata service: DOI/ID lookup, complete records and relation browsing work without text indexes.
+4. Optionally run the Earth-science example, build and qualify Manticore indexes,
+   then publish title, abstract, keyword and author-name search.
+5. Optionally expand entity catalogs and export queries or DOI/ID lists through API, CLI or web.
+
+The default `metadata` profile is discipline-independent. `earth_sciences` is the
+only supplied text profile and an optional example. Raw metadata can resolve
+out-of-scope papers even when their titles are absent from the published text index.
+See [architecture and terminology](docs/ARCHITECTURE.md).
+
+## What is included
+
+- Official-style routes and local `/v1` extensions, supported combined filters,
+  citation expansion, entity catalogs and a browser interface.
+- Durable JSONL.gz/CSV/DOI/ID exports with cancellation, checkpoints and downloads.
+- Resumable modules and pipeline, pinned native engines, explicit validation,
+  publication and search recovery on Linux x86_64 and ARM64. Older ARM CPUs
+  require the documented compatibility profile.
+- One maintained package for internal and community installations; local
+  datasets, keys, resources and pointers are workspace settings.
+
+Snapshot paths can be outside the workspace. Data, indexes, credentials, engine
+binaries, environments and reports stay outside Git. PDF/TEI downloads, automatic
+version grouping, semantic retrieval and continuous snapshot updates remain
+future work. Full imported metadata does not mean every field is indexed.
+
+## Development and further reading
 
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -e . pytest
-./oa init
+export OPENALEX_HOME="$(mktemp -d /tmp/openalex-dev.XXXXXX)"
+.venv/bin/python -m openalex_api.cli init
 .venv/bin/python -m pytest -q
 ```
 
-See [release scope, supported commands and operations](docs/RELEASE.md).
-The candidate includes [query, entity catalogs and durable batch exports](docs/SEARCH-EXPORT.md). Production-scale catalog and mixed-load acceptance is recorded in [validation status](docs/VALIDATION.md). Optional content downloads,
-version grouping and continuous snapshot updates remain future work.
+The package is `openalex-local-api`, Python imports are `openalex_api`, and the
+CLI is `oa`. Source code and runtime workspaces are separate.
 
-The source package is named `openalex-local-api`, imports remain
-`openalex_api`, and the CLI remains `oa`. Native metadata and Earth-example workflows pass on Linux x86_64 and ARM64;
-older ARM CPUs require the documented compatibility engine profile.
-
-See the [功能清单与扩展规划](docs/FEATURES.zh-CN.md), [validation status](docs/VALIDATION.md), [API coverage and limits](docs/API-COVERAGE.md), [snapshot formats](docs/SNAPSHOT.md), [architecture](docs/ARCHITECTURE.md),
-[contributing](CONTRIBUTING.md), and [中文说明](docs/README.zh-CN.md).
+Read the [documentation index](docs/INDEX.md), [feature inventory and official references](docs/FEATURES.md),
+[API coverage](docs/API-COVERAGE.md), [query/exports](docs/SEARCH-EXPORT.md),
+[operations](docs/RELEASE.md), [roadmap](docs/ROADMAP.md) and [contributing](CONTRIBUTING.md).
+Development agents start at [AGENTS.md](AGENTS.md) and follow task-specific references.
 
 ## License and affiliation
 
-Project source: [MIT](LICENSE). OpenAlex data has its own CC0 license; obtain data
-from the official source and preserve its license and release notes. ClickHouse,
-Manticore, AWS CLI and their dependencies retain their respective licenses. No
-third-party engine binaries or production datasets are redistributed here.
-
-This is an independent community project, not an official OpenAlex service.
+Source code uses [MIT](LICENSE). OpenAlex data has its own CC0 license; obtain it
+from the official source and retain its license/release notes. ClickHouse,
+Manticore, AWS CLI and dependencies retain their own licenses. Engine binaries
+and production datasets are not redistributed here. This independent community
+project is not an official OpenAlex service.

@@ -1,27 +1,57 @@
 # OpenAlex Local
 
-使用者按[下载指引](SNAPSHOT.md)自行获取 OpenAlex snapshot，指定本地存放路径后，由本项目读取、校验、导入和处理，并部署网页及服务器 API。项目不负责快照下载。
+[English](../README.md) · [文档导航](INDEX.zh-CN.md)
 
-默认流程与学科无关：使用 ClickHouse 保存完整原始元数据、DOI／ID 映射和引用关系。地学分类、文献列表导出和 Manticore 文本索引作为**可选示例**，需要显式指定 `--profile earth_sciences`。不做这一步也能按 DOI／ID 查询元信息、参考文献及被引关系；标题、摘要、作者姓名等文本检索需要另外构建并发布索引。
+使用已下载的 OpenAlex 快照搭建本地文献元数据与引用服务。
+工具链读取本地文件、保留完整记录，并提供网页和 HTTP API；按需要增加索引，实现高效文本检索。
+
+**候选版：v0.3.0-rc.1；包／API：`0.3.0rc1`。**
+从[原生部署](QUICKSTART.zh-CN.md)开始；实际测试范围见[验证说明](VALIDATION.zh-CN.md)，不能默认完全对齐实时官方 API。
+
+## 工作流程
+
+1. 按[格式与获取指引](SNAPSHOT.zh-CN.md)自行下载一致的快照。
+2. 指定本地数据路径，校验、导入并审计记录、DOI／ID 映射和 ClickHouse 中的正反向引用关系。
+3. 发布元数据服务；DOI／ID、完整记录和引用浏览不需要文本索引。
+4. 可选运行地学示例，构建、验收 Manticore 索引，再发布标题、摘要、关键词和作者姓名搜索。
+5. 按需要扩建实体目录，并经 API、CLI 或网页导出查询结果或 DOI／ID 清单。
+
+默认 `metadata` profile 与学科无关。`earth_sciences` 是当前唯一内置的文本 profile，作为可选示例提供。
+论文即使不在已发布文本索引中，仍可通过已导入元数据解析。
+相关概念见[架构与术语](ARCHITECTURE.zh-CN.md)。
+
+## 已提供的能力
+
+- 官方风格路由与本地 `/v1` 扩展、已支持的组合过滤、引用展开、实体目录和浏览器界面。
+- 可取消、恢复并下载的持久 JSONL.gz／CSV／DOI／ID 导出。
+- 可恢复的独立模块与 pipeline、固定原生引擎、显式验收与发布，以及搜索恢复。
+  支持 Linux x86_64／ARM64，旧 ARM CPU 需使用注明的兼容 profile。
+- 内部部署与社区用户共用一套维护包；本地数据、密钥、资源和生效指针由 workspace 管理。
+
+快照可放在 workspace 外。数据、索引、凭据、引擎二进制、环境和报告不加入 Git。
+PDF／TEI 下载、自动版本归组、语义检索和连续快照更新仍待开发。
+完整导入元数据不代表所有字段都有检索索引。
+
+## 开发与进一步阅读
 
 ```bash
-oa --workspace /path/to/workspace init --snapshot /path/to/openalex-snapshot
-oa --workspace /path/to/workspace engines ensure
-oa --workspace /path/to/workspace snapshot verify --deep
-oa --workspace /path/to/workspace pipeline run --generation local_metadata
-oa --workspace /path/to/workspace pipeline resume --generation local_metadata --until published
+python3 -m venv .venv
+.venv/bin/pip install -e . pytest
+export OPENALEX_HOME="$(mktemp -d /tmp/openalex-dev.XXXXXX)"
+.venv/bin/python -m openalex_api.cli init
+.venv/bin/python -m pytest -q
 ```
 
-可选地学示例使用独立 generation：
+包名为 `openalex-local-api`，Python 导入名为 `openalex_api`，CLI 为 `oa`。
+源码与运行 workspace 分开管理。
 
-```bash
-oa --workspace /path/to/workspace engines ensure --search
-oa --workspace /path/to/workspace pipeline run --generation earth_example --profile earth_sciences
-oa --workspace /path/to/workspace pipeline resume --generation earth_example --profile earth_sciences --until published
-```
+阅读[文档导航](INDEX.zh-CN.md)、[功能清单与官方参考](FEATURES.zh-CN.md)、
+[API 覆盖](API-COVERAGE.zh-CN.md)、[检索与导出](SEARCH-EXPORT.zh-CN.md)、
+[运维](RELEASE.zh-CN.md)、[路线图](ROADMAP.zh-CN.md)和[贡献指南](../CONTRIBUTING.zh-CN.md)。
+Agent 开发工具从 [AGENTS.md](../AGENTS.md) 进入，再按任务读取实现资料。
 
-已按默认流程导入的数据也可以复用；原生部署指南说明了直接从已有 generation 运行地学分类和索引的方式。
+## 许可与项目关系
 
-数据、索引、私有配置、引擎和运行产物保留本地，不提交 Git。源码采用 MIT；数据及第三方引擎遵守各自许可证。A/D 图谱处理不属于本项目主线。当前为 v0.3.0-rc.1 候选版，不宣称与官方在线 API 全部功能或实时数据一致。
-
-入口文档：[候选版发布与运维](RELEASE.md)、[功能清单与扩展规划](FEATURES.zh-CN.md)、[部署与命令](QUICKSTART.md)、[模块边界](ARCHITECTURE.md)、[API 范围](API-COVERAGE.md)、[验证状态](VALIDATION.md)。
+源码采用 [MIT](../LICENSE)。OpenAlex 数据采用独立的 CC0 许可；应从官方获取并保留许可与发布说明。
+ClickHouse、Manticore、AWS CLI 及其依赖遵守各自许可。
+本仓库不重新分发引擎二进制或生产数据。这是独立社区项目，不是 OpenAlex 官方服务。

@@ -1,5 +1,7 @@
 # v0.3.0-rc.1 scope and operations
 
+[中文](RELEASE.zh-CN.md) · [Documentation](INDEX.md)
+
 Git tag: `v0.3.0-rc.1`. Package/API version: `0.3.0rc1` (PEP 440). This is a
 GitHub prerelease of the existing toolchain, not a new production dataset.
 Existing data requires explicit compatibility checks and controlled publication; publishing source does not automatically upgrade other installations.

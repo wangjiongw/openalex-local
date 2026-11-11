@@ -1,8 +1,10 @@
 # OpenAlex Local 项目功能清单
 
+[English](FEATURES.md) · [文档导航](INDEX.zh-CN.md)
+
 本项目将使用者自行下载的公开 OpenAlex snapshot 转换为本地可用的文献元数据、引用关系和检索服务，提供 CLI、HTTP API 和网页。完整保留源数据，按需要构建文本检索索引；地学是内置的可选范围示例，不是整个项目的数据边界。
 
-本清单结合内部版本的规模化运行验证、社区版本实现，以及官方仓库的职责划分。`0.3.0rc1` 的检索、实体目录与导出增补见 [SEARCH-EXPORT.md](SEARCH-EXPORT.md)；具体目录是否上线以当前服务 capabilities 为准。候选版冻结范围及命令边界见 [发布与运维](RELEASE.md)。用于区分可复用能力和扩展候选，不表示下列待扩展功能已经实现。
+本清单结合内部版本的规模化运行验证、社区版本实现，以及官方仓库的职责划分。`0.3.0rc1` 的检索、实体目录与导出增补见 [SEARCH-EXPORT.md](SEARCH-EXPORT.zh-CN.md)；具体目录是否上线以当前服务 capabilities 为准。候选版冻结范围及命令边界见 [发布与运维](RELEASE.zh-CN.md)。用于区分可复用能力和扩展候选，不表示下列待扩展功能已经实现。
 
 ## 1. 状态和边界
 
@@ -10,7 +12,7 @@
 - **已验证**：已有内部运行、交付或社区测试证据；仅对注明的版本和范围成立。具体边界见每行说明。
 - **部分支持**：存在实现，但覆盖、查询组合、性能或质量仍有限制。
 - **待扩展**：不属于当前交付功能；下面给出参考来源和预期产物。
-- 原内部版本为 `0.1.0`；社区工具链当前为 `0.3.0rc1`。内部部署可使用同一安装包进行受控升级，保留本地数据、配置与回滚入口；社区发布不自动替换其他使用者的服务。
+- 历史内部基线为 `0.1.0`；社区工具链及已升级内部服务使用 `0.3.0rc1`。部署使用同一安装包，保留本地数据、配置与回滚入口；社区发布不自动替换其他使用者的服务。
 - 内部地学候选索引已完成 76,850,149 篇 works、4,516 个 topics、280,687 个 sources 的发布与验收。索引快照约 501 GiB，空搜索引擎恢复及跨 Pod 各通过 784 项功能检查。
 - 社区默认元数据流程及可选地学流程已通过 Linux x86_64／ARM64 原生 CI。社区小样本验证不替代全量生产性能证明。
 - **已有索引构建和恢复流程是可复用资产，不重新列为待开发。** 后续工作应以补接口、支持更多范围或输入类型、维护兼容性为主。
@@ -36,7 +38,7 @@
 
 | 编号 | 功能 | 状态与边界 |
 | --- | --- | --- |
-| A01 | 官方下载入口、格式、目录、许可和 manifest 指引 | 已提供；下载由使用者完成，参考 [SNAPSHOT.md](SNAPSHOT.md) |
+| A01 | 官方下载入口、格式、目录、许可和 manifest 指引 | 已提供；下载由使用者完成，参考 [SNAPSHOT.md](SNAPSHOT.zh-CN.md) |
 | A02 | 指定数据位置 | 已实现：`oa init --snapshot /path/to/snapshot`；原始数据可在 workspace 外、可只读挂载 |
 | A03 | 新旧 JSONL 输入适配 | 已实现：旧 `data/<entity>/manifest`、新 `data/jsonl/manifest.json`，以及直接 JSONL prefix 根目录 |
 | A04 | 数据清点和完整性校验 | 已实现：实体、分片、记录数、字节数、缺失文件；深度校验 gzip、JSON 和实际记录数 |
@@ -166,6 +168,16 @@
 
 官方 CLI 输出常为每篇一个 JSON／PDF／XML 文件，与 snapshot manifest＋JSONL 分片不是相同输入格式。若以后导入这些增补元数据，需要单独适配、去重并保留来源，不能直接将目录传给现有 snapshot reader。
 
+### 3.2 官方参考如何用于本项目
+
+| 参考 | 职责 | 本地设计用途 |
+| --- | --- | --- |
+| [openalex-help](https://github.com/ourresearch/openalex-help) | 官方数据、访问与查询文档 | 输入格式、术语及兼容目标 |
+| [openalex-api-tutorials](https://github.com/ourresearch/openalex-api-tutorials) | API 分析示例 | 使用流程和查询／导出示例 |
+| [openalex-elastic-api](https://github.com/ourresearch/openalex-elastic-api) | Elasticsearch 支撑的 API 入口 | 查询契约和测试参考，不意味着迁移引擎 |
+| [openalex-walden](https://github.com/ourresearch/openalex-walden) | 上游数据流水线 | 输入／更新语义，不要求部署其处理基础设施 |
+| 上表内容、匹配、分类和 MCP 项目 | 可选下游能力 | 独立接入并明确验收，分别检查依赖与许可 |
+
 ## 4. 建议的落地顺序
 
 | 阶段 | 应做的工作 | 不需要重复做的工作 |
@@ -177,11 +189,11 @@
 
 ## 5. 相关入口
 
-- [原生部署和命令](QUICKSTART.md)
-- [快照下载与格式指引](SNAPSHOT.md)
-- [查询覆盖与限制](API-COVERAGE.md)
-- [验证范围](VALIDATION.md)
+- [原生部署和命令](QUICKSTART.zh-CN.md)
+- [快照下载与格式指引](SNAPSHOT.zh-CN.md)
+- [查询覆盖与限制](API-COVERAGE.zh-CN.md)
+- [验证范围](VALIDATION.zh-CN.md)
 - [官方快照文档](https://help.openalex.org/access/snapshot/)
 - [官方全文 CLI](https://github.com/ourresearch/openalex-official)
 
-本清单的官方仓库参考基于 2026-11-10 读取的说明及相关代码。上游服务、访问方式和模型会变化，真正接入扩展时应再次核对。本次功能梳理不改变生产数据，不将独立 A/D 图谱任务并入主项目。
+本清单的说明及代码参考基于 2026-11-10 的读取；3.2 节仓库职责于 2026-11-11 按公开仓库元数据再次核对。上游服务、访问方式和模型会变化，真正接入前应重新核对行为与许可。本次功能梳理不改变生产数据，不将独立 A/D 图谱任务并入主项目。

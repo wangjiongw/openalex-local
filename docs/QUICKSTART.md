@@ -1,5 +1,7 @@
 # Native Linux quickstart
 
+[中文](QUICKSTART.zh-CN.md) · [Documentation](INDEX.md)
+
 Requires Python 3.10+, glibc Linux and sufficient persistent disk. Optional text
 indexing also requires `dpkg-deb` (usually supplied by `dpkg`) to unpack Manticore.
 AWS CLI is only a user-managed acquisition tool, not a processing dependency.
