@@ -20,6 +20,9 @@ OpenAlex Local 从本地快照建立元数据与引用服务，并允许按需�
 | 后续计划是什么，官方项目有哪些参考价值？ | [路线图](ROADMAP.zh-CN.md)、[官方仓库参考](FEATURES.zh-CN.md#3-官方仓库可参考的扩展) |
 | 如何参与开发？ | [贡献指南](../CONTRIBUTING.zh-CN.md)、[变更记录](../CHANGELOG.zh-CN.md) |
 
+[下一阶段开发计划](NEXT-STEPS.zh-CN.md)说明来源增补、追更、地学实体、检索扩容和后续文献下载，
+与已经发布的功能分开列出。
+
 ## 版本与开发工具
 
 - 当前稳定版：[v0.3.2](releases/v0.3.2.zh-CN.md)。上一稳定版：[v0.3.1](releases/v0.3.1.zh-CN.md)。

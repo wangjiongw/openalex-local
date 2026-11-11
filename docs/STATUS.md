@@ -36,6 +36,9 @@ or publish a dataset. Existing compatible indexes are reused.
 - The community default requires API keys. An internal operator can explicitly
   disable authentication for all routes, including exports and downloads.
 
+The selected future sequence is documented in [next development steps](NEXT-STEPS.md).
+The entries below remain unimplemented until their own acceptance and release.
+
 ## Maintenance and optional extensions
 
 Maintain supported lookup/search/relations/exports, capabilities, regression cases,

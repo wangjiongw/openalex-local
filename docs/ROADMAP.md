@@ -28,6 +28,14 @@ data publication and deployment remain separate. No fixed 24-hour wait applies.
 Broader official API parity is not a release requirement. The current supported
 routes are the compatibility contract, with documented coverage and limits.
 
+## Selected next work
+
+The next priorities are source/identity contracts, optional local arXiv enrichment,
+Earth entity coverage, reliable freshness, configurable search scopes, and later
+content links/downloads. See [the staged development plan](NEXT-STEPS.md) for
+inputs, dependencies and acceptance conditions. These are planned additions;
+v0.3.2 remains the current stable implementation.
+
 ## Optional extensions
 
 PDF/TEI downloads, version association, calibrated matching, additional text

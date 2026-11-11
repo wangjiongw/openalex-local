@@ -21,6 +21,9 @@ operate the metadata service before choosing a text-search scope.
 | What comes next and which official projects are useful? | [Roadmap](ROADMAP.md), [official references](FEATURES.md#3-official-repositories-and-extension-candidates) |
 | How can I contribute? | [Contributing](../CONTRIBUTING.md), [changelog](../CHANGELOG.md) |
 
+The [next development plan](NEXT-STEPS.md) describes source enrichment, freshness,
+Earth entities, wider scopes and later content downloads, separately from released features.
+
 ## Releases and development tools
 
 - Current stable release: [v0.3.2](releases/v0.3.2.md). Previous stable: [v0.3.1](releases/v0.3.1.md).

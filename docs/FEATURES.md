@@ -194,12 +194,16 @@ adapter, deduplication and provenance; do not point the existing reader at it.
 
 ## 4. Suggested development order
 
+See [the next development plan](NEXT-STEPS.md) for milestones and acceptance conditions.
+
 | Stage | Work | Work not required again |
 | --- | --- | --- |
-| Core release consolidation | Document boundaries/evidence/commands, align UI and API, prepare stable delivery | No technology reselection or reimplementation of validated import/build/publish/recovery |
-| Practical extensions | Result and DOI/ID exports delivered; next consider content CLI handoff, download status and file linking | No text reindex to download PDFs |
-| Retrieval extensions | More entity names, user-list/other scopes, common official combinations; version/matching evaluation as needed | No compulsory upstream reclassification or all-discipline vector store |
-| Maintenance | New snapshots, deletions/merges, independent backups, performance regressions; optional semantics/parsing/MCP | No need for the upstream Databricks/Airflow acquisition stack |
+| Stable baseline | v0.3.2 API/web/CLI/exports delivered; maintain supported behavior | No technology reselection or reimplementation of validated import/build/publish/recovery |
+| Source foundations | Provenance/identity/update contract, optional local arXiv input and version links | Preserve OpenAlex raw records; no fabricated W IDs or wholesale reimport |
+| Entity access and freshness | Earth entity catalogs and links; arXiv OAI and OpenAlex release/API reconciliation | Name catalogs need not rebuild works; discovery does not establish complete synchronization |
+| Wider retrieval scopes | Configurable domain/field/topic/ID selection; pilot useful AI/CS/engineering intersections | Reuse compatible Earth segments; no compulsory all-discipline vector store |
+| Later content tools | Existing links, opt-in PDF/TEI jobs, then bibliography recovery where useful | No text reindex solely to download files |
+| Ongoing maintenance | Deletions/merges, independent backups, quality/performance regressions | No need for the upstream Databricks/Airflow acquisition stack |
 
 ## 5. Further reading
 
