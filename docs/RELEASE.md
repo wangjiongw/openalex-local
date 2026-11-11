@@ -1,12 +1,12 @@
-# v0.3.0-rc.1 scope and operations
+# v0.3.0 scope and operations
 
 [中文](RELEASE.zh-CN.md) · [Documentation](INDEX.md)
 
-Git tag: `v0.3.0-rc.1`. Package/API version: `0.3.0rc1` (PEP 440). This is a
-GitHub prerelease of the existing toolchain, not a new production dataset.
+Git tag: `v0.3.0`. Package/API version: `0.3.0` (PEP 440). This is a
+GitHub stable release of the existing toolchain, not a new production dataset.
 Existing data requires explicit compatibility checks and controlled publication; publishing source does not automatically upgrade other installations.
 
-## Frozen public workflow
+## Supported public workflow
 
 - User downloads a consistent snapshot following [the format guide](SNAPSHOT.md).
 - Read/verify local legacy/current JSONL; import preserved records, identifiers
@@ -17,7 +17,7 @@ Existing data requires explicit compatibility checks and controlled publication;
 - Query DOI/ID, full source records, references/citations/related works and supported
   indexed text/filters; inspect capabilities rather than assuming official parity.
 
-This candidate adds entity catalogs, query controls and durable exports while reusing the existing metadata and work-index projection. Full supported-query boundaries: [API coverage](API-COVERAGE.md).
+This release adds entity catalogs, query controls and durable exports while reusing the existing metadata and work-index projection. Full supported-query boundaries: [API coverage](API-COVERAGE.md).
 
 ## Supported command entrypoints
 
@@ -44,7 +44,7 @@ Do not run historical repair commands against an adopted or production dataset.
 ## Installation and persistent state
 
 Install a tagged source checkout or the published wheel in a virtual environment.
-Verify release artifacts against `SHA256SUMS.txt`. This candidate is distributed
+Verify release artifacts against `SHA256SUMS.txt`. This release is distributed
 through GitHub; no PyPI publication or bundled engine/data archive is required.
 
 Keep these separately from Git:
@@ -87,10 +87,10 @@ receipts or bypass signature checks to make an old index appear compatible.
 ## Validation and known limits
 
 The [validation record](VALIDATION.md) separates internal full-data evidence,
-community native fixtures and candidate compatibility tests. Existing scale and
-search-restore evidence is reused; candidate qualification does not reconstruct
+community native fixtures and release compatibility tests. Existing scale and
+search-restore evidence is reused; release qualification does not reconstruct
 or reindex the production corpus. Final query/load reports must be bound to
-unchanged candidate code and unchanged production pointers/manifests.
+unchanged release code and unchanged production pointers/manifests.
 
 - Text search covers only published indexes; Earth candidates are not all fields.
 - Raw JSON preservation does not make every field an indexed filter. Some metadata
@@ -107,10 +107,11 @@ unchanged candidate code and unchanged production pointers/manifests.
   that deployment's evidence. This source release does not claim their root cause
   was fixed; current checks must report any reproduced storage error.
 
-No compulsory 24-hour observation applies. After candidate feedback, fixes and
-validation, a stable release can be considered separately. No automatic internal
-service cutover occurs when this prerelease is published.
+No compulsory 24-hour observation applies. v0.3.0 freezes the documented local API
+and toolchain, reusing compatible existing indexes. Reproduced defects receive
+maintenance fixes; broader official API parity is not a stable-release gate.
+A source release does not automatically switch another installation.
 
-## Retrieval/export candidate
+## Retrieval and exports
 
 The additions, commands, worker lifecycle and coverage boundaries are documented in [SEARCH-EXPORT.md](SEARCH-EXPORT.md). Added catalogs must pass separate qualification before publication; the original work segments and metadata generation are reused.

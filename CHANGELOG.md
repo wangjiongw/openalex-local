@@ -2,7 +2,10 @@
 
 [中文](CHANGELOG.zh-CN.md) · [Documentation](docs/INDEX.md)
 
-## Unreleased — documentation
+## 0.3.0 — v0.3.0
+
+- Promote the qualified retrieval/export implementation to a stable local-service release; only the application/package version changes.
+- Reuse existing metadata, references and published indexes; freeze supported API behavior and keep official-parity extensions optional.
 
 - Paired English/Chinese reader guides, shared concepts, workflow diagrams and documentation navigation.
 - Agent-specific development instructions, implementation map and persistent-state/verification contracts.

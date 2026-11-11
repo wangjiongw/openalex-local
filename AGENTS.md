@@ -8,6 +8,9 @@ references relevant to the task. Human-facing documentation starts at
 
 - Build a local OpenAlex metadata, citation and retrieval service from a
   user-downloaded snapshot. Provide a CLI, HTTP API and web UI.
+- Prioritize a usable, stable local API and reuse qualified existing indexes.
+  Broader official API parity, new engines and larger index scopes are not release
+  gates. Keep optional extensions outside the maintenance path.
 - Snapshot acquisition is user-managed. Read a configured local path without
   modifying the source snapshot. Preserve raw records and unknown fields.
 - ClickHouse is the metadata store; Manticore is the current optional lexical

@@ -90,6 +90,11 @@ code and frozen query fixtures for a data release. Preserve evidence bindings
 and report reused parent-restore evidence explicitly. A URL reachable locally
 does not prove cross-Pod operation; that check must run from another client Pod.
 
+For version-only promotion, audit every packaged application/resource file against
+the qualified candidate, allowing only the version declaration to differ. Preserve
+original qualification receipts and record new release checks separately; do not
+rewrite old evidence hashes or republish unchanged data to bypass validation.
+
 Preserve existing deployment settings and old software/pointers before upgrades.
 Check `/healthz`, `/readyz`, authenticated `/status` and `/capabilities`; metadata
 readiness can coexist with unavailable text search. An export worker restart

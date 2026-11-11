@@ -10,7 +10,7 @@ AWS CLI 仅用于用户自行获取数据，不是后续处理依赖。
 ```bash
 git clone https://github.com/wangjiongw/openalex-local.git
 cd openalex-local
-git checkout v0.3.0-rc.1
+git checkout v0.3.0
 python3 -m venv .venv
 .venv/bin/pip install .
 export PATH="$PWD/.venv/bin:$PATH"
@@ -18,9 +18,9 @@ export OPENALEX_HOME="$HOME/openalex-workspace"
 oa init
 ```
 
-也可以从 [GitHub 候选版](https://github.com/wangjiongw/openalex-local/releases/tag/v0.3.0-rc.1)
+也可以从 [GitHub 稳定版](https://github.com/wangjiongw/openalex-local/releases/tag/v0.3.0)
 下载 wheel 和 `SHA256SUMS.txt`，验证 SHA-256 后，在虚拟环境运行
-`python -m pip install /path/to/openalex_local_api-0.3.0rc1-py3-none-any.whl`。
+`python -m pip install /path/to/openalex_local_api-0.3.0-py3-none-any.whl`。
 无需依赖 PyPI 发布。wheel 包含网页和规则，原始快照与引擎二进制另行准备。
 
 `--workspace /absolute/path` 优先于 `OPENALEX_HOME`；均未指定时使用当前目录。
@@ -153,7 +153,7 @@ oa verify --generation earth_example --base-url "$OA_URL" \
 
 ## 接入已有部署
 
-检出候选版不会自动升级内部 `0.1.0` 部署。
+检出稳定版不会自动升级内部 `0.1.0` 部署。
 输入快照、元数据代、已发布索引分别具有独立身份，应保留指针、清单、回执、引擎版本及父分段。
 接入前阅读[发布与运维](RELEASE.zh-CN.md)。
 

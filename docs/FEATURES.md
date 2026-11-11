@@ -9,7 +9,7 @@ the supplied example scope, not the boundary of the metadata service.
 
 This inventory combines internal scale evidence, community implementation and
 the responsibilities of official repositories. See [search/exports](SEARCH-EXPORT.md)
-for the `0.3.0rc1` additions and [release operations](RELEASE.md) for the supported
+for the `0.3.0` additions and [release operations](RELEASE.md) for the supported
 commands. Actual catalog availability depends on the published build and
 `/capabilities`. Extension candidates below are not delivered integrations.
 
@@ -19,7 +19,7 @@ commands. Actual catalog availability depends on the published build and
 - **Validated:** internal operation, delivery or community-test evidence exists, only for its recorded version and scope.
 - **Partial:** implemented with remaining coverage, query, performance or quality limits.
 - **Future:** not delivered; references and intended results are provided below.
-- The historical internal baseline was `0.1.0`; the community toolchain and upgraded internal service use `0.3.0rc1`. Deployments use the same package with local data, configuration and rollback inputs. A community release does not automatically upgrade other installations.
+- The historical internal baseline was `0.1.0`; the community toolchain and upgraded internal service use `0.3.0`. Deployments use the same package with local data, configuration and rollback inputs. A community release does not automatically upgrade other installations.
 - The internal Earth candidate index published and qualified 76,850,149 works, 4,516 topics and 280,687 sources. Search snapshots total about 501 GiB; fresh-engine recovery and cross-Pod checks each passed 784 functional cases.
 - Both metadata-only and optional Earth native workflows pass Linux x86_64/ARM64 CI. Community synthetic tests do not replace full production performance evidence.
 - **Existing index construction and recovery are reusable assets.** Future work extends interfaces, scopes, formats and compatibility rather than treating validated processing as unimplemented.
@@ -138,7 +138,7 @@ generic all-discipline/arbitrary-discipline profiles are not delivered.
 | G05 | Existing-data adoption | Guarded read-only adoption exists; binding and qualification recorded separately; no automatic rewrite or backend replacement |
 | G06 | Delivery and recovery | Internal full search recovery, cross-Pod and load evidence; native fixtures validate the portable workflow; no need to recreate validated indexes |
 | G07 | Independent disaster backup | Further work: independent ClickHouse/config/source/index backups and restore exercises; search recovery alone is insufficient |
-| G08 | Community stable release | Candidate freezes supported behavior, entrypoints and evidence; decide stable release from feedback, not by rebuilding existing pipelines |
+| G08 | Community stable release | Candidate freezes supported behavior, entrypoints and evidence; maintain the stable release from feedback, not by rebuilding existing pipelines |
 
 ## 3. Official repositories and extension candidates
 

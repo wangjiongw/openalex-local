@@ -2,8 +2,30 @@
 
 [中文](VALIDATION.zh-CN.md) · [Documentation](INDEX.md)
 
-The community toolchain is version `0.3.0rc1`. This records tested boundaries,
+The community toolchain is stable version `0.3.0`. This records tested boundaries,
 not an assertion of complete official API compatibility or full-snapshot capacity.
+
+## v0.3.0 stable promotion checks
+
+Stable promotion changes only the application/package version declaration.
+All 79 packaged program/resource files were compared with the qualified
+v0.3.0-rc.1 wheel: only `__init__.py` differs, exactly by the version string.
+The stable wheel, source and installed files match. Query code, projections,
+engine versions, dependencies and UI resources are unchanged.
+
+- Unit suite: 419 passed; 76 optional/live cases skipped.
+- Source native workflows: both metadata-only and Earth profiles passed.
+- Installed stable wheel, tested outside the source tree: both native profiles passed.
+- The installed stable API passed 202 real-data functional checks on the existing
+  published Earth index, without rebuilding or republishing it.
+- Release CI covers unit/build and native checks on Linux x86_64 and ARM64;
+  publication requires all four jobs to pass.
+
+The candidate's sustained mixed-load and physical/search-recovery evidence below
+is reused with this explicit equivalence boundary. It is not a new full-data
+build, 30-minute performance run or independent ClickHouse recovery exercise.
+The goal is stable use of supported local API behavior; broader official API
+parity and new index scopes are not release gates.
 
 ## v0.3.0-rc.1 retrieval and export checks
 

@@ -2,8 +2,8 @@
 
 [中文](SEARCH-EXPORT.zh-CN.md) · [Documentation](INDEX.md)
 
-Version v0.3.0-rc.1 (package/API `0.3.0rc1`) extends v0.2.0-rc.1 with entity
-catalogs and durable exports. Catalog construction, physical recovery and mixed
+Stable version v0.3.0 (package/API `0.3.0`) retains the qualified entity
+catalogs and durable exports from v0.3.0-rc.1. Catalog construction, physical recovery and mixed
 query/export qualification passed on an existing dataset; see [validation](VALIDATION.md).
 Each installation must build, qualify and publish its own catalogs. Data,
 private configuration, jobs and output files stay outside Git.
