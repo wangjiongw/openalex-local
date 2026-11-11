@@ -2,8 +2,31 @@
 
 [中文](VALIDATION.zh-CN.md) · [Documentation](INDEX.md)
 
-The community toolchain is stable version `0.3.1`. This records tested boundaries,
+The community toolchain is stable version `0.3.2`. This records tested boundaries,
 not an assertion of complete official API compatibility or full-snapshot capacity.
+
+## v0.3.2 UI and maintenance checks
+
+The browser regression script uses synthetic API responses at widths 1440, 1024,
+760 and 390. It checks layout, disclosures, relation direction/empty/error states,
+source/API mismatch warnings, unresolved IDs, pagination, keyboard tabs, query URL
+restoration, filter reset, active conditions, selection counts and service version.
+The Linux x86_64 unit CI job runs this script in Chromium; native CI retains both
+metadata/Earth profiles on x86_64 and ARM64.
+
+An internal query-specific audit compared the first 20 results for `fengwu` against
+all paginated reference targets; all sets matched stored source arrays. Two
+preprint records also matched their exact decompressed source snapshot rows, both
+with empty reference arrays. This is not a random corpus sample or an assertion
+that all arXiv references are missing. Live UI checks exercise search, citations,
+reference pagination, unresolved targets and export/downloads on existing indexes.
+See the deployment's local reports for exact revisions and outcomes.
+
+Only the version declaration and static UI assets change in the application from
+v0.3.1. Query code, projections and engines are unchanged. Prior scale and recovery
+evidence is reused with its original boundaries: no new full-corpus audit,
+sustained performance qualification or independent ClickHouse disaster recovery
+is implied. Public source releases and each installation's deployment are separate.
 
 ## v0.3.1 authentication policy checks
 

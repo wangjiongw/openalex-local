@@ -2,7 +2,7 @@
 
 [中文](ROADMAP.zh-CN.md) · [Documentation](INDEX.md)
 
-v0.3.1 adds optional keyless internal access while keeping authentication enabled by default. Existing indexes are reused.
+v0.3.2 consolidates the search UI, reference-coverage explanations and project documentation. Optional keyless internal access remains available; authentication stays enabled by default. Existing indexes are reused. See [current status](STATUS.md).
 
 ## v0.3.0: usable local retrieval
 

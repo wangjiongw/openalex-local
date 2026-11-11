@@ -9,6 +9,24 @@ const fmt = n => Number(n).toLocaleString("zh-CN");
 function node(tag, text, cls) { const el = document.createElement(tag); if (text !== undefined) el.textContent = text; if (cls) el.className = cls; return el; }
 function button(text, action, cls = "secondary") { const el = node("button", text, cls); el.type = "button"; el.addEventListener("click", action); return el; }
 function message(text = "") { $("message").textContent = text; }
+function updateSelection() {
+  const works = $("entity").value === "works";
+  $("selected-count").textContent = `当前结果已勾选 ${fmt(selectedWorks.size)} 篇文献。`;
+  $("export-selected").disabled = !works || !selectedWorks.size;
+  $("select-page").disabled = !works || !loadedWorks.size;
+  $("export-query").disabled = !works || !lastQuery || busy;
+}
+function updateFilterSummary() {
+  const controls=[...$("search-form").querySelectorAll(".filters input,.filters select")];
+  const active=el=>!el.disabled && (el.type === "checkbox" ? el.checked : el.tagName === "SELECT" ? el.selectedIndex > 0 : !!el.value.trim());
+  const count=controls.filter(active).length;
+  const advanced=controls.filter(el=>el.closest("#advanced-filters") && active(el)).length;
+  $("filter-summary").textContent=count ? `已启用 ${count} 项筛选或检索设置` : "使用默认检索设置";
+  $("advanced-summary").textContent=advanced ? `已启用 ${advanced} 项条件` : "作者、机构、主题、期刊与开放获取";
+}
+function invalidateQuery() {
+  searchRevision++;nextResults=null;lastQuery=null;$("more-results").hidden=true;updateFilterSummary();updateSelection();
+}
 async function request(path, params, payload) {
   const url = new URL(path, location.origin); if (params) url.search = new URLSearchParams(params).toString();
   const res = await fetch(url, {method:payload === undefined ? "GET" : "POST",headers:{...(key ? {"X-API-Key":key} : {}),"Content-Type":"application/json"},body:payload === undefined ? undefined : JSON.stringify(payload)}); const text = await res.text(); let data;
@@ -49,12 +67,14 @@ function chooseEntity(entity) {
   for (const option of $("search-field").options) option.disabled = !works && !["all","title"].includes(option.value);
   if ($("search-field").selectedOptions[0].disabled) $("search-field").value = "all";
   document.querySelectorAll(".collection-item").forEach(el => el.classList.toggle("active", el.dataset.entity === entity));
+  updateFilterSummary();
 }
 async function refreshStatus() {
   const result = await request("/status"); status = result.data;
   capabilities = (await request("/capabilities")).data;
   $("export-note").textContent = capabilities.exports?.worker_ready ? "导出 worker 正在运行。" : "导出 worker 未运行；任务将排队，请在服务器启动 export-worker。";
   for (const [id,entity] of [["author-id-filter","authors"],["institution-filter","institutions"]]) $(id).placeholder = status.search_coverage?.entities?.[entity]?.ready ? "输入名称选择身份，或直接填写 ID" : "名称索引未发布；可直接填写 ID";
+  $("service-version").textContent = status.application_version ? "v"+status.application_version : "";
   $("snapshot-date").textContent = status.snapshot_date || "本地快照"; $("generation").textContent = status.generation;
   const coverage = status.coverage || {};
   $("works-count").textContent = fmt(coverage.works?.unique_entities || 0); $("authors-count").textContent = fmt(coverage.authors?.unique_entities || 0); $("entity-count").textContent = Object.keys(coverage).length;
@@ -68,7 +88,7 @@ async function refreshStatus() {
   $("collections").replaceChildren();
   $("metadata-collections").replaceChildren();
   for (const [entity,label] of Object.entries(labels)) {
-    const el = button("", () => {chooseEntity(entity); $("query").focus();}, "collection-item"); el.dataset.entity = entity;
+    const el = button("", () => {chooseEntity(entity); invalidateQuery(); $("query").focus();}, "collection-item"); el.dataset.entity = entity;
     el.append(node("span", label), node("small", coverage[entity] ? fmt(coverage[entity].unique_entities) : "—")); const ready = searchCoverage.entities?.[entity]?.ready; el.title = ready ? "可按名称检索，或按 ID 查看详情" : "名称索引未发布；可按 ID 查看完整详情"; $(ready || entity === "works" ? "collections" : "metadata-collections").append(el);
   }
   chooseEntity($("entity").value);
@@ -84,7 +104,7 @@ function card(r, entity) {
   meta.append(node("span", r.publication_year || labels[entity]), node("span", r.type || "")); if (r.open_access?.is_oa) meta.append(node("span", "OPEN ACCESS", "tag oa"));
   const title = node("h3"); title.append(button(r.title || r.display_name || r.id, () => loadDetail(entity, r.id), "title-button"));
   article.append(meta,title);
-  if(entity === "works") { loadedWorks.add(r.id); const label=node("label",undefined,"check"); const box=node("input");box.type="checkbox";box.checked=selectedWorks.has(r.id);box.addEventListener("change",()=>box.checked?selectedWorks.add(r.id):selectedWorks.delete(r.id));label.append(box,node("span","选择导出"));article.append(label); }
+  if(entity === "works") { loadedWorks.add(r.id); const label=node("label",undefined,"check"); const box=node("input");box.type="checkbox";box.checked=selectedWorks.has(r.id);box.addEventListener("change",()=>{if(box.checked)selectedWorks.add(r.id);else selectedWorks.delete(r.id);updateSelection();});label.append(box,node("span","选择导出"));article.append(label); }
   if(entity === "authors" || entity === "institutions") article.append(node("p",[r.orcid,r.ror,r.country_code,...(r.last_known_institutions||[]).map(i=>i.display_name)].filter(Boolean).join(" · ")));
   const names = (r.authorships || []).slice(0,3).map(a=>a.author?.display_name).filter(Boolean);
   if (names.length) article.append(node("p", names.join(" · ") + (r.authorships.length > 3 ? " 等" : "")));
@@ -138,7 +158,7 @@ async function search(event, more = false) {
     nextResults = data.meta.next_cursor ? {entity:usedEntity,route,params:Object.fromEntries(Object.entries(params).filter(([k])=>k!=="cursor")),cursor:data.meta.next_cursor} : null;
     $("more-results").hidden = !nextResults;
   } catch (error) { message(error.message); }
-  finally { busy = false; $("search-button").disabled = false; $("more-results").disabled = false; }
+  finally { busy = false; $("search-button").disabled = false; $("more-results").disabled = false; updateSelection(); }
 }
 async function loadDetail(entity, value, scheme = "openalex", replaceResults = false) {
   const ticket = ++detailRequest; edgeRequest++; message();
@@ -147,6 +167,7 @@ async function loadDetail(entity, value, scheme = "openalex", replaceResults = f
     if (response.ambiguous) { $("results").replaceChildren(...response.data.candidates.map(r=>card(r,entity))); $("result-count").textContent = "标识符对应多个记录"; return; }
     record = response.data; recordText = response.text; recordEntity = entity; edgeCursor = null;
     if(replaceResults){$("results").replaceChildren(card(record,entity));$("result-count").textContent="1 条 · 精确定位";}
+    updateSelection();
     renderDetail();
     document.querySelectorAll(".result-card").forEach(el => el.classList.toggle("selected", el.dataset.id === record.id));
     if (innerWidth < 761) $("detail").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"});
@@ -218,6 +239,7 @@ function emptyRelations(direction) {
     const count=referenceCount();
     if(count > 0) box.append(node("h3","参考关系与源记录不一致"),node("p",`源记录包含 ${fmt(count)} 条参考标识，但关系接口未返回结果。请保留本文 ID 并检查服务数据，不应视为零参考文献。`));
     else box.append(node("h3","快照未收录本文的参考列表"),node("p","这不表示论文原文没有参考文献。有其他论文引用本文时，“引用本文的文献”仍然可以有结果。"),node("p","预印本和正式发表版本是独立记录，参考列表可能不同；可用正式发表 DOI 或标题查找另一版本。系统不会自动合并版本或在线补全参考文献。"));
+    if(record.type === "preprint" && !count) box.append(node("p","当前为预印本记录：OpenAlex 对预印本参考列表的覆盖可能不完整；其他论文仍可引用它。这不代表所有 arXiv 文献都缺少参考关系。","subtle"));
     if(record.referenced_works_count > 0 && !count) box.append(node("p",`源声明参考数为 ${fmt(record.referenced_works_count)}，但未提供可展开的参考标识。`,"subtle"));
   } else if(direction === "citations") box.append(node("h3","快照中未找到引用本文的文献"),node("p","此结果取决于其他文献的参考列表和快照时间，不代表真实被引数为零。"));
   else box.append(node("h3","源记录未提供相关文献"),node("p","快照没有提供推荐列表，本地不会推断或生成相关记录。"));
@@ -248,7 +270,7 @@ async function loadEdges(more) {
 }
 
 for(const [value,label] of Object.entries(labels)){const option=node("option",label);option.value=value;$("entity").append(option);}
-$("entity").addEventListener("change",()=>chooseEntity($("entity").value));
+$("entity").addEventListener("change",()=>{chooseEntity($("entity").value);invalidateQuery();});
 $("connect-form").addEventListener("submit",connect);$("search-form").addEventListener("submit",event=>search(event));$("more-results").addEventListener("click",()=>search(null,true));
 $("refresh-status").addEventListener("click",()=>refreshStatus().then(()=>message()).catch(error=>message(error.message)));
 $("disconnect").addEventListener("click",()=>{sessionStorage.removeItem("openalex-key");location.reload();});
@@ -262,7 +284,8 @@ async function initializeConnection() {
   } catch { message("暂时无法连接文献库，请稍后重试。"); }
 }
 initializeConnection();
-setInterval(()=>{if(!$("workspace").hidden)refreshExports();},5000);
+setInterval(()=>{if(!$("workspace").hidden && $("export-panel").open && !document.hidden)refreshExports();},5000);
+$("export-panel").addEventListener("toggle",()=>{if($("export-panel").open)refreshExports();});
 
 for (const [inputId, listId, entity] of [["topic-filter","topic-options","topics"],["source-filter","source-options","sources"],["author-id-filter","author-options","authors"],["institution-filter","institution-options","institutions"]]) {
   let timer, revision = 0;
@@ -281,8 +304,16 @@ for (const [inputId, listId, entity] of [["topic-filter","topic-options","topics
 
 function saveQuery(){const params=new URLSearchParams();for(const id of stateFields){const el=$(id),v=el.type==="checkbox"?(el.checked?"1":""):el.value;if(v)params.set(id,v);}history.replaceState(null,"","?"+params);}
 function restoreQuery(){const params=new URLSearchParams(location.search);for(const id of stateFields){const value=params.get(id);if(value!==null){const el=$(id);if(el.options && ![...el.options].some(option=>option.value===value))continue;if(el.type==="checkbox")el.checked=value==="1";else el.value=value;}}}
-$("search-form").addEventListener("input",()=>{searchRevision++;nextResults=null;lastQuery=null;$("more-results").hidden=true;});
-$("select-page").addEventListener("click",()=>{for(const id of loadedWorks)selectedWorks.add(id);for(const box of $("results").querySelectorAll("input[type=checkbox]"))box.checked=true;$("export-note").textContent=`已选择 ${selectedWorks.size} 篇文献。`;});
+$("search-form").addEventListener("input",invalidateQuery);
+$("clear-filters").addEventListener("click",()=>{
+  for(const id of stateFields) {
+    if(["entity","query"].includes(id))continue;
+    const el=$(id);if(el.type === "checkbox")el.checked=false;else if(el.options)el.selectedIndex=0;else el.value="";
+  }
+  chooseEntity($("entity").value);invalidateQuery();saveQuery();message();$("query").focus();
+});
+updateSelection();
+$("select-page").addEventListener("click",()=>{for(const id of loadedWorks)selectedWorks.add(id);for(const box of $("results").querySelectorAll("input[type=checkbox]"))box.checked=true;updateSelection();});
 async function createExport(selected){try{if($("entity").value!=="works")throw new Error("请先查询文献结果。");const payload={formats:[$("export-format").value]};if(selected){if(!selectedWorks.size)throw new Error("请勾选需要导出的文献。");payload.identifiers=[...selectedWorks];}else{if(!lastQuery)throw new Error("请先完成一次文献查询。");payload.query=lastQuery;}if($("export-select").value.trim())payload.select=$("export-select").value.trim();if($("export-columns").value.trim())payload.csv_fields=$("export-columns").value.split(",").map(x=>x.trim());await request("/v1/exports",null,payload);$("export-panel").open=true;await refreshExports();}catch(error){message(error.message);}}
 $("export-query").addEventListener("click",()=>createExport(false));$("export-selected").addEventListener("click",()=>createExport(true));$("refresh-exports").addEventListener("click",refreshExports);
 async function downloadExport(job,name){try{const res=await fetch(`/v1/exports/${job}/files/${encodeURIComponent(name)}`,{headers:key ? {"X-API-Key":key} : {}});if(!res.ok)throw new Error("文件下载失败，请刷新任务后重试。");const url=URL.createObjectURL(await res.blob()),a=node("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch(error){message(error.message);}}

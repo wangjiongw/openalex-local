@@ -2,6 +2,13 @@
 
 [中文](CHANGELOG.zh-CN.md) · [Documentation](docs/INDEX.md)
 
+## 0.3.2 — v0.3.2
+
+- Consolidate the responsive search workspace, filter reset/active hints and export selection counts.
+- Explain snapshot reference gaps, separate relation failure states and retain unresolved target IDs.
+- Show the running service version and synchronize bilingual project status/maintenance documentation.
+- Reuse existing metadata/indexes; API query semantics and authenticated defaults are unchanged.
+
 ## 0.3.1 — v0.3.1
 
 - Add explicit `auth_required: false` for keyless internal deployments; authentication remains enabled by default and invalid flag types are rejected.

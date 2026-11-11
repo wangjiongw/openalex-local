@@ -1,8 +1,8 @@
-# v0.3.1 scope and operations
+# v0.3.2 scope and operations
 
 [中文](RELEASE.zh-CN.md) · [Documentation](INDEX.md)
 
-Git tag: `v0.3.1`. Package/API version: `0.3.1` (PEP 440). This is a
+Git tag: `v0.3.2`. Package/API version: `0.3.2` (PEP 440). This is a
 GitHub stable release of the existing toolchain, not a new production dataset.
 Existing data requires explicit compatibility checks and controlled publication; publishing source does not automatically upgrade other installations.
 
@@ -107,7 +107,7 @@ unchanged release code and unchanged production pointers/manifests.
   that deployment's evidence. This source release does not claim their root cause
   was fixed; current checks must report any reproduced storage error.
 
-No compulsory 24-hour observation applies. v0.3.1 freezes the documented local API
+No compulsory 24-hour observation applies. v0.3.2 freezes the documented local API
 and toolchain, reusing compatible existing indexes. Reproduced defects receive
 maintenance fixes; broader official API parity is not a stable-release gate.
 A source release does not automatically switch another installation.

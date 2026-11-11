@@ -2,7 +2,7 @@
 
 [中文](SEARCH-EXPORT.zh-CN.md) · [Documentation](INDEX.md)
 
-Stable version v0.3.1 (package/API `0.3.1`) retains the qualified entity
+Stable version v0.3.2 (package/API `0.3.2`) retains the qualified entity
 catalogs and durable exports from v0.3.0-rc.1. Catalog construction, physical recovery and mixed
 query/export qualification passed on an existing dataset; see [validation](VALIDATION.md).
 Each installation must build, qualify and publish its own catalogs. Data,
@@ -19,7 +19,10 @@ result selection and an export-job panel.
 
 The search page keeps the query and common filters visible. Advanced filters,
 export jobs and additional metadata-only entity types can be expanded as needed;
-query URLs reopen advanced filters when they contain active conditions. Desktop
+query URLs reopen advanced filters when they contain active conditions. The reset
+button preserves the query text and entity while clearing filters/search settings;
+active-condition and selected-export counts make the current choices visible.
+The footer shows the actual running API version. Desktop
 results and details scroll independently; mobile uses a single column.
 
 The relations panel distinguishes outgoing references, incoming citations and

@@ -30,7 +30,7 @@ def main():
     state = {'failure': False, 'mismatch': False}
     ready = {e: {'ready': True} for e in ['works', 'authors', 'institutions', 'sources', 'topics']}
     ready['funders'] = {'ready': False}
-    status = {'auth_required': False, 'search_ready': True, 'metadata_ready': True, 'metadata_complete': True,
+    status = {'application_version': '0.3.2', 'auth_required': False, 'search_ready': True, 'metadata_ready': True, 'metadata_complete': True,
               'generation': 'synthetic', 'coverage': {'works': {'unique_entities': 10}},
               'search_coverage': {'entities': ready, 'published_scopes': ['earth_sciences']}}
 
@@ -80,6 +80,8 @@ def main():
         page.goto('http://openalex.test/')
         page.wait_for_load_state('networkidle')
         expect(page.locator('#workspace')).to_be_visible()
+        expect(page.locator('#service-version')).to_have_text('v0.3.2')
+        expect(page.locator('#export-selected')).to_be_disabled()
         assert not page.locator('#advanced-filters').evaluate('(el)=>el.open')
         assert not page.locator('#export-panel').evaluate('(el)=>el.open')
         assert not page.locator('#other-collections').evaluate('(el)=>el.open')
@@ -130,6 +132,30 @@ def main():
         assert page.locator('#advanced-filters').evaluate('(el)=>el.open')
         expect(page.locator('#author-query')).to_have_value('Synthetic')
         expect(page.locator('#oa-only')).to_be_checked()
+        expect(page.locator('#advanced-summary')).to_have_text('已启用 2 项条件')
+        page.locator('#query').fill('weather')
+        page.locator('#clear-filters').click()
+        expect(page.locator('#query')).to_have_value('weather')
+        expect(page.locator('#author-query')).to_have_value('')
+        expect(page.locator('#oa-only')).not_to_be_checked()
+        expect(page.locator('#filter-summary')).to_have_text('使用默认检索设置')
+        assert 'author-query' not in page.url and 'oa-only' not in page.url
+        page.locator('#search-button').click()
+        expect(page.locator('#results .result-card')).to_have_count(3)
+        page.locator('#export-panel>summary').click()
+        page.locator('#results input[type=checkbox]').first.check()
+        expect(page.locator('#selected-count')).to_contain_text('1 篇')
+        expect(page.locator('#export-selected')).to_be_enabled()
+        expect(page.locator('#export-query')).to_be_enabled()
+        page.locator('#select-page').click()
+        expect(page.locator('#selected-count')).to_contain_text('3 篇')
+        page.locator('#query').fill('changed')
+        expect(page.locator('#export-query')).to_be_disabled()
+        page.locator('#entity').select_option('authors')
+        expect(page.locator('#export-selected')).to_be_disabled()
+        expect(page.locator('#select-page')).to_be_disabled()
+        page.locator('#entity').select_option('works')
+        page.locator('#export-panel>summary').click()
         # Expanded controls must also remain usable at phone width.
         page.locator('#other-collections>summary').click()
         page.set_viewport_size({'width': 390, 'height': 1000})
@@ -140,7 +166,7 @@ def main():
     result = {'passed': True, 'widths': [1440, 1024, 760, 390], 'synthetic_only': True,
               'checks': ['layout', 'disclosures', 'source-empty', 'missing-field', 'directions',
                          'pagination', 'unresolved-ID', 'request-error', 'source-mismatch',
-                         'keyboard-tabs', 'query-URL'], 'page_errors': errors}
+                         'keyboard-tabs', 'query-URL', 'filter-reset', 'active-conditions', 'selection-count', 'service-version'], 'page_errors': errors}
     (args.output / 'acceptance.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result))
 
