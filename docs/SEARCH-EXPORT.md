@@ -17,12 +17,34 @@ type and language predicates. Inspect `/capabilities` for the actual contract.
 The UI adds author identity, institution and language controls, query URLs,
 result selection and an export-job panel.
 
+The search page keeps the query and common filters visible. Advanced filters,
+export jobs and additional metadata-only entity types can be expanded as needed;
+query URLs reopen advanced filters when they contain active conditions. Desktop
+results and details scroll independently; mobile uses a single column.
+
+The relations panel distinguishes outgoing references, incoming citations and
+snapshot recommendations. The reference button shows the length of the source
+`referenced_works` array when available. An empty array means the snapshot did
+not record a structured reference list, not that the paper has no bibliography.
+Preprints and published versions remain independent records and can have different
+reference coverage. Use a published DOI/title to inspect that record; the service
+does not automatically merge versions or fetch missing bibliographies. Unresolved
+targets retain their IDs. Failed relation requests are shown as errors; an empty
+response with nonempty source references is flagged as inconsistent.
+
 Positive author/institution conditions on `/v1` must hold within the same
 authorship. Official-style routes preserve work-level intersection. Name search
 does not establish identity, and selecting an author ID does not merge namesakes.
 Entity-name searches include aliases from source records. The author catalog
 contains authors linked to published Earth candidates; the institution catalog
 covers imported institutions. Identifier lookup has a different scope from text search.
+
+
+UI regression checks can run without an API or a dataset using synthetic responses:
+`python scripts/check_web_layout.py --output /tmp/openalex-web-check`.
+Install the optional Playwright package and Chromium first; `--executable` can
+select an existing Chromium executable. These checks cover layout, disclosures,
+relation states, pagination and query URLs; they do not establish corpus coverage.
 
 ## Create an export
 

@@ -37,6 +37,7 @@ function identifier(value, entity) {
 }
 function chooseEntity(entity) {
   $("entity").value = entity;
+  if (status?.search_coverage?.entities?.[entity]?.ready === false) $("other-collections").open = true;
   $("search-scope").disabled = entity !== "works";
   const works = entity === "works";
   const entityReady = status?.search_coverage?.entities?.[entity]?.ready;
@@ -58,16 +59,17 @@ async function refreshStatus() {
   const coverage = status.coverage || {};
   $("works-count").textContent = fmt(coverage.works?.unique_entities || 0); $("authors-count").textContent = fmt(coverage.authors?.unique_entities || 0); $("entity-count").textContent = Object.keys(coverage).length;
   const searchCoverage = status.search_coverage || {};
-  $("coverage-note").textContent = !status.search_ready ? "当前提供元数据与引用关系查询；文本索引为可选功能。" : searchCoverage.engine === "manticore" ? `已上线 ${fmt(searchCoverage.entities?.works?.indexed_entities || 0)} / ${fmt(searchCoverage.earth_expected)} 篇地学候选文献 · ${searchCoverage.collection} · ${searchCoverage.earth_complete ? "地学集合完整" : "分批上线，当前未命中不代表全库没有"}` : "DOI、详情和引用关系覆盖完整快照；名称检索按验收后的范围逐批上线。";
+  $("coverage-note").textContent = !status.search_ready ? "当前提供元数据与引用关系查询；文本索引为可选功能。" : searchCoverage.engine === "manticore" ? `已上线 ${fmt(searchCoverage.entities?.works?.indexed_entities || 0)} / ${fmt(searchCoverage.earth_expected)} 篇地学候选文献 · ${searchCoverage.earth_complete ? "地学集合完整" : "分批上线，当前未命中不代表全库没有"}` : "DOI、详情和引用关系覆盖完整快照；名称检索按验收后的范围逐批上线。";
   for (const option of $("earth-group").options) option.disabled = !!option.value && !(searchCoverage.indexed_groups?.[option.value] > 0);
   if ($("earth-group").selectedOptions[0].disabled) $("earth-group").value = "";
   $("search-scope").disabled = $("entity").value !== "works";
   $("availability").textContent = !status.metadata_ready ? "元数据服务暂时不可用" : `${status.metadata_complete ? "全量元数据可查" : "部分覆盖元数据可查"} · ${status.search_ready ? `文本检索可用 · ${searchCoverage.global_search_complete ? "全库" : (searchCoverage.published_scopes || []).join("、").replace("earth_sciences","广义地球科学")}` : "未发布文本索引"}`;
   $("search-note").textContent = status.search_ready ? "支持题名、摘要、作者姓名及组合筛选；输入 DOI 或 OpenAlex ID 可直接定位。" : "可通过 DOI / OpenAlex ID 查询详情与引用关系；按需构建并发布索引后可启用文本检索。";
   $("collections").replaceChildren();
+  $("metadata-collections").replaceChildren();
   for (const [entity,label] of Object.entries(labels)) {
     const el = button("", () => {chooseEntity(entity); $("query").focus();}, "collection-item"); el.dataset.entity = entity;
-    el.append(node("span", label + (searchCoverage.entities?.[entity]?.ready === false ? " · 未建独立名称索引" : "")), node("small", coverage[entity] ? fmt(coverage[entity].unique_entities) : "—")); $("collections").append(el);
+    el.append(node("span", label), node("small", coverage[entity] ? fmt(coverage[entity].unique_entities) : "—")); const ready = searchCoverage.entities?.[entity]?.ready; el.title = ready ? "可按名称检索，或按 ID 查看详情" : "名称索引未发布；可按 ID 查看完整详情"; $(ready || entity === "works" ? "collections" : "metadata-collections").append(el);
   }
   chooseEntity($("entity").value);
 }
@@ -78,7 +80,7 @@ async function connect(event) {
   catch (error) { message(error.message); }
 }
 function card(r, entity) {
-  const article = node("article", undefined, "result-card"); const meta = node("div", undefined, "result-meta");
+  const article = node("article", undefined, "result-card"); article.dataset.id = r.id; const meta = node("div", undefined, "result-meta");
   meta.append(node("span", r.publication_year || labels[entity]), node("span", r.type || "")); if (r.open_access?.is_oa) meta.append(node("span", "OPEN ACCESS", "tag oa"));
   const title = node("h3"); title.append(button(r.title || r.display_name || r.id, () => loadDetail(entity, r.id), "title-button"));
   article.append(meta,title);
@@ -146,7 +148,8 @@ async function loadDetail(entity, value, scheme = "openalex", replaceResults = f
     record = response.data; recordText = response.text; recordEntity = entity; edgeCursor = null;
     if(replaceResults){$("results").replaceChildren(card(record,entity));$("result-count").textContent="1 条 · 精确定位";}
     renderDetail();
-    if (innerWidth < 701) $("detail").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"});
+    document.querySelectorAll(".result-card").forEach(el => el.classList.toggle("selected", el.dataset.id === record.id));
+    if (innerWidth < 761) $("detail").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"});
   } catch (error) { if (ticket === detailRequest) message(error.message); }
 }
 function entityButton(entity, item) { return button(item.display_name || item.id, () => loadDetail(entity,item.id), "entity-link"); }
@@ -190,12 +193,45 @@ function overview(pane) {
   pane.append(node("p",`共 ${Object.keys(record).length} 个顶层字段；切换“全部字段”查看未经裁剪的完整 JSON。`,"subtle"));
 }
 function raw(pane) {pane.replaceChildren(node("p",`${Object.keys(record).length} 个顶层字段 · 完整 API 响应，可下载保存。`,"field-summary"));const pre=node("pre",recordText,"raw");pre.tabIndex=0;pane.append(pre);}
-function relations(pane) {pane.replaceChildren();edgeCursor=null;edgeDirection="references";const actions=node("div",undefined,"detail-actions");for(const [value,label] of [["references","参考文献"],["citations","引用本文的文献"],["related-works","相关文献"]]) actions.append(button(label,()=>{edgeDirection=value;edgeCursor=null;loadEdges(false);},"secondary"));pane.append(actions,node("p","相关文献来自 OpenAlex 快照中的推荐列表。","subtle"),node("div",undefined,"edge-list"));pane.lastChild.id="edge-list";const more=button("加载下一页",()=>loadEdges(true),"secondary wide");more.id="more-edges";more.hidden=true;pane.append(more);loadEdges(false);}
+const relationLabels = {references:"参考文献",citations:"引用本文的文献","related-works":"相关文献"};
+function referenceCount() { return Array.isArray(record.referenced_works) ? record.referenced_works.length : null; }
+function relationExplanation(direction) {
+  if(direction === "citations") return "哪些文献引用了本文：从本地快照的参考关系反向查询，与本文是否有参考列表无关。源被引数不一定等于本地可查数量。";
+  if(direction === "related-works") return "来自 OpenAlex 快照的 related_works 推荐列表，不代表引用关系，也不是本地语义搜索。";
+  const count=referenceCount();
+  return `本文引用了哪些文献：${count === null ? "源记录未提供结构化参考文献列表" : `源记录包含 ${fmt(count)} 条参考标识`}。目标详情从全库元数据读取，不受地学文本索引范围限制。`;
+}
+function relations(pane) {
+  pane.replaceChildren();edgeCursor=null;edgeDirection="references";
+  const actions=node("div",undefined,"detail-actions relation-switch");actions.setAttribute("role","group");actions.setAttribute("aria-label","引用关系方向");
+  for(const [value,label] of Object.entries(relationLabels)) {
+    const b=button(value === "references" && referenceCount() !== null ? `${label} · ${fmt(referenceCount())}` : label,()=>{edgeDirection=value;edgeCursor=null;loadEdges(false);},"secondary");b.dataset.direction=value;b.setAttribute("aria-pressed",String(value === edgeDirection));actions.append(b);
+  }
+  const note=node("p",undefined,"relation-note");note.id="relation-note";
+  const list=node("div",undefined,"edge-list");list.id="edge-list";list.setAttribute("aria-live","polite");
+  const more=button("加载下一页",()=>loadEdges(true),"secondary wide");more.id="more-edges";more.hidden=true;
+  pane.append(actions,note,list,more);loadEdges(false);
+}
+function emptyRelations(direction) {
+  const box=node("div",undefined,"relation-empty");
+  if(direction === "references") {
+    const count=referenceCount();
+    if(count > 0) box.append(node("h3","参考关系与源记录不一致"),node("p",`源记录包含 ${fmt(count)} 条参考标识，但关系接口未返回结果。请保留本文 ID 并检查服务数据，不应视为零参考文献。`));
+    else box.append(node("h3","快照未收录本文的参考列表"),node("p","这不表示论文原文没有参考文献。有其他论文引用本文时，“引用本文的文献”仍然可以有结果。"),node("p","预印本和正式发表版本是独立记录，参考列表可能不同；可用正式发表 DOI 或标题查找另一版本。系统不会自动合并版本或在线补全参考文献。"));
+    if(record.referenced_works_count > 0 && !count) box.append(node("p",`源声明参考数为 ${fmt(record.referenced_works_count)}，但未提供可展开的参考标识。`,"subtle"));
+  } else if(direction === "citations") box.append(node("h3","快照中未找到引用本文的文献"),node("p","此结果取决于其他文献的参考列表和快照时间，不代表真实被引数为零。"));
+  else box.append(node("h3","源记录未提供相关文献"),node("p","快照没有提供推荐列表，本地不会推断或生成相关记录。"));
+  return box;
+}
 async function loadEdges(more) {
-  const ticket=++edgeRequest, id=record.id.split("/").pop(), params={select:"id,title,publication_year,doi,authorships,primary_location"};if(edgeDirection!=="related-works")params.per_page="20";if(more && edgeCursor) params.cursor=edgeCursor;
+  const ticket=++edgeRequest, direction=edgeDirection, id=record.id.split("/").pop(), params={select:"id,title,publication_year,doi,authorships,primary_location"};if(direction!=="related-works")params.per_page="20";if(more && edgeCursor) params.cursor=edgeCursor;
   const target=$("edge-list"), moreButton=$("more-edges");if(!target)return;moreButton.disabled=true;message();
+  document.querySelectorAll("[data-direction]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.direction===direction)));
+  $("relation-note").textContent=relationExplanation(direction);
+  if(!more){target.replaceChildren(node("p","正在读取"+relationLabels[direction]+"…","subtle"));moreButton.hidden=true;}
+  target.setAttribute("aria-busy","true");
   try {
-    const {data}=await request(`/v1/works/${id}/${edgeDirection}`,params);if(ticket!==edgeRequest)return;if(!more)target.replaceChildren();
+    const {data}=await request(`/v1/works/${id}/${direction}`,params);if(ticket!==edgeRequest)return;if(!more)target.replaceChildren();
     for(const edge of data.results){
       const item=node("article",undefined,"edge-item"), work=edge.work;
       item.append(edge.resolved?button(work.title||"源记录未提供标题",()=>loadDetail("works",edge.id),"title-button"):node("span","快照中未收录的文献"));
@@ -203,18 +239,21 @@ async function loadEdges(more) {
         const names=(work.authorships||[]).slice(0,3).map(a=>a.author?.display_name).filter(Boolean);
         item.append(node("p",[work.publication_year,names.join(" · "),work.primary_location?.source?.display_name].filter(Boolean).join(" · ")));
         const doi=node("p");doi.append(work.doi?safeLink(work.doi.startsWith("http")?work.doi:"https://doi.org/"+work.doi,"DOI: "+work.doi.replace(/^https?:\/\/doi.org\//,"")):node("span","源记录未提供 DOI"));item.append(doi);
-      }else item.append(node("p","该关联仅有源标识符，当前快照无法提供 DOI 和标题。"));
+      }else item.append(node("p",`该关联仅有源标识符 ${edge.id}，当前快照无法提供 DOI 和标题。`));
       target.append(item);
     }
-    if(!data.results.length && !more)target.append(node("p",edgeDirection==="related-works"?"源记录未提供相关文献。":"本地快照中没有记录到此方向的引用。","subtle"));edgeCursor=data.meta.next_cursor;moreButton.hidden=!edgeCursor;
-  }catch(error){if(ticket===edgeRequest)message(error.message);}finally{if(ticket===edgeRequest)moreButton.disabled=false;}
+    if(!data.results.length && !more)target.append(emptyRelations(direction));edgeCursor=data.meta.next_cursor;moreButton.hidden=!edgeCursor;
+  }catch(error){if(ticket===edgeRequest){if(!more)target.replaceChildren(node("p","关系查询失败："+error.message,"relation-empty"));message(error.message);}}
+  finally{if(ticket===edgeRequest){moreButton.disabled=false;target.setAttribute("aria-busy","false");}}
 }
+
 for(const [value,label] of Object.entries(labels)){const option=node("option",label);option.value=value;$("entity").append(option);}
 $("entity").addEventListener("change",()=>chooseEntity($("entity").value));
 $("connect-form").addEventListener("submit",connect);$("search-form").addEventListener("submit",event=>search(event));$("more-results").addEventListener("click",()=>search(null,true));
 $("refresh-status").addEventListener("click",()=>refreshStatus().then(()=>message()).catch(error=>message(error.message)));
 $("disconnect").addEventListener("click",()=>{sessionStorage.removeItem("openalex-key");location.reload();});
 restoreQuery();
+if ([...$("advanced-filters").querySelectorAll("input,select")].some(el=>el.type === "checkbox" ? el.checked : el.value)) $("advanced-filters").open = true;
 async function initializeConnection() {
   if(key) return connect().then(refreshExports);
   try {
@@ -244,7 +283,7 @@ function saveQuery(){const params=new URLSearchParams();for(const id of stateFie
 function restoreQuery(){const params=new URLSearchParams(location.search);for(const id of stateFields){const value=params.get(id);if(value!==null){const el=$(id);if(el.options && ![...el.options].some(option=>option.value===value))continue;if(el.type==="checkbox")el.checked=value==="1";else el.value=value;}}}
 $("search-form").addEventListener("input",()=>{searchRevision++;nextResults=null;lastQuery=null;$("more-results").hidden=true;});
 $("select-page").addEventListener("click",()=>{for(const id of loadedWorks)selectedWorks.add(id);for(const box of $("results").querySelectorAll("input[type=checkbox]"))box.checked=true;$("export-note").textContent=`已选择 ${selectedWorks.size} 篇文献。`;});
-async function createExport(selected){try{if($("entity").value!=="works")throw new Error("请先查询文献结果。");const payload={formats:[$("export-format").value]};if(selected){if(!selectedWorks.size)throw new Error("请勾选需要导出的文献。");payload.identifiers=[...selectedWorks];}else{if(!lastQuery)throw new Error("请先完成一次文献查询。");payload.query=lastQuery;}if($("export-select").value.trim())payload.select=$("export-select").value.trim();if($("export-columns").value.trim())payload.csv_fields=$("export-columns").value.split(",").map(x=>x.trim());await request("/v1/exports",null,payload);await refreshExports();}catch(error){message(error.message);}}
+async function createExport(selected){try{if($("entity").value!=="works")throw new Error("请先查询文献结果。");const payload={formats:[$("export-format").value]};if(selected){if(!selectedWorks.size)throw new Error("请勾选需要导出的文献。");payload.identifiers=[...selectedWorks];}else{if(!lastQuery)throw new Error("请先完成一次文献查询。");payload.query=lastQuery;}if($("export-select").value.trim())payload.select=$("export-select").value.trim();if($("export-columns").value.trim())payload.csv_fields=$("export-columns").value.split(",").map(x=>x.trim());await request("/v1/exports",null,payload);$("export-panel").open=true;await refreshExports();}catch(error){message(error.message);}}
 $("export-query").addEventListener("click",()=>createExport(false));$("export-selected").addEventListener("click",()=>createExport(true));$("refresh-exports").addEventListener("click",refreshExports);
 async function downloadExport(job,name){try{const res=await fetch(`/v1/exports/${job}/files/${encodeURIComponent(name)}`,{headers:key ? {"X-API-Key":key} : {}});if(!res.ok)throw new Error("文件下载失败，请刷新任务后重试。");const url=URL.createObjectURL(await res.blob()),a=node("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch(error){message(error.message);}}
 async function refreshExports(){if($("workspace").hidden)return;try{const {data}=await request("/v1/exports");const root=$("export-jobs");root.replaceChildren();const names={queued:"排队",running:"运行",paused:"暂停",cancelled:"已取消",failed:"失败",completed:"完成"};for(const job of data.results){const row=node("article",undefined,"edge-item");row.dataset.jobId=job.id;row.append(node("p",`任务 ${job.id.slice(-8)} · ${new Date(job.created*1000).toLocaleString("zh-CN")} · ${names[job.state]||job.state} · ${fmt(job.exported)} 篇 · 缺 DOI ${fmt(job.missing_doi)} · ${job.generation}`));if(job.error)row.append(node("p",job.error,"subtle"));if(!["completed","cancelled","failed","paused"].includes(job.state))row.append(button("取消",async()=>{try{await request(`/v1/exports/${job.id}/cancel`,null,{});refreshExports();}catch(error){message(error.message);}}));if(["cancelled","paused","failed"].includes(job.state))row.append(button("恢复",async()=>{try{await request(`/v1/exports/${job.id}/resume`,null,{});refreshExports();}catch(error){message(error.message);}}));for(const f of job.files)row.append(button(f.name,()=>downloadExport(job.id,f.name),"quiet"));if(job.state==="completed")row.append(button("下载 manifest",()=>downloadExport(job.id,"manifest.json"),"quiet"));root.append(row);}}catch(error){$("export-note").textContent=error.message;}}
