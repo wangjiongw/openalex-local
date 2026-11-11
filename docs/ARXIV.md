@@ -115,3 +115,13 @@ Online synchronization, Crossref, Semantic Scholar, full-text parsing/downloads
 and mixed-source ranking are outside this workflow. Source implementation,
 synthetic qualification, full-corpus publication and software deployment are
 separate milestones; inspect your installed `/status` for availability.
+
+
+Exact linking first resolves globally ordered DOI batches, then hydrates confirmed
+OpenAlex IDs in order, and finally applies the same exact-match rule from durable
+release-local evidence. Each substep has its own checkpoint. This avoids repeatedly
+reading random metadata granules. `arxiv_link_workers` defaults to 8 and
+`arxiv_link_batch_rows` to 2000 in workspace configuration; these are offline job
+settings, independent of API admission. SQLite staging keeps a bounded 128 MiB
+page cache and FULL synchronous commits. Matching evidence and staging are retained
+with the release, not discarded when an index is published.

@@ -70,6 +70,7 @@ def connect(release):
     c = sqlite3.connect(path(release) / 'staging.sqlite', timeout=30)
     c.execute('PRAGMA journal_mode=DELETE')
     c.execute('PRAGMA synchronous=FULL')
+    c.execute('PRAGMA cache_size=-131072')
     c.execute('CREATE TABLE IF NOT EXISTS records (number INTEGER PRIMARY KEY, id TEXT UNIQUE NOT NULL, hash TEXT NOT NULL, record TEXT NOT NULL, links TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS progress (stage TEXT PRIMARY KEY, value INTEGER NOT NULL)')
     return c
@@ -165,17 +166,82 @@ def exact_links(records, backend, generation):
     return result
 
 
+class LinkEvidence:
+    """Release-local exact-lookup evidence; the matching rule stays in exact_links."""
+    def __init__(self, connection):
+        self.c = connection
+
+    def resolve_many(self, generation, entity, scheme, values):
+        if not values:
+            return {}
+        rows = self.c.execute('SELECT value,candidates FROM link_values WHERE value IN ('+','.join('?' for _ in values)+')',values).fetchall()
+        if len(rows) != len(set(values)):
+            raise RuntimeError('incomplete arXiv identifier evidence')
+        return {v:json.loads(ids) for v,ids in rows}
+
+    def details(self, generation, entity, keys):
+        if not keys:
+            return {}
+        rows = self.c.execute('SELECT id,raw FROM link_works WHERE id IN ('+','.join('?' for _ in keys)+')',keys).fetchall()
+        if len(rows) != len(set(keys)) or any(raw is None for _,raw in rows):
+            raise RuntimeError('incomplete arXiv work evidence')
+        return {key:json.loads(raw) for key,raw in rows}
+
+
 def link(m, backend):
-    with connect(m['release']) as c:
-        after = checkpoint(c, 'link')
-        while batch := c.execute('SELECT number,record FROM records WHERE number>? ORDER BY number LIMIT 500', (after,)).fetchall():
+    from concurrent.futures import ThreadPoolExecutor
+    workers = config().get('arxiv_link_workers', 8)
+    batch_rows = config().get('arxiv_link_batch_rows', 2000)
+    if type(workers) is not int or not 1 <= workers <= 32 or type(batch_rows) is not int or not 1 <= batch_rows <= 5000:
+        raise ValueError('invalid arXiv link worker/batch configuration')
+    def fetch(args):
+        kind,values = args
+        reader = Backend(writer=True)
+        try:
+            return (reader.resolve_many(m['generation'],'works','doi',values) if kind == 'identifiers'
+                    else reader.details(m['generation'],'works',values))
+        finally:
+            reader.close()
+    with connect(m['release']) as c, ThreadPoolExecutor(workers) as pool:
+        c.execute('CREATE TABLE IF NOT EXISTS link_values(value TEXT PRIMARY KEY,candidates TEXT)')
+        c.execute('CREATE TABLE IF NOT EXISTS link_works(id TEXT PRIMARY KEY,raw TEXT)')
+        if not checkpoint(c,'link-input'):
             protect(m)
-            links = exact_links([json.loads(r) for _,r in batch], backend, m['generation'])
-            c.executemany('UPDATE records SET links=? WHERE number=?', [(json.dumps(v), row[0]) for row,v in zip(batch,links)])
-            after = batch[-1][0]
-            commit(c, 'link', after)
-            m['linked'] = after
-            save(m)
+            c.execute("INSERT OR IGNORE INTO link_values(value) SELECT '10.48550/arxiv.'||json_extract(record,'$.arxiv_id') FROM records")
+            c.execute("INSERT OR IGNORE INTO link_values(value) SELECT json_extract(record,'$.doi') FROM records WHERE json_extract(record,'$.doi') IS NOT NULL")
+            commit(c,'link-input',1)
+        # Globally ordered keys avoid repeatedly hydrating random granules of the full metadata store.
+        for kind,table_name,key_column,result_column in [('identifiers','link_values','value','candidates'),('works','link_works','id','raw')]:
+            if kind == 'works' and not checkpoint(c,'link-work-input'):
+                c.execute("INSERT OR IGNORE INTO link_works(id) SELECT j.value FROM link_values,json_each(link_values.candidates) AS j WHERE json_array_length(candidates)=1")
+                commit(c,'link-work-input',1)
+            stage = 'link-'+kind
+            after = checkpoint(c,stage) or ''
+            while window := c.execute(f'SELECT {key_column} FROM {table_name} WHERE {key_column}>? ORDER BY {key_column} LIMIT ?', (after,batch_rows*workers)).fetchall():
+                protect(m)
+                batches = [[r[0] for r in window[i:i+batch_rows]] for i in range(0,len(window),batch_rows)]
+                for keys,result in zip(batches,pool.map(fetch,[(kind,keys) for keys in batches])):
+                    protect(m)
+                    if kind == 'identifiers':
+                        values = [(json.dumps(result.get(key,[])),key) for key in keys]
+                    else:
+                        if set(result) != set(keys):
+                            raise RuntimeError('arXiv DOI evidence points to missing OpenAlex records')
+                        values = [(json.dumps({f:result[key].get(f) for f in ('id','doi','ids','type','title','display_name')}),key) for key in keys]
+                    c.executemany(f'UPDATE {table_name} SET {result_column}=? WHERE {key_column}=?',values)
+                    count = checkpoint(c,stage+'-count')+len(keys)
+                    c.execute('INSERT OR REPLACE INTO progress VALUES (?,?)',(stage+'-count',count))
+                    after=keys[-1];commit(c,stage,after)
+                    m.update(link_phase=kind,**{'resolved_identifiers' if kind=='identifiers' else 'hydrated_works':count})
+                    save(m)
+        evidence = LinkEvidence(c)
+        after = checkpoint(c,'link')
+        while batch := c.execute('SELECT number,record FROM records WHERE number>? ORDER BY number LIMIT ?', (after,batch_rows)).fetchall():
+            protect(m)
+            links = exact_links([json.loads(r) for _,r in batch],evidence,m['generation'])
+            c.executemany('UPDATE records SET links=? WHERE number=?',[(json.dumps(v),row[0]) for row,v in zip(batch,links)])
+            after=batch[-1][0];commit(c,'link',after)
+            m.update(link_phase='records',linked=after);save(m)
 
 
 def table(m):

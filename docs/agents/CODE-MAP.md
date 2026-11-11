@@ -33,6 +33,8 @@ relative to `tests/`. `oa` is a convenience script; the installed entrypoint is
 expansion and query exports have independent commands/workers and are not extra
 implicit stages in that pipeline. Do not document them as automatic stages.
 
+See [arXiv contracts](ARXIV.md) for the optional source and its ordered evidence checkpoints.
+
 ## Query changes: trace both contracts
 
 1. `api.py` selects official-style routes or local `/v1` behavior.

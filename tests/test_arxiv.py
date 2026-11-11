@@ -143,3 +143,40 @@ def test_exact_arxiv_alias_can_differ_from_primary_doi():
     result=pipeline.exact_links([r],b,'example')[0]
     assert result['confirmed'][0]['evidence']=='unique_exact_doi'
     assert result['preferred_openalex_id'] is None
+
+
+def test_parallel_link_commits_ordered_checkpoints(tmp_path,monkeypatch):
+    monkeypatch.setattr(pipeline,'ROOT',tmp_path)
+    monkeypatch.setattr(pipeline,'config',lambda:dict(arxiv_link_workers=2,arxiv_link_batch_rows=2,min_free_gib=0))
+    reader=Mock();reader.resolve_many.return_value={}
+    monkeypatch.setattr(pipeline,'Backend',lambda **kwargs:reader)
+    pipeline.path('fixture').mkdir(parents=True)
+    with pipeline.connect('fixture') as c:
+        for i in range(5):c.execute('INSERT INTO records(id,hash,record) VALUES (?,?,?)',(str(i),'h',json.dumps(dict(id=str(i),arxiv_id='1001.000'+str(i),doi=None))))
+    m=dict(release='fixture',generation='demo')
+    pipeline.link(m,Mock())
+    assert m['linked']==5
+    with pipeline.connect('fixture') as c:
+        assert pipeline.checkpoint(c,'link')==5
+        assert all(json.loads(r[0])['status']=='unmatched' for r in c.execute('SELECT links FROM records ORDER BY number'))
+        assert pipeline.checkpoint(c,'link-identifiers-count')==5
+    pipeline.link(m,Mock())
+    assert m['linked']==5
+
+
+def test_cached_evidence_matches_direct_linking_and_preserves_ambiguity(tmp_path,monkeypatch):
+    monkeypatch.setattr(pipeline,'ROOT',tmp_path)
+    pipeline.path('fixture').mkdir(parents=True)
+    r=source.normalize(raw(),'jsonl')
+    mapping={'10.1234/example':['W1'],'10.48550/arxiv.1001.0001':['W2','W3']}
+    works={'W1':dict(id='W1',doi='10.1234/example',type='article',title='Published climate study')}
+    b=Mock();b.resolve_many.return_value=mapping;b.details.return_value=works
+    with pipeline.connect('fixture') as c:
+        c.execute('CREATE TABLE link_values(value TEXT PRIMARY KEY,candidates TEXT)')
+        c.execute('CREATE TABLE link_works(id TEXT PRIMARY KEY,raw TEXT)')
+        c.executemany('INSERT INTO link_values VALUES (?,?)',[(k,json.dumps(v)) for k,v in mapping.items()])
+        c.executemany('INSERT INTO link_works VALUES (?,?)',[(k,json.dumps(v)) for k,v in works.items()])
+        cache=pipeline.LinkEvidence(c)
+        assert pipeline.exact_links([r],cache,'demo')==pipeline.exact_links([r],b,'demo')
+        c.execute('DELETE FROM link_works')
+        with pytest.raises(RuntimeError,match='incomplete'):pipeline.exact_links([r],cache,'demo')
