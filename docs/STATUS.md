@@ -7,6 +7,18 @@ retrieval workflow. Use the service's `/status`, `/capabilities` and footer vers
 to identify an actual installation; a source release does not upgrade deployments
 or publish a dataset. Existing compatible indexes are reused.
 
+
+## Optional arXiv extension in v0.4.0
+
+The maintained source adds M0/M1: user-downloaded Kaggle JSONL (standard input),
+a read-only optional derived DuckDB adapter, shared normalization/provenance,
+2010+ first-submission selection, independent resumable source releases, exact
+DOI version links, separate lexical search, source switching in the web page,
+publication-first confirmed details and pinned exports through the existing worker.
+See the [arXiv workflow](ARXIV.md). Installation and full-source publication require
+their own qualification; the v0.3.2 rollback baseline remains available.
+
+
 ## Delivered workflow
 
 | Stage | Delivered behavior | Boundary |
@@ -27,8 +39,9 @@ or publish a dataset. Existing compatible indexes are reused.
   it does not prove an empty bibliography. A paper can have incoming citations
   despite lacking its own reference list. Preprint coverage can be incomplete;
   this is not a claim that all arXiv records lack outgoing references.
-- Preprints and published versions are not automatically associated, merged or
-  reordered as one paper. Try a published DOI/title to inspect its own record.
+- With a separately published arXiv source, unique exact DOI evidence links
+  versions and prefers published details. Records remain separate; absent or
+  ambiguous evidence never merges them. Bibliographies belong to their own record.
 - Unresolved targets, missing abstracts and DOI ambiguity remain explicit.
 - Current search recovery evidence does not certify independent ClickHouse
   disaster recovery. Historical storage/checksum incidents are not declared

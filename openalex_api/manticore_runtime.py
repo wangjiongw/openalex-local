@@ -91,6 +91,8 @@ def main():
         finally:
             client.close()
         recover_published()
+        from .arxiv_pipeline import recover as recover_arxiv
+        recover_arxiv()
         raise SystemExit(proc.wait())
     finally:
         if proc.poll() is None:

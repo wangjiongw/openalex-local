@@ -142,6 +142,44 @@ def test_native_pipeline_publish_restore_and_resume(tmp_path, profile):
                     assert hashlib.sha256(downloaded.content).hexdigest()==file['sha256']
             detail = client.get('/works/W2').json()
             assert detail['unknown_future_field'] == {'preserved': 'yes'}
+            if profile == 'earth_sciences':
+                arxiv_input=workspace/'arxiv-fixture.json'
+                arxiv_rows=[dict(id=f'1001.000{i}',title=f'Synthetic climate arxiv {i}',abstract='Climate forecasting research',authors='Demo Scientist',categories='physics.ao-ph cs.AI',doi='10.99999/demo.2' if i==1 else None,versions=[dict(version='v1',created='Fri, 1 Jan 2010 00:00:00 GMT')],unknown_source_field={'keep':True}) for i in range(1,4)]
+                arxiv_input.write_text('\n'.join(json.dumps(r) for r in arxiv_rows))
+                pointer_before=(workspace/'var/active.json').read_bytes()
+                search_before=(workspace/'var/generations/demo/search-active.json').read_bytes()
+                run('arxiv','plan','--release','arxiv_fixture','--input',str(arxiv_input),'--generation','demo')
+                run('arxiv','run','--release','arxiv_fixture','--until','ingest')
+                run('arxiv','resume','--release','arxiv_fixture')
+                run('arxiv','publish','--release','arxiv_fixture')
+                assert (workspace/'var/active.json').read_bytes()==pointer_before
+                assert (workspace/'var/generations/demo/search-active.json').read_bytes()==search_before
+                reply=client.get('/v1/arxiv/works',params={'search':'climate','year':'2010..2011','category':'cs.AI','per_page':1})
+                reply.raise_for_status();data=reply.json();assert data['meta']['count']==3,data
+                keys=[r['id'] for r in data['results']]
+                while data['meta']['next_cursor']:
+                    reply=client.get('/v1/arxiv/works',params={'search':'climate','year':'2010..2011','category':'cs.AI','per_page':1,'cursor':data['meta']['next_cursor']})
+                    reply.raise_for_status();data=reply.json();keys += [r['id'] for r in data['results']]
+                assert len(keys)==len(set(keys))==3,keys
+                reply=client.get('/v1/arxiv/lookup',params={'identifier':'1001.0001v2'});reply.raise_for_status()
+                ar=reply.json();assert ar['version_links']['preferred_openalex_id']=='W2' and ar['raw_source']['unknown_source_field']=={'keep':True},ar
+                reply=client.get('/v1/works/W2/versions');reply.raise_for_status();assert reply.json()['results'][0]['id']=='arxiv:1001.0001'
+                created=client.post('/v1/exports',json=dict(source='arxiv',query=dict(route='/v1/arxiv/works',params=dict(search='climate')),formats=['jsonl.gz','csv','doi.txt','ids.txt']))
+                created.raise_for_status();job=created.json()['id']
+                for _ in range(120):
+                    state=client.get('/v1/exports/'+job).json()
+                    if state['state'] in ('completed','failed'):break
+                    time.sleep(.2)
+                assert state['state']=='completed' and state['exported']==3,state
+                manifest=client.get(f'/v1/exports/{job}/files/manifest.json');manifest.raise_for_status()
+                assert manifest.json()['plan']['source_release']=='arxiv_fixture'
+                run('stop','manticore');run('start','manticore')
+                for _ in range(60):
+                    reply=client.get('/v1/arxiv/works',params={'search':'climate'})
+                    if reply.status_code==200:break
+                    time.sleep(.2)
+                reply.raise_for_status();assert reply.json()['meta']['count']==3
+                assert client.get('/v1/works',params={'search':'climate'}).status_code==200
         if profile=='earth_sciences':
             run('catalogs','build','--generation','demo','--build','demo_catalogs','--parent','demo_earth')
             manifest=json.loads((workspace/'var/generations/demo/searches/demo_catalogs/build.json').read_text())

@@ -242,7 +242,7 @@ async def controls(request: Request, call_next):
             request._body = body
         remaining = max(0.001, started + c["query_timeout"] - time.monotonic())
         response = await asyncio.wait_for(call_next(request), timeout=remaining)
-        response.headers["X-Data-Source"] = "local-openalex-snapshot"
+        response.headers["X-Data-Source"] = "local-arxiv-source" if request.url.path.startswith("/v1/arxiv/") else "local-openalex-snapshot"
         LOG.info(
             "%s %s %s %.3fs",
             request.method,
@@ -351,6 +351,7 @@ def status(request: Request):
         if legacy.exists():
             pipeline = read_json(legacy)
     return {
+        "arxiv": __import__("openalex_api.arxiv_pipeline", fromlist=["status"]).status(),
         "application_version": __import__("openalex_api").__version__,
         "auth_required": config().get("auth_required", True),
         "search_pipeline": pipeline,
@@ -380,6 +381,7 @@ def capabilities(request: Request):
     from .official_text import PROJECTED
     from .exports import status as export_capabilities
     return {
+        "arxiv": __import__("openalex_api.arxiv_pipeline", fromlist=["status"]).status(),
         "exports": export_capabilities(),
         "query_combinations": {"works": ["text+author_name+year", "text+author_id+institution_id", "text+source+topic+oa+type+language"], "local_authorship": "same authorship", "official_authorship": "work-level intersection"},
         "generation": meta.get("generation"),
@@ -436,6 +438,28 @@ def capabilities(request: Request):
                 "post-snapshot entities, OQL/OQO, autocomplete, text tagging, upstream synchronization"],
         },
     }
+
+
+@app.get("/v1/arxiv/works")
+def arxiv_listing(request: Request, per_page: int = Query(25,ge=1,le=100), cursor: str | None = None):
+    from . import arxiv_api, arxiv_index
+    from .manticore_api import client
+    params_only(request, arxiv_index.PARAMS | {'per_page','cursor'})
+    return arxiv_api.listing(backend(),client(),{k:v for k,v in request.query_params.items() if k in arxiv_index.PARAMS},per_page,cursor)
+
+
+@app.get("/v1/arxiv/lookup")
+def arxiv_lookup(request: Request, identifier: str):
+    from . import arxiv_api
+    params_only(request, {'identifier'})
+    return arxiv_api.lookup(backend(),identifier)
+
+
+@app.get("/v1/works/{work_id}/versions")
+def work_versions(work_id: str, request: Request):
+    from . import arxiv_api
+    params_only(request, [])
+    return arxiv_api.versions(backend(),work_id)
 
 
 # Specific task routes must precede the generic entity listing/detail routes.

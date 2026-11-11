@@ -6,6 +6,13 @@ Plan reviewed on 2026-11-11 against v0.3.2. Everything below is planned work,
 not functionality delivered by that release. Keep the current service and existing
 qualified indexes available while building and validating additions separately.
 
+
+Implementation note: v0.4.0 implements the independent M0/M1 source workflow in
+[ARXIV.md](ARXIV.md), with Kaggle JSONL as the standard public input and optional
+read-only DuckDB compatibility. Small-dictionary expansion, live synchronization
+and content jobs below remain later work. Older milestone descriptions are the
+roadmap context, not a claim that every stage is deployed.
+
 ## Source choices fixed for this plan
 
 - Keep v0.3.2 and its qualified ClickHouse + Manticore indexes as the running baseline.

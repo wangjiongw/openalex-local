@@ -19,6 +19,14 @@ def main():
     )
     p.add_argument("--workspace", help="local data/config workspace; overrides OPENALEX_HOME")
     s = p.add_subparsers(dest="command", required=True)
+    q = s.add_parser('arxiv', help='independent optional arXiv source workflow')
+    q.add_argument('action', choices=['plan','run','resume','status','stop','validate','publish'])
+    q.add_argument('--release', required=True)
+    q.add_argument('--input')
+    q.add_argument('--input-format', choices=['jsonl','duckdb'], default='jsonl')
+    q.add_argument('--min-year', type=int, default=2010)
+    q.add_argument('--generation')
+    q.add_argument('--until', choices=['ingest','link','store','index','validate'], default='validate')
     q = s.add_parser('export')
     q.add_argument('action', choices=['create', 'list', 'status', 'cancel', 'resume'])
     q.add_argument('--request', help='JSON export request file')
@@ -189,6 +197,39 @@ def main():
         if a.command in ("snapshot", "engines", "pipeline", "verify", "restore", "adopt"):
             from .community_cli import execute
             emit(execute(a))
+            return
+        if a.command == 'arxiv':
+            from . import arxiv_pipeline as arxiv
+            if a.action == 'plan':
+                if not a.input:
+                    raise ValueError('--input is required')
+                emit(arxiv.plan(a.release,a.input,a.input_format,a.min_year,a.generation))
+            elif a.action == 'status':
+                emit(arxiv.read(a.release))
+            elif a.action == 'stop':
+                atomic_json(arxiv.path(a.release)/'stop.json', dict(stop=True))
+                emit(dict(state='stop_requested'))
+            elif a.action == 'publish':
+                emit(arxiv.publish(a.release))
+            else:
+                if a.action == 'resume':
+                    (arxiv.path(a.release)/'stop.json').unlink(missing_ok=True)
+                if a.action == 'validate':
+                    # Recheck stored/indexed artifacts even after an earlier validation.
+                    from .backend import Backend
+                    from .manticore_engine import Client
+                    from .ingest import lock
+                    with lock(arxiv.path(a.release)/'worker.lock'):
+                        m=arxiv.read(a.release)
+                        b,c=Backend(),Client(timeout=600)
+                        try:
+                            arxiv.validate(m,b,c)
+                            arxiv.save(m)
+                        finally:
+                            b.close(); c.close()
+                        emit(m)
+                else:
+                    emit(arxiv.run(a.release,a.until))
             return
         if a.command == 'export':
             from . import exports, api

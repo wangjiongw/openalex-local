@@ -242,6 +242,16 @@ def write_batch(c, b, path, segment, rows, membership=None, pool=None, bulk_work
                membership[row["id"]] if membership is not None else {}, segment.get("physical_layout", "legacy")) for row in rows]
     documents = list(pool.map(prepare_document, inputs, chunksize=100)) if pool else list(map(prepare_document, inputs))
     projected = time.monotonic()
+    metrics = write_documents(c, path, segment, documents, rows[-1]["id"], bulk_workers)
+    segment["invalid_abstracts"] = segment.get("invalid_abstracts", 0) + sum(d["attrs"]["invalid_abstract"] for _, d in documents)
+    return dict(projection_seconds=projected-started, **metrics)
+
+
+def write_documents(c, path, segment, documents, after, bulk_workers=1):
+    """Write already projected documents with the same verified durable receipts."""
+    if bulk_workers not in (1, 2, 4):
+        raise ValueError("unsupported bulk concurrency")
+    projected = time.monotonic()
     packets, packet, size = [], [], 0
     packet_rows = max(1, (len(documents) + bulk_workers - 1) // bulk_workers)
     for key, doc in documents:
@@ -280,12 +290,11 @@ def write_batch(c, b, path, segment, rows, membership=None, pool=None, bulk_work
         os.fsync(directory_fd)
     finally:
         os.close(directory_fd)
-    segment["batches"].append(dict(path=str(target.relative_to(path)), sha256=file_hash(target), count=len(rows)))
-    segment["count"] += len(rows)
-    segment["after"] = rows[-1]["id"]
-    segment["invalid_abstracts"] = segment.get("invalid_abstracts", 0) + sum(d["attrs"]["invalid_abstract"] for _, d in documents)
-    return dict(projection_seconds=projected-started, bulk_seconds=written-projected,
-                verify_seconds=verified-written, receipt_seconds=time.monotonic()-verified)
+    segment["batches"].append(dict(path=str(target.relative_to(path)), sha256=file_hash(target), count=len(documents)))
+    segment["count"] += len(documents)
+    segment["after"] = after
+    return dict(bulk_seconds=written-projected, verify_seconds=verified-written,
+                receipt_seconds=time.monotonic()-verified)
 
 
 def build(g, build_id, groups, parent=None, layout=None, source=None):

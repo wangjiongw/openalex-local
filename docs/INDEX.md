@@ -36,3 +36,5 @@ Earth entities, wider scopes and later content downloads, separately from releas
   and execution constraints rather than replacing these explanatory guides.
 - Source is public; snapshot data, credentials, indexes, engines, exports and
   deployment reports remain in local workspaces. A source release is not a database backup.
+
+- [Optional arXiv input, processing and search](ARXIV.md)

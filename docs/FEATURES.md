@@ -124,7 +124,7 @@ generic all-discipline/arbitrary-discipline profiles are not delivered.
 | F04 | Relationship browsing | Implemented: separate references, citing works and related works, pagination and record navigation |
 | F05 | Save metadata and open OA links | Implemented: single-record JSON download and source-provided OA links; not bulk full-text downloading |
 | F06 | Result exports, saved collections and download queues | 0.3 supplies query/list exports, selection, durable jobs and file downloads; saved collections/PDF queues remain future work |
-| F07 | Version grouping and publication-first display | Future: source records stay separate; preprints and published versions are not automatically merged |
+| F07 | Version links and publication-first display | v0.4.0 optional arXiv source: unique exact DOI evidence, separate records, publication-first details and preprint switch; no fuzzy merges |
 | F08 | Availability explanations | Basic status messaging exists; keep controls aligned with capabilities and distinguish unbuilt scope, missing source data and service errors |
 
 ### 2.7 CLI, deployment and operations

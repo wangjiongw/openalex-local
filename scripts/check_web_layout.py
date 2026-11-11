@@ -27,11 +27,12 @@ def main():
         'W2': {'id': 'https://openalex.org/W2', 'title': 'Synthetic published weather paper', 'type': 'article', 'referenced_works': refs},
         'W6': {'id': 'https://openalex.org/W6', 'title': 'Synthetic missing reference field'},
     }
+    arxiv_record = dict(id='arxiv:1001.0001',source='arxiv',title='Synthetic arXiv climate paper',authors='A. Example',abstract='Climate research',categories=['cs.AI'],first_submitted='2010-01-01',latest_submitted='2010-02-01',version_links=dict(preferred_openalex_id='W2',confirmed=[]))
     state = {'failure': False, 'mismatch': False}
     ready = {e: {'ready': True} for e in ['works', 'authors', 'institutions', 'sources', 'topics']}
     ready['funders'] = {'ready': False}
-    status = {'application_version': '0.3.2', 'auth_required': False, 'search_ready': True, 'metadata_ready': True, 'metadata_complete': True,
-              'generation': 'synthetic', 'coverage': {'works': {'unique_entities': 10}},
+    status = {'application_version': '0.4.0', 'auth_required': False, 'search_ready': True, 'metadata_ready': True, 'metadata_complete': True,
+              'arxiv':dict(ready=True,count=1,min_year=2010,release='fixture'), 'generation': 'synthetic', 'coverage': {'works': {'unique_entities': 10}},
               'search_coverage': {'entities': ready, 'published_scopes': ['earth_sciences']}}
 
     def edge(wid):
@@ -52,6 +53,12 @@ def main():
             data = {'exports': {'worker_ready': True}}
         elif path == '/v1/exports':
             data = {'results': []}
+        elif path == '/v1/arxiv/works':
+            data={'results':[arxiv_record],'meta':{'count':1}}
+        elif path == '/v1/arxiv/lookup':
+            data=arxiv_record
+        elif path.endswith('/versions'):
+            data={'results':[]}
         elif path == '/v1/works/lookup':
             data = records[params['identifier'][0]]
         elif path == '/v1/works':
@@ -80,7 +87,7 @@ def main():
         page.goto('http://openalex.test/')
         page.wait_for_load_state('networkidle')
         expect(page.locator('#workspace')).to_be_visible()
-        expect(page.locator('#service-version')).to_have_text('v0.3.2')
+        expect(page.locator('#service-version')).to_have_text('v0.4.0')
         expect(page.locator('#export-selected')).to_be_disabled()
         assert not page.locator('#advanced-filters').evaluate('(el)=>el.open')
         assert not page.locator('#export-panel').evaluate('(el)=>el.open')
@@ -161,6 +168,27 @@ def main():
         page.set_viewport_size({'width': 390, 'height': 1000})
         page.locator('#export-panel>summary').click()
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+        page.set_viewport_size({'width':1440,'height':1000})
+        page.locator('#data-source').select_option('arxiv')
+        expect(page.locator('#arxiv-category')).to_be_visible()
+        expect(page.locator('#advanced-filters')).to_be_hidden()
+        page.locator('#query').fill('climate')
+        page.locator('#arxiv-author').fill('Example')
+        page.locator('#search-button').click()
+        expect(page.locator('#result-count')).to_contain_text('1 条 · arXiv')
+        page.locator('#results .title-button').click()
+        expect(page.locator('.record-title')).to_have_text(records['W2']['title'])
+        page.get_by_role('button',name='当前为已确认发表版 · 切换到 arXiv 预印本').click()
+        expect(page.locator('.record-title')).to_have_text(arxiv_record['title'])
+        expect(page.locator('#record-pane')).to_contain_text('arXiv 元数据未提供参考文献列表')
+        for width in [1440,390]:
+            page.set_viewport_size({'width':width,'height':1000})
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+            page.screenshot(path=str(args.output/f'arxiv-{width}.png'),full_page=True)
+        page.locator('#clear-filters').click()
+        expect(page.locator('#data-source')).to_have_value('arxiv')
+        page.locator('#data-source').select_option('openalex')
+        expect(page.locator('#advanced-filters')).to_be_visible()
         assert not errors, errors
         browser.close()
     result = {'passed': True, 'widths': [1440, 1024, 760, 390], 'synthetic_only': True,

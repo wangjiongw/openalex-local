@@ -68,3 +68,5 @@ from the official source and retain its license/release notes. ClickHouse,
 Manticore, AWS CLI and dependencies retain their own licenses. Engine binaries
 and production datasets are not redistributed here. This independent community
 project is not an official OpenAlex service.
+
+Optional [arXiv input and search](docs/ARXIV.md) is implemented in the v0.4.0 source; each installation publishes its own source release. The stable v0.3.2 rollback remains available.

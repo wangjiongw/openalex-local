@@ -28,11 +28,12 @@ its metadata was imported, even if its title cannot be searched in the published
 Earth index. Partial snapshots explicitly remain incomplete after publication.
 Author-name search in papers is different from a separately built author entity
 catalog. Preprints and published records retain their original IDs; automatic
-cross-record version merging is not implemented in this release.
+cross-record merging is not performed. The optional [arXiv source](ARXIV.md) adds
+unique exact DOI links, source-specific search and publication-first details.
 
 Official online ranking, live updates, every API filter/aggregation, every entity
 name index and all-discipline text search are not promised. Parquet ingestion,
-live deletion/merge application, arXiv integration and external A/D graph writing
+live deletion/merge application and external A/D graph writing
 are outside the community core release. Do not interpret a lexical text index as
 an embedding index or missing references as zero true bibliographic references.
 

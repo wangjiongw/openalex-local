@@ -3,12 +3,15 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "openalex-local-api"
-version = "0.3.2"
+version = "0.4.0"
 license = "MIT"
 readme = "README.md"
 description = "Local OpenAlex search, complete records, and citation service"
 requires-python = ">=3.10"
 dependencies = ["fastapi==0.116.1", "uvicorn==0.35.0", "httpx==0.28.1", "orjson==3.11.3", "psutil==7.0.0"]
+[project.optional-dependencies]
+arxiv-duckdb = ["duckdb>=1.1,<2"]
+
 [project.scripts]
 oa = "openalex_api.cli:main"
 [tool.setuptools.packages.find]

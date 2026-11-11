@@ -67,7 +67,7 @@ def prepare(payload, meta):
     from .query import query
     from . import official, official_text
     from .api import require_search, selected
-    if not isinstance(payload, dict) or set(payload) - {'query', 'identifiers', 'formats', 'select', 'csv_fields'}:
+    if not isinstance(payload, dict) or set(payload) - {'query', 'identifiers', 'formats', 'select', 'csv_fields', 'source'}:
         raise ValueError('unsupported export request fields')
     if ('query' in payload) == ('identifiers' in payload):
         raise ValueError('provide query or identifiers, exclusively')
@@ -83,6 +83,11 @@ def prepare(payload, meta):
         raise ValueError('csv_fields must be unique top-level field names')
     plan = dict(schema=1, generation=meta['generation'], search_build=None,
                 formats=formats, select=select, csv_fields=columns)
+    if payload.get('source','openalex') == 'arxiv':
+        from .arxiv_api import export_plan
+        return export_plan(payload,plan)
+    if payload.get('source','openalex') != 'openalex':
+        raise ValueError('unknown export source')
     if 'identifiers' in payload:
         values = payload['identifiers']
         if not isinstance(values, list) or not values or any(not isinstance(v, str) or not v.strip() or len(v) > 2000 for v in values):
@@ -150,6 +155,7 @@ def create(payload, meta):
     atomic_json(directory / 'plan.json', plan)
     state = dict(id=job, state='queued', created=time.time(), updated=time.time(),
                  generation=plan['generation'], search_build=plan['search_build'],
+                 source=plan.get('source','openalex'), source_release=plan.get('source_release'),
                  exported=0, missing_doi=0, after=None, receipts=[], files=[], order='stable ID', error=None)
     atomic_json(directory / 'state.json', state)
     return state
@@ -198,6 +204,8 @@ def csv_record(record, columns):
             abstract_status = 'invalid'
     derived = dict(title=record.get('title') or record.get('display_name'), abstract_status=abstract_status, authors=[a.get('author') or {} for a in record.get('authorships') or []], abstract=text,
                    source=source, is_oa=oa.get('is_oa'), oa_status=oa.get('oa_status'), oa_url=oa.get('oa_url'))
+    if record.get('source') == 'arxiv':
+        derived.update(authors=record.get('authors'), abstract=record.get('abstract'), abstract_status='present' if record.get('abstract') else 'missing', source='arxiv', is_oa=None, oa_status=None, oa_url=record.get('url'))
     values = []
     for key in columns:
         value = derived[key] if key in derived else record.get(key)
@@ -213,6 +221,9 @@ def rows(plan, after, backend):
     from . import official, search_versions
     from .backend import sql_string
     n = int(config().get('export_batch_rows', 1000))
+    if plan['kind'] == 'arxiv':
+        from .arxiv_api import export_rows
+        return export_rows(plan,after,backend,n)
     if plan['kind'] == 'metadata':
         meta = read_generation(plan['generation'])
         table = official.source_table(backend, meta, 'works')

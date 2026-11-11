@@ -57,3 +57,5 @@ Agent 开发工具从 [AGENTS.md](../AGENTS.md) 进入，再按任务读取实�
 源码采用 [MIT](../LICENSE)。OpenAlex 数据采用独立的 CC0 许可；应从官方获取并保留许可与发布说明。
 ClickHouse、Manticore、AWS CLI 及其依赖遵守各自许可。
 本仓库不重新分发引擎二进制或生产数据。这是独立社区项目，不是 OpenAlex 官方服务。
+
+v0.4.0 源码已增加可选 [arXiv 输入与检索](ARXIV.zh-CN.md)，各部署独立验收和发布来源数据，继续保留 v0.3.2 稳定回滚版本。
