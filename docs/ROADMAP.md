@@ -36,6 +36,13 @@ content links/downloads. See [the staged development plan](NEXT-STEPS.md) for
 inputs, dependencies and acceptance conditions. These are planned additions;
 v0.3.2 remains the current stable implementation.
 
+The first implementation package is M0 + local arXiv M1 and small Earth dictionaries
+from M2. Semantic Scholar is deferred entirely. Crossref REST/public files are a
+later optional bibliography source after DOI/version identity is established;
+monthly Plus snapshots are distinct from annual public releases. Neither is a
+prerequisite for the current service. Large new scopes follow the freshness contract;
+PDF/TEI retrieval remains later. See the plan for acceptance and deferred scope.
+
 ## Optional extensions
 
 PDF/TEI downloads, version association, calibrated matching, additional text

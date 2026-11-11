@@ -6,6 +6,21 @@ Plan reviewed on 2026-11-11 against v0.3.2. Everything below is planned work,
 not functionality delivered by that release. Keep the current service and existing
 qualified indexes available while building and validating additions separately.
 
+## Source choices fixed for this plan
+
+- Keep v0.3.2 and its qualified ClickHouse + Manticore indexes as the running baseline.
+- Use the existing local arXiv metadata as the next optional input, covering first
+  submissions from 2010 onward across all arXiv subjects. This supplements metadata
+  and version evidence; it does not supply a structured bibliography.
+- Associate verified preprint/published versions while retaining separate original
+  records and reference provenance. A grouped presentation can prefer publication.
+- Do not integrate Semantic Scholar in the current development scope: no API,
+  dataset import or SDK dependency. Reconsider it only as a separately selected task.
+- Crossref API and user-downloaded public data files are a later optional source,
+  not prerequisites for arXiv integration, Earth entities or current service use.
+- Keep all online acquisition in optional background tasks; normal local queries
+  must keep working without external services. Snapshot download remains user-managed.
+
 ## Priorities and sequencing
 
 | Milestone | Deliverable | Main acceptance condition |
@@ -16,6 +31,7 @@ qualified indexes available while building and validating additions separately.
 | M3: sustainable freshness | arXiv OAI-PMH harvesting; OpenAlex local-release diff or authorized sync-filter adapter; update/delete/redirect processing | Stopping/replaying yields the same effective release; old references disappear when replaced; metadata, search and exports pin one release |
 | M4: configurable search scopes | Domain/field/topic/ID selectors, multilabel scope membership and reusable search blocks; pilot AI/CS/math/engineering intersections | Deduplicated counts/paging across overlapping scopes; existing Earth segments preserved; measured pilot predicts time/disk |
 | M5: content links and downloads | Ranked existing links, opt-in PDF/TEI jobs, validated files, hashes, receipts and local availability | Valid files match the selected work/version; failure/retry states explicit; no HTML login pages accepted as PDF |
+| C1: optional Crossref enrichment | Published-DOI API cache or local public-file adapter; references with provenance | Evaluate coverage first; absent/partial lists and unresolved targets explicit; no live-query dependency |
 
 M1's source adapter and M2's independent small catalogs can progress separately
 after M0. M3's release/update contract must be designed in M0 before enlarging the
@@ -97,6 +113,47 @@ reconcile a complete release. Upstream ID merges are different from scholarly
 preprint/published-version association. Query-time upstream HTTP calls must remain
 optional; normal local searches should not wait on internet services.
 
+## Crossref: later optional bibliography and metadata enrichment
+
+Crossref is most useful after a verified published DOI has been associated with
+an arXiv record. It can provide publisher-deposited metadata, available references,
+relations, funding and links. Availability varies by publisher/record. It is not
+an arXiv bibliography endpoint, and an arXiv/DataCite DOI must not be assumed to
+resolve in Crossref. Keep records outside Crossref as explicit misses.
+
+| Option | Proposed use | Boundary |
+| --- | --- | --- |
+| Public REST API | Start with a stratified 100–500-paper pilot, then missing-field/DOI-targeted batches | Honor published rate/concurrency/Retry-After guidance; cache by DOI, record failures separately from empty metadata |
+| Annual public data file | At larger scale, read a user-downloaded local file and select target published DOIs | Validate format/release/checksums; scan once per batch of targets, not once per paper; budget source/cache/index space |
+| Monthly Metadata Plus snapshot | Optional only if its subscription is deliberately chosen | It is not the annual public release and is not assumed available in this plan |
+
+Prefer the small API pilot before downloading a full Crossref corpus. Measure
+how often the intended published DOI resolves, how often a `reference` list is
+actually present, and how many reference targets resolve locally. Move to bulk
+input when the measured missing-field volume and API cost justify it. No acquisition
+or paid subscription is authorized or scheduled merely by this plan.
+
+The optional module should use the same source-record/provenance contract as arXiv:
+freeze the input release or cache epoch, retain raw responses, normalize DOI safely,
+resume batches and expose source/missingness in API, UI and exports. Apply no silent
+replacement of OpenAlex fields. A source reference may contain a DOI, partial
+bibliography or only unstructured text; preserve the raw entry and match status.
+Do not confuse `reference`, `references-count` and `is-referenced-by-count`, or infer
+that a zero/absent count proves the paper's true bibliography is empty.
+
+The displayed bibliography should distinguish the selected source record, an
+associated published version, and later full-text extraction. Label confirmed,
+ambiguous and unresolved targets. Deduplicate confirmed targets without discarding
+raw source entries. Crossref bibliographies of the published paper must not silently
+become the preprint's original references. Existing graph/lookup contracts remain
+compatible; expose supplemental edges explicitly before considering a new graph release.
+
+Acceptance for C1: correct DOI identity and provenance, complete pagination/batch
+accounting, preserved partial references, replay without duplicate enrichment,
+explicit network failure versus missing references, and consistent API/web/export
+views. Implement no downloader, PDF parsing, new work-index layout or full reimport
+just to support this enrichment. Full-text recovery remains a separate later step.
+
 ## 3. Earth entities and wider scopes
 
 All imported entity records are already preserved. Complete Earth entity access
@@ -151,6 +208,25 @@ citations need matching confidence, provenance and reviewable unresolved entries
 Do not silently convert an uncertain match into a confirmed OpenAlex reference.
 Content caching/downloads do not require reindexing existing literature titles.
 
+## First implementation package and deferred scope
+
+The next coding task is M0 + M1 and the independent small-dictionary part of M2:
+
+1. Freeze/audit the configured local arXiv input and 2010+ selection; reconcile
+   counts, dates, duplicates, unavailable raw/version fields and source hashes.
+2. Implement source records and stable identifiers, followed by exact arXiv/DOI
+   associations. Retain ambiguous/unmatched records; add a labeled review sample.
+3. Expose provenance-aware metadata and verified version links in API/UI/exports,
+   including optional publication-first grouping without changing raw `/works` responses.
+4. Add small Earth-related dictionaries/name selectors using imported entities.
+5. Validate resume/replay, identity conflicts, missing abstracts/references,
+   compatible existing lookup/search/export cases, and a new-build rollback path.
+
+Do not start a full new-domain build, whole-Crossref import, paid sync subscription,
+Semantic Scholar integration or PDF download/parser deployment as part of this
+package. Estimate construction time/disk only after a measured scope pilot. The
+local input's build date is not the completeness watermark for arXiv catch-up.
+
 ## Modules and validation
 
 Extend the existing processing chain with concrete modules: optional arXiv source
@@ -176,3 +252,5 @@ Verified for planning on 2026-11-11; service policies can change.
 - [arXiv OAI-PMH](https://info.arxiv.org/help/oa/index.html)
 - [arXiv API manual](https://info.arxiv.org/help/api/user-manual.html)
 - [arXiv RSS/Atom](https://info.arxiv.org/help/rss.html)
+- [Crossref public data files and snapshots](https://www.crossref.org/documentation/retrieve-metadata/bulk-downloads/)
+- [Crossref REST API](https://www.crossref.org/documentation/retrieve-metadata/rest-api/)

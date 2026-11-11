@@ -39,6 +39,9 @@ or publish a dataset. Existing compatible indexes are reused.
 The selected future sequence is documented in [next development steps](NEXT-STEPS.md).
 The entries below remain unimplemented until their own acceptance and release.
 
+Semantic Scholar is outside the selected scope. Crossref API/public-file enrichment
+is planned as a later optional source, not implemented or required by v0.3.2.
+
 ## Maintenance and optional extensions
 
 Maintain supported lookup/search/relations/exports, capabilities, regression cases,
