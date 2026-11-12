@@ -2,8 +2,8 @@
 
 [中文](NEXT-STEPS.zh-CN.md) · [Current status](STATUS.md) · [Roadmap](ROADMAP.md)
 
-Plan reviewed on 2026-11-11 against v0.3.2. Everything below is planned work,
-not functionality delivered by that release. Keep the current service and existing
+Plan reviewed on 2026-11-11 against v0.3.2. M0/M1 are delivered in v0.4.0; M2 is the next feature milestone.
+The original milestone descriptions below retain planning context. Keep the current service and existing
 qualified indexes available while building and validating additions separately.
 
 

@@ -1,8 +1,8 @@
-# v0.3.2 scope and operations
+# v0.4.0 scope and operations
 
 [中文](RELEASE.zh-CN.md) · [Documentation](INDEX.md)
 
-Git tag: `v0.3.2`. Package/API version: `0.3.2` (PEP 440). This is a
+Git tag: `v0.4.0`. Package/API version: `0.4.0` (PEP 440). This is a
 GitHub stable release of the existing toolchain, not a new production dataset.
 Existing data requires explicit compatibility checks and controlled publication; publishing source does not automatically upgrade other installations.
 
@@ -18,6 +18,8 @@ Existing data requires explicit compatibility checks and controlled publication;
   indexed text/filters; inspect capabilities rather than assuming official parity.
 
 This release adds entity catalogs, query controls and durable exports while reusing the existing metadata and work-index projection. Full supported-query boundaries: [API coverage](API-COVERAGE.md).
+
+See the optional [arXiv workflow](ARXIV.md) for Kaggle input, independent source publication, confirmed version associations, source-specific search and exports. arXiv metadata supplies no reference list; use explicitly associated publication records when available.
 
 ## Supported command entrypoints
 
@@ -107,7 +109,7 @@ unchanged release code and unchanged production pointers/manifests.
   that deployment's evidence. This source release does not claim their root cause
   was fixed; current checks must report any reproduced storage error.
 
-No compulsory 24-hour observation applies. v0.3.2 freezes the documented local API
+No compulsory 24-hour observation applies. v0.4.0 freezes the documented local API
 and toolchain, reusing compatible existing indexes. Reproduced defects receive
 maintenance fixes; broader official API parity is not a stable-release gate.
 A source release does not automatically switch another installation.

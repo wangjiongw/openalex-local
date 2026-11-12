@@ -2,6 +2,12 @@
 
 [中文](CHANGELOG.zh-CN.md) · [Documentation](docs/INDEX.md)
 
+## 0.4.0 — v0.4.0
+
+- Add optional Kaggle arXiv ingestion, provenance, resumable exact version associations and independent source storage/index qualification.
+- Expose source-specific API/web search, confirmed publication-first details and pinned exports through the existing worker.
+- Reuse existing OpenAlex indexes; source publication and software upgrades remain explicit and independent.
+
 ## 0.3.2 — v0.3.2
 
 - Consolidate the responsive search workspace, filter reset/active hints and export selection counts.

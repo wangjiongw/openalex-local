@@ -25,7 +25,7 @@ OpenAlex Local 从本地快照建立元数据与引用服务，并允许按需�
 
 ## 版本与开发工具
 
-- 当前稳定版：[v0.3.2](releases/v0.3.2.zh-CN.md)。上一稳定版：[v0.3.1](releases/v0.3.1.zh-CN.md)。
+- 当前稳定版：[v0.4.0](releases/v0.4.0.zh-CN.md)。上一稳定版：[v0.3.2](releases/v0.3.2.zh-CN.md)。
 - [项目当前状态](STATUS.zh-CN.md)：已交付流程、已知限制与维护范围。
 - 发布记录：[v0.3.0-rc.1](releases/v0.3.0-rc.1.zh-CN.md)、[v0.2.0-rc.1](releases/v0.2.0-rc.1.zh-CN.md)。
 - 面向读者的文档提供中英文配对版本，通过语言链接切换。代码、命令、API 字段和标识符在两版中保持相同写法。

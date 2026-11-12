@@ -2,7 +2,7 @@
 
 [中文](STATUS.zh-CN.md) · [Documentation](INDEX.md)
 
-**Stable baseline: v0.3.2.** The project is in maintenance for its supported local
+**Stable baseline: v0.4.0.** The project is in maintenance for its supported local
 retrieval workflow. Use the service's `/status`, `/capabilities` and footer version
 to identify an actual installation; a source release does not upgrade deployments
 or publish a dataset. Existing compatible indexes are reused.

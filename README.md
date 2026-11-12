@@ -6,7 +6,7 @@ Build a local literature metadata and citation service from an OpenAlex snapshot
 you have downloaded. The toolchain reads your local files, preserves complete
 records, and serves a web UI and HTTP API. Optional indexes add efficient text retrieval.
 
-**Stable release: v0.3.2. Package/API: `0.3.2`.**
+**Stable release: v0.4.0. Package/API: `0.4.0`.**
 Start with [native deployment](docs/QUICKSTART.md); see [validation](docs/VALIDATION.md)
 for tested scope rather than assuming full live OpenAlex API parity.
 
