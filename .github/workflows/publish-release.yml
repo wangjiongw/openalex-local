@@ -2,6 +2,14 @@ name: Publish tagged package
 on:
   push:
     tags: ['v*']
+    branches: [main]
+    paths: ['.github/workflows/publish-release.yml']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing immutable version tag
+        required: true
+        type: string
 permissions:
   contents: write
 jobs:
@@ -9,15 +17,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Select immutable tag
+        id: version
+        env:
+          REQUESTED_TAG: ${{ inputs.tag }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          tag="$REQUESTED_TAG"
+          if [ -z "$tag" ]; then
+            if [ "$REF_TYPE" = tag ]; then tag="$REF_NAME"; else tag="$(git describe --tags --abbrev=0)"; fi
+          fi
+          TAG="$tag" python -c 'import os,re; assert re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+(?:[-.][A-Za-z0-9.]+)?",os.environ["TAG"])'
+          git checkout --detach "$tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.10'
       - run: python -m pip install . pytest build
+      - run: python -m openalex_api.cli init
       - run: python -m pytest -q
       - run: python -m build
       - name: Check tag and generate checksums
         env:
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ steps.version.outputs.tag }}
         run: |
           python -c 'import os, openalex_api; assert os.environ["TAG"] == "v" + openalex_api.__version__'
           cd dist
@@ -25,6 +50,7 @@ jobs:
       - name: Publish release artifacts
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ steps.version.outputs.tag }}
         run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then exit 0; fi
           gh release create "$TAG" dist/*.whl dist/*.tar.gz dist/SHA256SUMS.txt --verify-tag --title "$TAG" --notes-file "docs/releases/$TAG.md"
