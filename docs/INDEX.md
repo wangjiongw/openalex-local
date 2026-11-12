@@ -26,7 +26,7 @@ Earth entities, wider scopes and later content downloads, separately from releas
 
 ## Releases and development tools
 
-- Current stable release: [v0.4.0](releases/v0.4.0.md). Previous stable: [v0.3.2](releases/v0.3.2.md).
+- Current stable release: [v0.4.1](releases/v0.4.1.md). Previous stable: [v0.4.0](releases/v0.4.0.md).
 - [Current project status](STATUS.md): delivered workflow, known limits and maintenance boundary.
 - Release history: [v0.3.0-rc.1](releases/v0.3.0-rc.1.md), [v0.2.0-rc.1](releases/v0.2.0-rc.1.md).
 - Human-facing documents have English/Chinese counterparts with language links.
@@ -38,3 +38,5 @@ Earth entities, wider scopes and later content downloads, separately from releas
   deployment reports remain in local workspaces. A source release is not a database backup.
 
 - [Optional arXiv input, processing and search](ARXIV.md)
+
+- [Small entity directories and work navigation](DIRECTORIES.md).

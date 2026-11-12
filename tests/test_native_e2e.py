@@ -115,7 +115,13 @@ def test_native_pipeline_publish_restore_and_resume(tmp_path, profile):
             assert lookup.json()['doi'] == 'https://doi.org/10.99999/demo.2'
             assert client.get('/v1/works/W2/references').status_code == 200
             assert client.get('/v1/works/W1/citations').status_code == 200
+            for route,params in [('/v1/domains',{'search':'physical'}),('/fields',{'search':'Earth','filter':'domain.id:domains/3'}),('/v1/subfields',{'search':'geol','filter':'field.id:fields/19'})]:
+                directory=client.get(route,params=params);directory.raise_for_status()
+                assert directory.json()['meta']['count']==1,directory.text
+            assert client.get('/v1/fields',params={'search':'not-present'}).json()['meta']['count']==0
             if profile == 'earth_sciences':
+                hierarchy='domain:domains/3,field:fields/19,subfield:subfields/1907'
+                result=client.get('/v1/works',params={'filter':hierarchy,'count':'exact'});result.raise_for_status();assert result.json()['meta']['count']==12
                 result = client.get('/v1/works', params={'search': 'syntheticpaper2', 'search_field': 'title'})
                 result.raise_for_status()
                 assert any(v['doi'] == 'https://doi.org/10.99999/demo.2' for v in result.json()['results'])
@@ -123,7 +129,7 @@ def test_native_pipeline_publish_restore_and_resume(tmp_path, profile):
             requests = [dict(query=dict(route='/works',params={'filter':'publication_year:2022'}),formats=['jsonl.gz','csv','ids.txt','doi.txt'])]
             if profile == 'earth_sciences':
                 requests.append(dict(query=dict(route='/v1/works',params={})))
-                requests.append(dict(query=dict(route='/v1/works',params={'search':'Climate','search_field':'title','filter':'language:en,author:A1,institution:I1'})))
+                requests.append(dict(query=dict(route='/v1/works',params={'search':'Climate','search_field':'title','filter':'language:en,author:A1,institution:I1,domain:domains/3,field:fields/19,subfield:subfields/1907'})))
             for payload in requests:
                 reply=client.post('/v1/exports',json=payload)
                 reply.raise_for_status()

@@ -388,6 +388,7 @@ def capabilities(request: Request):
         **availability(meta),
         "search_coverage": search_coverage(meta),
         "entities": ENTITIES,
+        "small_directories": __import__("openalex_api.directories", fromlist=["capabilities"]).capabilities(),
         "filters": FIELDS,
         "search_fields": SEARCH_FIELDS,
         "author_search": "works only; publication-time author name combined with title/abstract and filters; author identity is not inferred",
@@ -542,6 +543,17 @@ def listing(
         ],
     )
     entity_ok(entity)
+    from .directories import ENTITIES as SMALL_DIRECTORIES
+    if entity in SMALL_DIRECTORIES:
+        if search_field not in ("all", "title") or search_scope != "available" or corpus != "all" or author_search or title_equal is not None:
+            raise ValueError("small directories support name search and source metadata filters")
+        params = dict(search=search, filter=filter, per_page=per_page)
+        for name, value in (("select", select), ("sort", sort), ("group_by", group_by), ("cursor", cursor)):
+            if value is not None:
+                params[name] = value
+        if cursor is None:
+            params["page"] = page
+        return official.execute(backend(), generation(), entity, params)
     body = query(entity, search, search_field, filter, corpus, sort, group_by, author_search)
     if title_equal is not None:
         body["query"] = {

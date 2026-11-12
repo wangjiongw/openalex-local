@@ -2,6 +2,12 @@
 
 [中文](CHANGELOG.zh-CN.md) · [Documentation](docs/INDEX.md)
 
+## 0.4.1 — v0.4.1
+
+- Browse small imported entity names without text indexes through both API contracts.
+- Add subject hierarchy selection, vocabulary suggestions, saved URLs and directory-to-work navigation to the web UI.
+- Reuse published work filters and export plans; retain OpenAlex/arXiv indexes and source provenance.
+
 ## 0.4.0 — v0.4.0
 
 - Add optional Kaggle arXiv ingestion, provenance, resumable exact version associations and independent source storage/index qualification.

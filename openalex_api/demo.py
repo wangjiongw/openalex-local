@@ -35,7 +35,8 @@ def make_snapshot(target, legacy=False):
             unknown_future_field=dict(preserved='yes')))
     records = {entity: [] for entity in ENTITIES}
     records.update(works=works, authors=[author], institutions=[institution], sources=[source], topics=[topic],
-                   fields=[topic['field']], subfields=[topic['subfield']], domains=[topic['domain']])
+                   fields=[topic['field'] | dict(domain=topic['domain'])],
+                   subfields=[topic['subfield'] | dict(field=topic['field'],domain=topic['domain'])], domains=[topic['domain']])
     base = target / ('data' if legacy else 'data/jsonl')
     manifests = []
     for entity, values in records.items():

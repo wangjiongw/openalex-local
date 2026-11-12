@@ -4,7 +4,12 @@ const labels = {works:"作品",authors:"作者",institutions:"机构",sources:"�
 let key = sessionStorage.getItem("openalex-key") || "", status = null, nextResults = null, record = null, recordText = "", recordEntity = "works", edgeCursor = null, edgeDirection = "references", busy = false, detailRequest = 0, edgeRequest = 0;
 let capabilities = null, lastQuery = null, searchRevision = 0;
 const selectedWorks = new Set(), loadedWorks = new Set();
-const stateFields = ["data-source","arxiv-category","arxiv-author","entity","query","search-field","search-scope","author-query","author-id-filter","institution-filter","language-filter","year","sort","topic-filter","primary-topic","source-filter","type-filter","earth-group","oa-only"];
+const taxonomyControls = {domains:"domain-filter",fields:"field-filter",subfields:"subfield-filter"};
+const directoryWorkControls = {...taxonomyControls,countries:"country-filter",languages:"language-filter",licenses:"license-filter","work-types":"type-filter"};
+const hasDirectory = entity => capabilities?.small_directories?.entities?.includes(entity);
+const directoryValue = (entity,id) => taxonomyControls[entity] ? id.replace(/^https?:\/\/openalex\.org\//i,"") : id.split("/").pop();
+let taxonomyRevision=0;
+const stateFields = ["data-source","arxiv-category","arxiv-author","entity","query","search-field","search-scope","author-query","author-id-filter","institution-filter","language-filter","domain-filter","field-filter","subfield-filter","country-filter","license-filter","year","sort","topic-filter","primary-topic","source-filter","type-filter","earth-group","oa-only"];
 const fmt = n => Number(n).toLocaleString("zh-CN");
 function node(tag, text, cls) { const el = document.createElement(tag); if (text !== undefined) el.textContent = text; if (cls) el.className = cls; return el; }
 function button(text, action, cls = "secondary") { const el = node("button", text, cls); el.type = "button"; el.addEventListener("click", action); return el; }
@@ -50,7 +55,7 @@ function identifier(value, entity) {
   if (/^[WAISPFGTC]\d+$/i.test(v) && prefix[v[0].toUpperCase()]) return {entity:prefix[v[0].toUpperCase()], scheme:"openalex", value:v};
   const family = v.split("/")[0];
   if (labels[family] && v.includes("/")) return {entity:family, scheme:"openalex", value:v};
-  if (!status?.search_ready && entity !== "works" && !["authors","institutions","sources","publishers","funders","awards","topics","concepts"].includes(entity)) return {entity, scheme:"openalex", value:v};
+  if (!hasDirectory(entity) && !status?.search_ready && entity !== "works" && !["authors","institutions","sources","publishers","funders","awards","topics","concepts"].includes(entity)) return {entity, scheme:"openalex", value:v};
   return null;
 }
 function chooseEntity(entity) {
@@ -59,10 +64,11 @@ function chooseEntity(entity) {
   $("search-scope").disabled = entity !== "works";
   const works = entity === "works";
   const entityReady = status?.search_coverage?.entities?.[entity]?.ready;
-  if (entityReady === false) $("search-note").textContent = `${labels[entity]}尚未建立独立名称索引；仍可通过 OpenAlex ID 或适用的标识符查看完整记录。`;
+  if (hasDirectory(entity)) $("search-note").textContent="浏览已导入的小型实体目录；名称按字面子串匹配，不依赖文本索引。关联文献仍受已发布检索范围约束。";
+  else if (entityReady === false) $("search-note").textContent = `${labels[entity]}尚未建立独立名称索引；仍可通过 OpenAlex ID 或适用的标识符查看完整记录。`;
   else if (status?.search_ready) $("search-note").textContent = works ? "搜索当前已上线的文献范围；可固定选择广义地球科学。DOI 和 ID 定位覆盖全库。" : "在当前已上线的数据中检索名称；标识符定位覆盖全库。";
   if(entity === "authors" && status?.search_coverage?.catalog_scopes?.authors) {const counts=status.search_coverage.catalog_counts?.authors;$("search-note").textContent="作者名称目录覆盖与已发布地学候选文献关联的作者；标识符详情仍覆盖全部已导入作者。"+(counts?`已索引 ${fmt(counts.indexed_entities)} / ${fmt(counts.selected_ids)} 个关联 ID，${fmt(counts.missing_entities)} 个缺少实体元数据。`:"");}
-  for (const el of [$("year"),$("author-query"),$("oa-only"),$("sort"),$("topic-filter"),$("primary-topic"),$("source-filter"),$("type-filter"),$("earth-group"),$("author-id-filter"),$("institution-filter"),$("language-filter")]) el.disabled = !works;
+  for (const el of [$("year"),$("author-query"),$("oa-only"),$("sort"),$("topic-filter"),$("primary-topic"),$("source-filter"),$("type-filter"),$("earth-group"),$("author-id-filter"),$("institution-filter"),$("language-filter"),...Object.values(taxonomyControls).map($),$("country-filter"),$("license-filter")]) el.disabled = !works;
   if (!works) { $("author-query").value = ""; $("year").value = ""; $("oa-only").checked = false; $("sort").value = ""; }
   for (const option of $("search-field").options) option.disabled = !works && !["all","title"].includes(option.value);
   if ($("search-field").selectedOptions[0].disabled) $("search-field").value = "all";
@@ -90,8 +96,9 @@ async function refreshStatus() {
   $("metadata-collections").replaceChildren();
   for (const [entity,label] of Object.entries(labels)) {
     const el = button("", () => {chooseEntity(entity); invalidateQuery(); $("query").focus();}, "collection-item"); el.dataset.entity = entity;
-    el.append(node("span", label), node("small", coverage[entity] ? fmt(coverage[entity].unique_entities) : "—")); const ready = searchCoverage.entities?.[entity]?.ready; el.title = ready ? "可按名称检索，或按 ID 查看详情" : "名称索引未发布；可按 ID 查看完整详情"; $(ready || entity === "works" ? "collections" : "metadata-collections").append(el);
+    el.append(node("span", label), node("small", coverage[entity] ? fmt(coverage[entity].unique_entities) : "—")); const ready = hasDirectory(entity) || searchCoverage.entities?.[entity]?.ready; el.title = ready ? "可按名称检索，或按 ID 查看详情" : "名称索引未发布；可按 ID 查看完整详情"; $(ready || entity === "works" ? "collections" : "metadata-collections").append(el);
   }
+  await loadTaxonomy();
   chooseEntity($("entity").value);
 }
 async function connect(event) {
@@ -124,9 +131,9 @@ async function search(event, more = false) {
     if (!more) {
       const id = !$("author-query").value.trim() ? identifier(value, entity) : null;
       if (id) { nextResults = null; $("more-results").hidden = true; chooseEntity(id.entity); await loadDetail(id.entity,id.value,id.scheme,true); return; }
-      if ((value || $("author-query").value.trim() || $("earth-group").value) && (!status?.search_ready || status?.search_coverage?.entities?.[entity]?.ready === false)) throw new Error("文本检索尚未就绪，请输入 DOI 或 OpenAlex ID。全部原始字段均可在详情中查看。");
+      if (!hasDirectory(entity) && (value || $("author-query").value.trim() || $("earth-group").value) && (!status?.search_ready || status?.search_coverage?.entities?.[entity]?.ready === false)) throw new Error("文本检索尚未就绪，请输入 DOI 或 OpenAlex ID。全部原始字段均可在详情中查看。");
     }
-    if (!more && !value && !$("author-query").value.trim() && !$("year").value.trim() && !$("oa-only").checked && !$("topic-filter").value.trim() && !$("source-filter").value.trim() && !$("type-filter").value && !$("author-id-filter").value.trim() && !$("institution-filter").value.trim() && !$("language-filter").value.trim() && !$("earth-group").value) throw new Error("请输入检索词、作者或筛选条件。");
+    if (!more && !hasDirectory(entity) && !Object.values(directoryWorkControls).some(id=>$(id).value.trim()) && !value && !$("author-query").value.trim() && !$("year").value.trim() && !$("oa-only").checked && !$("topic-filter").value.trim() && !$("source-filter").value.trim() && !$("type-filter").value && !$("author-id-filter").value.trim() && !$("institution-filter").value.trim() && !$("language-filter").value.trim() && !$("earth-group").value) throw new Error("请输入检索词、作者或筛选条件。");
     const filters = [];
     if (entity === "works") { if ($("year").value.trim()) filters.push("year:"+$("year").value.trim()); if ($("oa-only").checked) filters.push("is_oa:true"); }
     if (entity === "works") {
@@ -135,6 +142,14 @@ async function search(event, more = false) {
         if (value && !pattern.test(value)) throw new Error("请从名称候选中选择，或直接填写相应的 OpenAlex ID。");
         if (value) filters.push(field + ":" + value.toUpperCase());
       }
+      for(const [entity,id] of Object.entries(taxonomyControls)) {
+        const value=$(id).value;
+        if(value) {if(!new RegExp("^"+entity+"/\\d+$").test(value))throw new Error("请选择有效学科 ID。");filters.push(({domains:"domain",fields:"field",subfields:"subfield"})[entity]+":"+value);}
+      }
+      const country=$("country-filter").value.trim();
+      if(country) {if(!/^[A-Z]{2}$/i.test(country))throw new Error("国家请填写两位代码，例如 US。");filters.push("country:"+country.toUpperCase());}
+      const license=$("license-filter").value.trim();
+      if(license) {if(!/^[a-z0-9-]+$/i.test(license))throw new Error("许可请从目录选择代码。");filters.push("license:"+license.toLowerCase());}
       if ($("language-filter").value.trim()) {if(!/^[a-z]{2}$/i.test($("language-filter").value.trim()))throw new Error("语言请填写两位代码，例如 en。");filters.push("language:"+$("language-filter").value.trim().toLowerCase());}
       if ($("type-filter").value) filters.push("type:" + $("type-filter").value);
       if ($("earth-group").value) filters.push("earth_group:" + $("earth-group").value);
@@ -224,7 +239,7 @@ function overview(pane) {
   for(const field of ["topics","keywords","concepts","funders","awards","last_known_institutions"]) {
     if(!record[field]?.length) continue;const entity=field==="last_known_institutions"?"institutions":field;pane.append(node("h3",field==="last_known_institutions"?"当前机构":labels[field],"block-title"));const chips=node("div",undefined,"detail-actions");for(const item of record[field]) if(item.id) chips.append(entityButton(entity,item));pane.append(chips);
   }
-  if(["authors","institutions","sources","topics"].includes(recordEntity)) pane.append(button("查看该实体关联的已索引文献",()=>{const fields={authors:"author-id-filter",institutions:"institution-filter",sources:"source-filter",topics:"topic-filter"};const field=fields[recordEntity],id=record.id.split("/").pop();chooseEntity("works");$("query").value="";$("author-query").value="";for(const name of ["author-id-filter","institution-filter","source-filter","topic-filter","year","language-filter"])$(name).value="";$("oa-only").checked=false;$("type-filter").value="";$("earth-group").value="";$(field).value=id;searchRevision++;search(null);},"secondary"));
+  if(["authors","institutions","sources","topics",...Object.keys(directoryWorkControls)].includes(recordEntity)) pane.append(button("查看该实体关联的已索引文献",()=>navigateWorks(recordEntity,record.id),"secondary"));
   pane.append(node("p",`共 ${Object.keys(record).length} 个顶层字段；切换“全部字段”查看未经裁剪的完整 JSON。`,"subtle"));
 }
 function raw(pane) {pane.replaceChildren(node("p",`${Object.keys(record).length} 个顶层字段 · 完整 API 响应，可下载保存。`,"field-summary"));const pre=node("pre",recordText,"raw");pre.tabIndex=0;pane.append(pre);}
@@ -283,6 +298,32 @@ async function loadEdges(more) {
   finally{if(ticket===edgeRequest){moreButton.disabled=false;target.setAttribute("aria-busy","false");}}
 }
 
+async function loadTaxonomy() {
+  const ticket=++taxonomyRevision;
+  for(const [entity,id] of Object.entries(taxonomyControls)) {
+    if(!hasDirectory(entity))continue;
+    const filter=entity==="fields" && $("domain-filter").value ? "domain.id:"+$("domain-filter").value : entity==="subfields" && $("field-filter").value ? "field.id:"+$("field-filter").value : entity==="subfields" && $("domain-filter").value ? "domain.id:"+$("domain-filter").value : "";
+    const records=[];let cursor="*";
+    try {
+      do {const {data}=await request(`/v1/${entity}`,{per_page:"100",cursor,filter,select:"id,display_name"});records.push(...data.results);cursor=data.meta.next_cursor;if(records.length>10000)throw new Error("学科目录超出预期规模。");}while(cursor);
+      if(ticket!==taxonomyRevision)return;
+      const select=$(id),current=select.value,first=select.options[0].cloneNode(true);
+      select.replaceChildren(first,...records.map(r=>{const option=node("option",r.display_name);option.value=directoryValue(entity,r.id);return option;}));
+      if([...select.options].some(option=>option.value===current))select.value=current;
+    }catch(error){if(ticket===taxonomyRevision)message("学科目录加载失败："+error.message);return;}
+  }
+}
+function navigateWorks(entity,id) {
+  $("data-source").value="openalex";
+  for(const name of stateFields) {if(["entity","data-source","search-field","search-scope"].includes(name))continue;const el=$(name);if(el.type==="checkbox")el.checked=false;else if(el.options)el.selectedIndex=0;else el.value="";}
+  const control=directoryWorkControls[entity] || {authors:"author-id-filter",institutions:"institution-filter",sources:"source-filter",topics:"topic-filter"}[entity];
+  const value=directoryWorkControls[entity] ? directoryValue(entity,id) : id.split("/").pop();
+  if($(control).options && ![...$(control).options].some(option=>option.value===value)){const option=node("option",value);option.value=value;$(control).append(option);}
+  $(control).value=value;chooseEntity("works");invalidateQuery();loadTaxonomy();search(null);
+}
+$("domain-filter").addEventListener("change",()=>{$("field-filter").value="";$("subfield-filter").value="";loadTaxonomy();});
+$("field-filter").addEventListener("change",()=>{$("subfield-filter").value="";loadTaxonomy();});
+
 for(const [value,label] of Object.entries(labels)){const option=node("option",label);option.value=value;$("entity").append(option);}
 $("entity").addEventListener("change",()=>{chooseEntity($("entity").value);invalidateQuery();});
 $("connect-form").addEventListener("submit",connect);$("search-form").addEventListener("submit",event=>search(event));$("more-results").addEventListener("click",()=>search(null,true));
@@ -301,23 +342,23 @@ initializeConnection();
 setInterval(()=>{if(!$("workspace").hidden && $("export-panel").open && !document.hidden)refreshExports();},5000);
 $("export-panel").addEventListener("toggle",()=>{if($("export-panel").open)refreshExports();});
 
-for (const [inputId, listId, entity] of [["topic-filter","topic-options","topics"],["source-filter","source-options","sources"],["author-id-filter","author-options","authors"],["institution-filter","institution-options","institutions"]]) {
+for (const [inputId, listId, entity] of [["topic-filter","topic-options","topics"],["source-filter","source-options","sources"],["author-id-filter","author-options","authors"],["institution-filter","institution-options","institutions"],["country-filter","country-options","countries"],["license-filter","license-options","licenses"],["language-filter","language-options","languages"]]) {
   let timer, revision = 0;
   $(inputId).addEventListener("input", () => {
     clearTimeout(timer); const ticket = ++revision, value = $(inputId).value.trim();
-    if (value.length < 2 || !status?.search_ready || status?.search_coverage?.entities?.[entity]?.ready === false) return;
+    if (value.length < 2 || (!hasDirectory(entity) && (!status?.search_ready || status?.search_coverage?.entities?.[entity]?.ready === false))) return;
     timer = setTimeout(async () => {
       try {
         const {data} = await request(`/v1/${entity}`, {search:value,search_field:"title",per_page:"10",select:"id,display_name"});
         if (ticket !== revision) return;
-        $(listId).replaceChildren(...data.results.map(r=>{const option=node("option");option.value=r.id.split("/").pop();option.label=r.display_name;return option;}));
+        $(listId).replaceChildren(...data.results.map(r=>{const option=node("option");option.value=directoryValue(entity,r.id);option.label=r.display_name;return option;}));
       } catch { if (ticket === revision) $(listId).replaceChildren(); }
     }, 300);
   });
 }
 
 function saveQuery(){const params=new URLSearchParams();for(const id of stateFields){const el=$(id),v=el.type==="checkbox"?(el.checked?"1":""):el.value;if(v)params.set(id,v);}history.replaceState(null,"","?"+params);}
-function restoreQuery(){const params=new URLSearchParams(location.search);for(const id of stateFields){const value=params.get(id);if(value!==null){const el=$(id);if(el.options && ![...el.options].some(option=>option.value===value))continue;if(el.type==="checkbox")el.checked=value==="1";else el.value=value;}}}
+function restoreQuery(){const params=new URLSearchParams(location.search);for(const id of stateFields){const value=params.get(id);if(value!==null){const el=$(id);if(el.options && ![...el.options].some(option=>option.value===value)){if(Object.values(taxonomyControls).includes(id)){const option=node("option",value);option.value=value;el.append(option);}else continue;}if(el.type==="checkbox")el.checked=value==="1";else el.value=value;}}}
 $("search-form").addEventListener("input",invalidateQuery);
 $("clear-filters").addEventListener("click",()=>{
   for(const id of stateFields) {

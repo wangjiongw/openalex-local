@@ -2,7 +2,7 @@
 
 [中文](STATUS.zh-CN.md) · [Documentation](INDEX.md)
 
-**Stable baseline: v0.4.0.** The project is in maintenance for its supported local
+**Stable baseline: v0.4.1.** The project is in maintenance for its supported local
 retrieval workflow. Use the service's `/status`, `/capabilities` and footer version
 to identify an actual installation; a source release does not upgrade deployments
 or publish a dataset. Existing compatible indexes are reused.
@@ -68,3 +68,7 @@ See [query coverage](API-COVERAGE.md), [validation and evidence limits](VALIDATI
 [operations](RELEASE.md), [roadmap](ROADMAP.md) and [feature inventory](FEATURES.md).
 Source, processing tools and deployment instructions belong in Git; datasets,
 indexes, credentials, runtimes, exports and machine reports stay local.
+
+## M2 first batch (v0.4.1)
+
+Metadata-backed small directories and hierarchy controls are implemented, reusing existing work filters and exports without reindexing. See [directories](DIRECTORIES.md). Publisher/funder/award expansion remains pending; deployment is explicit.

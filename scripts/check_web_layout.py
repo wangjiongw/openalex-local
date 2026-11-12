@@ -28,7 +28,11 @@ def main():
         'W6': {'id': 'https://openalex.org/W6', 'title': 'Synthetic missing reference field'},
     }
     arxiv_record = dict(id='arxiv:1001.0001',source='arxiv',title='Synthetic arXiv climate paper',authors='A. Example',abstract='Climate research',categories=['cs.AI'],first_submitted='2010-01-01',latest_submitted='2010-02-01',version_links=dict(preferred_openalex_id='W2',confirmed=[]))
-    state = {'failure': False, 'mismatch': False}
+    state = {'failure': False, 'mismatch': False, 'work_filters': []}
+    directories={'domains':[dict(id='https://openalex.org/domains/3',display_name='Physical Sciences')],
+                 'fields':[dict(id='https://openalex.org/fields/19',display_name='Earth and Planetary Sciences')],
+                 'subfields':[dict(id='https://openalex.org/subfields/1907',display_name='Geology')]}
+
     ready = {e: {'ready': True} for e in ['works', 'authors', 'institutions', 'sources', 'topics']}
     ready['funders'] = {'ready': False}
     status = {'application_version': '0.4.0', 'auth_required': False, 'search_ready': True, 'metadata_ready': True, 'metadata_complete': True,
@@ -50,7 +54,9 @@ def main():
         if path == '/status':
             data = status
         elif path == '/capabilities':
-            data = {'exports': {'worker_ready': True}}
+            data = {'exports': {'worker_ready': True},'small_directories':{'entities':list(directories)}}
+        elif path.removeprefix('/v1/') in directories:
+            data={'results':directories[path.removeprefix('/v1/')],'meta':{'count':1,'next_cursor':None}}
         elif path == '/v1/exports':
             data = {'results': []}
         elif path == '/v1/arxiv/works':
@@ -62,6 +68,7 @@ def main():
         elif path == '/v1/works/lookup':
             data = records[params['identifier'][0]]
         elif path == '/v1/works':
+            state['work_filters'].append(params.get('filter',[''])[0])
             data = {'results': list(records.values()), 'meta': {'count': 3}}
         elif path.endswith('/references'):
             if state['failure']:
@@ -98,6 +105,18 @@ def main():
             assert page.locator('#results-title').bounding_box()['y'] < 1000, width
             page.screenshot(path=str(args.output / f'home-{width}.png'), full_page=True)
         page.set_viewport_size({'width': 1440, 'height': 1000})
+
+        page.locator('#advanced-filters>summary').click()
+        page.locator('#domain-filter').select_option('domains/3')
+        page.locator('#field-filter').select_option('fields/19')
+        page.locator('#subfield-filter').select_option('subfields/1907')
+        page.locator('#search-button').click()
+        expect(page.locator('#results .result-card')).to_have_count(3)
+        assert 'domain:domains/3' in state['work_filters'][-1] and 'subfield:subfields/1907' in state['work_filters'][-1]
+        page.reload();page.wait_for_load_state('networkidle')
+        expect(page.locator('#domain-filter')).to_have_value('domains/3')
+        expect(page.locator('#subfield-filter')).to_have_value('subfields/1907')
+        page.locator('#clear-filters').click()
 
         def lookup(wid):
             page.locator('#query').fill(wid)
@@ -194,7 +213,7 @@ def main():
     result = {'passed': True, 'widths': [1440, 1024, 760, 390], 'synthetic_only': True,
               'checks': ['layout', 'disclosures', 'source-empty', 'missing-field', 'directions',
                          'pagination', 'unresolved-ID', 'request-error', 'source-mismatch',
-                         'keyboard-tabs', 'query-URL', 'filter-reset', 'active-conditions', 'selection-count', 'service-version'], 'page_errors': errors}
+                         'keyboard-tabs', 'query-URL', 'filter-reset', 'active-conditions', 'selection-count', 'service-version','taxonomy-hierarchy','taxonomy-filter-payload','taxonomy-URL'], 'page_errors': errors}
     (args.output / 'acceptance.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result))
 

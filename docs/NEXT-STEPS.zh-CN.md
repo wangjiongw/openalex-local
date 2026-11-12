@@ -189,3 +189,5 @@ OpenAlex 有四个 domain，但整个 Physical Sciences 的规模可能远大于
 - [arXiv RSS／Atom](https://info.arxiv.org/help/rss.html)
 - [Crossref 公开文件与快照](https://www.crossref.org/documentation/retrieve-metadata/bulk-downloads/)
 - [Crossref REST API](https://www.crossref.org/documentation/retrieve-metadata/rest-api/)
+
+M2 首批进度：v0.4.1 已实现元数据小目录名称浏览、文献学科层级选择和导航，复用现有作品索引与导出。出版商／资助方／项目扩展为下一批。见[实体目录](DIRECTORIES.zh-CN.md)。

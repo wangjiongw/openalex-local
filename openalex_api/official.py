@@ -481,6 +481,11 @@ def execute(b, meta, entity, params):
     if len(params.get("filter", "")) > 64000:
         raise ValueError("filter exceeds 64000 characters")
     filters = split_filters(params.get("filter", ""))
+    from . import directories
+    small_directory = entity in directories.ENTITIES
+    directory_terms = directories.name_terms(params, filters) if small_directory else []
+    if small_directory:
+        filters = [(k, v) for k, v in filters if k != "display_name.search"]
     from .official_text import can_route
     cursor_is_sql = bool(cursor and cursor != "*" and decode_cursor(cursor, config()["cursor_secret"]).get("kind") == "official")
     manifest = meta.get("_search_build") or {}
@@ -488,7 +493,7 @@ def execute(b, meta, entity, params):
     indexed = bool(manifest) and full_entity and not cursor_is_sql and can_route(entity, params, filters)
     if manifest.get("engine") == "manticore" and entity != "works":
         indexed = False
-    if indexed or "search_scope" in params or any(k in SCOPES for k in params) or any(k in FILTER_SEARCH for k, _ in filters):
+    if not small_directory and (indexed or "search_scope" in params or any(k in SCOPES for k in params) or any(k in FILTER_SEARCH for k, _ in filters)):
         from .api import require_search, search_listing
         from .official_text import build
 
@@ -537,10 +542,12 @@ def execute(b, meta, entity, params):
         result["meta"]["db_response_time_ms"] = round((time.monotonic() - started) * 1000)
         return result
     where = where_sql(g, entity, filters)
+    for term in directory_terms:
+        where += " AND " + directories.name_predicate(term)
     table = source_table(b, meta, entity)
     # Frozen release counts avoid a full-table FINAL scan for an unfiltered list.
     receipt = generation_path(g) / "metadata-release.json"
-    if not filters and meta.get("metadata_frozen") and receipt.exists():
+    if not filters and not directory_terms and meta.get("metadata_frozen") and receipt.exists():
         total = int(json.loads(receipt.read_text())["entities"][entity]["unique_entities"])
     else:
         total = int(b.ch(f"SELECT count() n FROM {table} WHERE {where} FORMAT JSONEachRow")[0]["n"])

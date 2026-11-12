@@ -13,6 +13,7 @@ before editing; file names alone do not imply the active execution path.
 | Metadata processing and publication | `community_pipeline.py`, `ingest.py`, `backend.py`, `recovery.py` | `test_metadata_release.py`, `test_core.py`, `test_native_e2e.py` |
 | Earth rules, classification and collections | `earth_rules.py`, `earth_catalog.py`, `earth_collections.py`, packaged JSON rules | `test_earth_rules.py`, `test_earth_collections.py` |
 | Work projection and native index construction | `search_projection.py`, `manticore_build.py`, `manticore_pipeline.py`, `manticore_formats.py`, `manticore_membership.py` | `test_manticore_pipeline.py`, `test_manticore_native.py`, `test_native_e2e.py` |
+| Small source directories | `directories.py`, `official.py:execute`, `/v1` listing in `api.py`; existing query/exports and web controls | `test_directories.py`, `test_native_e2e.py`, `check_web_layout.py` |
 | Entity catalog expansion | `catalogs.py`, `catalog_build.py`, `identity_filters.py` | `test_catalog_build.py`, `test_identity_filters.py`, `test_native_e2e.py` |
 | Query grammar and metadata predicates | `query.py`, `semantics.py`, `official.py`, `official_text.py` | `test_core.py`, `test_official.py`, `test_manticore.py` |
 | Current search execution | `api.py`, `manticore_api.py`, `manticore_native_query.py`, `identity_filters.py` | `test_manticore_pipeline.py`, `test_identity_filters.py`, `test_native_e2e.py` |

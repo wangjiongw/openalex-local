@@ -38,3 +38,5 @@ are outside the community core release. Do not interpret a lexical text index as
 an embedding index or missing references as zero true bibliographic references.
 
 Retrieval additions and export contracts are described in [SEARCH-EXPORT.md](SEARCH-EXPORT.md). Entity names become searchable only after their added catalog is qualified and published; identifier lookup retains full imported coverage.
+
+Small source vocabulary names can be browsed without text indexes; hierarchy selection and work navigation reuse existing work filters. See [directories](DIRECTORIES.md). Publisher/funder/award name expansion remains later M2 work.
