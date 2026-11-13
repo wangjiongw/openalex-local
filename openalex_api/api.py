@@ -351,7 +351,7 @@ def status(request: Request):
         if legacy.exists():
             pipeline = read_json(legacy)
     return {
-        "version_groups": __import__("openalex_api.versions_pipeline", fromlist=["status"]).status(),
+        "version_groups": __import__("openalex_api.versions_reader", fromlist=["status"]).status(),
         "arxiv": __import__("openalex_api.arxiv_pipeline", fromlist=["status"]).status(),
         "application_version": __import__("openalex_api").__version__,
         "auth_required": config().get("auth_required", True),
@@ -382,7 +382,7 @@ def capabilities(request: Request):
     from .official_text import PROJECTED
     from .exports import status as export_capabilities
     return {
-        "version_groups": __import__("openalex_api.versions_pipeline", fromlist=["status"]).status(),
+        "version_groups": __import__("openalex_api.versions_reader", fromlist=["status"]).status(),
         "arxiv": __import__("openalex_api.arxiv_pipeline", fromlist=["status"]).status(),
         "exports": export_capabilities(),
         "query_combinations": {"works": ["text+author_name+year", "text+author_id+institution_id", "text+source+topic+oa+type+language"], "local_authorship": "same authorship", "official_authorship": "work-level intersection"},
@@ -463,6 +463,14 @@ def work_version_group(work_id: str, request: Request):
     from . import versions_api
     params_only(request, [])
     return versions_api.work(backend(),work_id)
+
+
+@app.get("/v1/works/{work_id}/version-candidates")
+def version_candidates(work_id: str, request: Request, relationship_release: str | None = None,
+                       cursor: str | None = None, per_page: int = Query(25,ge=1,le=100)):
+    from . import versions_api
+    params_only(request, {'relationship_release','cursor','per_page'})
+    return versions_api.candidates(backend(),work_id,relationship_release,cursor,per_page)
 
 
 @app.get("/v1/version-groups/{group_id}")

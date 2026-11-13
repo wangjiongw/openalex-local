@@ -44,3 +44,5 @@ Earth entities, wider scopes and later content downloads, separately from releas
 - [Proposed OpenAlex version groups](VERSION-GROUPS-PLAN.md).
 
 - [Optional OpenAlex version relationships](VERSIONS.md).
+
+[Full-index version matching](VERSION-MATCHING.md)

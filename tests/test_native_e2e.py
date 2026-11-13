@@ -202,6 +202,18 @@ def test_native_pipeline_publish_restore_and_resume(tmp_path, profile):
                 assert client.get('/capabilities').json()['version_groups']['search_folding'] is False
                 assert (workspace/'var/active.json').read_bytes()==pointer_before
                 assert (workspace/'var/generations/demo/search-active.json').read_bytes()==search_before
+                run('versions','plan','--profile','full-index','--release','full_fixture','--pilot-size','12','--workers','2')
+                run('versions','run','--release','full_fixture','--until','validate')
+                run('versions','publish','--release','full_fixture')
+                full_status=client.get('/capabilities').json()['version_groups']
+                assert full_status['ready'] and full_status['feature_coverage']==12 and full_status['full_earth_scan']
+                assert not full_status['calibration'].get('passed')
+                assert client.get('/v1/works/W1/version-group').json()['preferred_openalex_id']=='W2'
+                pending=client.get('/v1/works/W3/version-candidates');pending.raise_for_status()
+                assert pending.json()['processing_state']=='processed'
+                assert pending.json()['relationship_release']=='full_fixture'
+                assert (workspace/'var/active.json').read_bytes()==pointer_before
+                assert (workspace/'var/generations/demo/search-active.json').read_bytes()==search_before
                 created=client.post('/v1/exports',json=dict(source='arxiv',query=dict(route='/v1/arxiv/works',params=dict(search='climate')),formats=['jsonl.gz','csv','doi.txt','ids.txt']))
                 created.raise_for_status();job=created.json()['id']
                 for _ in range(120):

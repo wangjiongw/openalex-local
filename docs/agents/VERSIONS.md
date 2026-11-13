@@ -2,7 +2,7 @@
 
 Read `AGENTS.md`, `DEVELOPMENT.md` and the reader guide `../VERSIONS.md`.
 
-- `version_groups.py` owns decisions and conflict-free publication stars.
+- Schema 1: `version_groups.py` owns decisions and conflict-free publication stars.
   `versions_pipeline.py` owns independent durable releases and ClickHouse tables.
   `versions_api.py` hydrates a published group's original members.
 - Keep original work JSON, reference edges, source signatures and search projections
@@ -26,3 +26,21 @@ Read `AGENTS.md`, `DEVELOPMENT.md` and the reader guide `../VERSIONS.md`.
   publication, deployment and community release remain distinct evidence gates.
 - Retain prior pointers, relationship/source staging, dependencies and runtimes.
   Roll back by validating/publishing a retained compatible release, not editing hashes.
+
+## Schema 2 full-index candidate profile
+
+- Read `../VERSION-MATCHING.md`. Keep `version_groups.py` and `versions_pipeline.py`
+  byte-identical: published schema-1 releases hash those files.
+- `versions_reader.py` dispatches both formats. `versions_full.py` owns independent
+  features, candidate batches, review packages, cumulative groups and publication;
+  `version_matching.py` owns pure evidence and acceptance rules.
+- Default full-index run stops at review. Never synthesize audit labels. Blind
+  sets and thresholds are fixed before labels; a consumed holdout cannot be reused
+  for tuning. Unaudited strata remain review. Approximate matching never rewrites
+  raw records or changes ordinary search/export semantics.
+- Feature directories bind the frozen index and posting projection. Reuse them for
+  compatible confirmation changes, with a new relationship release/signature.
+  Pilot sampling excludes prior processed IDs; stratum batches are cumulative.
+- Only schema-compatible software may publish schema-2 active pointers. Upgrade
+  software against the old pointer first. Preserve old runtimes and pointers;
+  candidate cursors pin their relationship release.

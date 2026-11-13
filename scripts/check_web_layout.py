@@ -70,6 +70,9 @@ def main():
                       evidence=[dict(source_id='arxiv:1001.0001',rule='unique_exact_doi')],
                       records=[dict(openalex_id=k,record=records[k]) for k in ['W1','W2']])
             if state.get('notice'):data.update(state='unmatched',group_id=None,automatic_display_allowed=False)
+        elif path.endswith('/version-candidates'):
+            data=dict(relationship_release='versions_fixture',processing_state='processed',next_cursor=None,
+                      results=[dict(target_id='W6',target=dict(title=records['W6']['title']),evidence=dict(methods=['author_title_block'],conflicts=['weak_author_identity']))])
         elif path.endswith('/versions'):
             data={'results':[]}
         elif path == '/v1/works/lookup':
@@ -239,12 +242,26 @@ def main():
         page.locator('#data-source').select_option('arxiv')
         page.locator('#query').fill('1001.0001');page.locator('#search-button').click()
         expect(page.locator('.record-title')).to_have_text(arxiv_record['title'])
+        status['version_groups']={'ready':True,'candidate_scope':'published text'};state['notice']=False
+        page.reload();page.wait_for_load_state('networkidle')
+        page.locator('#data-source').select_option('openalex')
+        page.locator('#query').fill('W1');page.locator('#search-button').click()
+        expect(page.locator('.record-title')).to_have_text(records['W2']['title'])
+        pending=page.locator('details.version-group')
+        expect(pending).to_contain_text('待审核版本候选 · 1 条')
+        pending.locator('summary').click()
+        expect(pending).to_contain_text('weak_author_identity')
+        expect(page.locator('.record-title')).to_have_text(records['W2']['title'])
+        for width in [1440,390]:
+            page.set_viewport_size({'width':width,'height':1000})
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+            page.screenshot(path=str(args.output/f'version-candidates-{width}.png'),full_page=True)
         assert not errors, errors
         browser.close()
     result = {'passed': True, 'widths': [1440, 1024, 760, 390], 'synthetic_only': True,
               'checks': ['layout', 'disclosures', 'source-empty', 'missing-field', 'directions',
                          'pagination', 'unresolved-ID', 'request-error', 'source-mismatch',
-                         'keyboard-tabs', 'query-URL', 'filter-reset', 'active-conditions', 'selection-count', 'service-version','taxonomy-hierarchy','taxonomy-filter-payload','taxonomy-URL', 'version-preference', 'manual-version-selection', 'version-reference-provenance', 'version-group-download', 'single-target-notice-no-auto-jump'], 'page_errors': errors}
+                         'keyboard-tabs', 'query-URL', 'filter-reset', 'active-conditions', 'selection-count', 'service-version','taxonomy-hierarchy','taxonomy-filter-payload','taxonomy-URL', 'version-preference', 'manual-version-selection', 'version-reference-provenance', 'version-group-download', 'single-target-notice-no-auto-jump','pending-version-candidates','candidate-evidence','candidate-no-auto-jump'], 'page_errors': errors}
     (args.output / 'acceptance.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result))
 

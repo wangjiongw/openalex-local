@@ -77,3 +77,5 @@ oa --workspace /path/to/workspace versions publish --release earth_versions_v1
 和拆分；它不是 OpenAlex 官方合并映射。旧软件环境也要保留；软件与关系数据分别回滚。
 
 只有一条 OpenAlex 目标的来源关联同样遵守 `automatic_display_allowed`：更正、撤稿等记录不自动跳转展示。
+
+[全索引匹配候选流程](VERSION-MATCHING.zh-CN.md)

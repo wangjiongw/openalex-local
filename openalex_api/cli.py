@@ -20,13 +20,20 @@ def main():
     p.add_argument("--workspace", help="local data/config workspace; overrides OPENALEX_HOME")
     s = p.add_subparsers(dest="command", required=True)
     q = s.add_parser('versions', help='independent conservative OpenAlex version relationships')
-    q.add_argument('action', choices=['plan','run','resume','status','stop','validate','publish'])
+    q.add_argument('action', choices=['plan','run','resume','status','stop','validate','publish','review-export','review-import'])
+    q.add_argument('--profile', choices=['legacy','full-index'], default='legacy')
+    q.add_argument('--pilot-size', type=int, default=1000000)
+    q.add_argument('--stratum', help='subsequent batch: frozen search group name')
+    q.add_argument('--batch-size', type=int, default=5000000)
+    q.add_argument('--workers', type=int, default=4)
+    q.add_argument('--labels')
+    q.add_argument('--threshold', type=float, default=0.99)
     q.add_argument('--release', required=True)
     q.add_argument('--generation')
     q.add_argument('--arxiv-release')
     q.add_argument('--collection', default='earth_scope_v1')
     q.add_argument('--seed', type=int, default=20261113)
-    q.add_argument('--until', choices=['seeds','sample','targets','pilot','groups','store','validate'], default='validate')
+    q.add_argument('--until', choices=['seeds','sample','targets','pilot','features','candidates','review','groups','store','validate'])
     q = s.add_parser('arxiv', help='independent optional arXiv source workflow')
     q.add_argument('action', choices=['plan','run','resume','status','stop','validate','publish'])
     q.add_argument('--release', required=True)
@@ -207,11 +214,25 @@ def main():
             emit(execute(a))
             return
         if a.command == 'versions':
-            from . import versions_pipeline as versions
+            from . import versions_reader
+            if a.action == 'plan':
+                from . import versions_full, versions_pipeline
+                versions = versions_full if a.profile == 'full-index' else versions_pipeline
+            else:
+                versions = versions_reader.module(a.release)
             if config().get('adopted_from') and a.action != 'status':
                 raise ValueError('adopted workspaces cannot mutate version releases')
             if a.action == 'plan':
-                emit(versions.plan(a.release,a.generation,a.arxiv_release,a.collection,a.seed))
+                if a.profile == 'full-index':
+                    emit(versions.plan(a.release,a.generation,a.collection,a.seed,a.pilot_size,a.workers,a.stratum,a.batch_size))
+                else:
+                    emit(versions.plan(a.release,a.generation,a.arxiv_release,a.collection,a.seed))
+            elif a.action == 'review-import':
+                if not a.labels or not hasattr(versions, 'import_labels'):
+                    raise ValueError('--labels and full-index release required')
+                emit(versions.import_labels(a.release,a.labels,a.threshold))
+            elif a.action == 'review-export':
+                emit(versions.run(a.release,'review'))
             elif a.action == 'status':
                 emit(versions.read(a.release))
             elif a.action == 'stop':
@@ -230,7 +251,7 @@ def main():
             else:
                 if a.action == 'resume':
                     (versions.path(a.release)/'stop.json').unlink(missing_ok=True)
-                emit(versions.run(a.release,a.until))
+                emit(versions.run(a.release,a.until or ('review' if hasattr(versions,'import_labels') else 'validate')))
             return
         if a.command == 'arxiv':
             from . import arxiv_pipeline as arxiv

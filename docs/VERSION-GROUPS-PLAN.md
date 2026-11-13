@@ -60,3 +60,7 @@ Measure candidate/detail throughput, relationship storage and query latency befo
 ## Position in the roadmap
 
 M2 publisher/funder/award catalogs remain independently useful. Deliver confirmed relations/details before grouped search. Establish M3 source updates/deletions/redirects and relationship delta publication before large M4 work-index expansion. Choose cross-disciplinary scopes from actual demand and pilot costs; M5 downloading and external bibliography recovery remain separate.
+
+## Full-index expansion candidate
+
+v0.6 adds the independent full-index [matching workflow](VERSION-MATCHING.md): resumable thin features, a million-work pilot, independent calibration, cumulative stratum batches and candidate details. This implements association/details only; grouped search is still optional. Full-data processing and real human audit remain separate gates.

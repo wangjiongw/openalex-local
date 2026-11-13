@@ -94,3 +94,5 @@ not an upstream OpenAlex merge map. Keep the prior application environment as
 well; software rollback and relationship rollback are independent.
 
 A one-record source association also respects `automatic_display_allowed`: notices and retracted records are not selected automatically.
+
+[Full-index matching candidate](VERSION-MATCHING.md)

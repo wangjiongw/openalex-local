@@ -200,6 +200,7 @@ async function loadDetail(entity, value, scheme = "openalex", replaceResults = f
           }
           renderVersionGroup(group);
         }
+        if(status?.version_groups?.candidate_scope) await renderVersionCandidates(record.id.split("/").pop(),group.relationship_release,ticket);
       } catch(error) {if(ticket===detailRequest)$("detail").append(node("p","OpenAlex 版本组暂不可用："+error.message,"subtle"));}
     }
     if(entity === "works" && status?.arxiv?.ready) {
@@ -232,9 +233,22 @@ function renderVersionGroup(group) {
     const url=URL.createObjectURL(new Blob([JSON.stringify(group,null,2)],{type:"application/json;charset=utf-8"}));
     const a=node("a");a.href=url;a.download=group.group_id+".json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   },"secondary"));
-  const evidence=node("details"),summary=node("summary","关联证据：arXiv 来源的唯一精确 DOI 匹配");
+  const evidence=node("details"),summary=node("summary","关联证据（精确标识符或已校准的文献匹配）");
   evidence.append(summary,node("pre",JSON.stringify(group.evidence,null,2),"raw-json"));
   box.append(controls,evidence);$("detail").prepend(box);
+}
+async function renderVersionCandidates(work,release,ticket) {
+  const data=(await request(`/v1/works/${work}/version-candidates`,{relationship_release:release})).data;
+  if(ticket!==detailRequest)return;
+  const box=node("details",undefined,"version-group");
+  box.append(node("summary",`待审核版本候选 · ${data.results.length}${data.next_cursor ? "+" : ""} 条`),
+    node("p",`处理状态：${data.processing_state}；候选不会自动替换当前文献。`,"subtle"));
+  for(const r of data.results) {
+    const p=node("div");p.append(button(r.target.title||r.target_id,()=>loadDetail("works",r.target_id,"openalex",false,false),"secondary"),
+      node("pre",JSON.stringify(r.evidence,null,2),"raw-json"));box.append(p);
+  }
+  if(data.next_cursor) box.append(node("p","更多候选可通过 API 的 next_cursor 分页查看。","subtle"));
+  $("detail").append(box);
 }
 function entityButton(entity, item) { return button(item.display_name || item.id, () => loadDetail(entity,item.id), "entity-link"); }
 function renderDetail() {

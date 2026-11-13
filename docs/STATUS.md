@@ -76,3 +76,7 @@ Metadata-backed small directories and hierarchy controls are implemented, reusin
 ## Delivered version details
 
 v0.5.0 delivers an independent conservative version release, all existing arXiv seeds and a deterministic 100,000-record Earth pilot, new group API/detail selection and group JSON download. The data release and service upgrade require their own validation; inspect `/status.version_groups` for actual availability. Search counts, paging, selected/query exports and raw references stay record-based. See [the workflow](VERSIONS.md).
+
+## v0.6 development candidate
+
+Full-index bibliographic association is under qualification. The new [matching workflow](VERSION-MATCHING.md) reuses published indexes, adds resumable feature/candidate processing, independent review packages and cumulative batches. v0.5.0 remains the stable deployment until separately qualified and upgraded; no full-corpus or independent-label pass is implied.
