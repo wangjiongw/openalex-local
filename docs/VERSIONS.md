@@ -92,3 +92,5 @@ membership is reconciled before changing the pointer. Lineage records previous
 group IDs and their shared-member successors, including retirement/splits. It is
 not an upstream OpenAlex merge map. Keep the prior application environment as
 well; software rollback and relationship rollback are independent.
+
+A one-record source association also respects `automatic_display_allowed`: notices and retracted records are not selected automatically.

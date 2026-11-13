@@ -69,6 +69,7 @@ def main():
                       requested_openalex_id=wid,requested_record=records[wid],members=['W1','W2'],preferred_openalex_id='W2',
                       evidence=[dict(source_id='arxiv:1001.0001',rule='unique_exact_doi')],
                       records=[dict(openalex_id=k,record=records[k]) for k in ['W1','W2']])
+            if state.get('notice'):data.update(state='unmatched',group_id=None,automatic_display_allowed=False)
         elif path.endswith('/versions'):
             data={'results':[]}
         elif path == '/v1/works/lookup':
@@ -232,12 +233,18 @@ def main():
         expect(page.locator('#data-source')).to_have_value('arxiv')
         page.locator('#data-source').select_option('openalex')
         expect(page.locator('#advanced-filters')).to_be_visible()
+        status['version_groups']={'ready':True};state['notice']=True
+        arxiv_record['version_links']['confirmed']=[dict(openalex_id='W2',kind='publication')]
+        page.reload();page.wait_for_load_state('networkidle')
+        page.locator('#data-source').select_option('arxiv')
+        page.locator('#query').fill('1001.0001');page.locator('#search-button').click()
+        expect(page.locator('.record-title')).to_have_text(arxiv_record['title'])
         assert not errors, errors
         browser.close()
     result = {'passed': True, 'widths': [1440, 1024, 760, 390], 'synthetic_only': True,
               'checks': ['layout', 'disclosures', 'source-empty', 'missing-field', 'directions',
                          'pagination', 'unresolved-ID', 'request-error', 'source-mismatch',
-                         'keyboard-tabs', 'query-URL', 'filter-reset', 'active-conditions', 'selection-count', 'service-version','taxonomy-hierarchy','taxonomy-filter-payload','taxonomy-URL', 'version-preference', 'manual-version-selection', 'version-reference-provenance', 'version-group-download'], 'page_errors': errors}
+                         'keyboard-tabs', 'query-URL', 'filter-reset', 'active-conditions', 'selection-count', 'service-version','taxonomy-hierarchy','taxonomy-filter-payload','taxonomy-URL', 'version-preference', 'manual-version-selection', 'version-reference-provenance', 'version-group-download', 'single-target-notice-no-auto-jump'], 'page_errors': errors}
     (args.output / 'acceptance.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result))
 

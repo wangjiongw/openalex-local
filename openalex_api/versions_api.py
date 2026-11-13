@@ -4,7 +4,7 @@ import json
 from fastapi import HTTPException
 
 from . import versions_pipeline as pipeline
-from .version_groups import group_id
+from .version_groups import group_id, notice
 from .model import canonical_id
 from .backend import sql_string
 
@@ -35,6 +35,6 @@ def work(backend, value):
     found=backend.details(m['generation'],'works',[key])
     if key not in found:raise HTTPException(404,'work not present')
     rows=backend.ch(f'SELECT group_id FROM {pipeline.table(m)}.members FINAL WHERE id={sql_string(key)} FORMAT JSONEachRow')
-    base=dict(relationship_release=m['release'],generation=m['generation'],requested_openalex_id=key,requested_record=found[key])
+    base=dict(relationship_release=m['release'],generation=m['generation'],requested_openalex_id=key,requested_record=found[key],automatic_display_allowed=not notice(found[key]))
     if not rows:return base|dict(state='unmatched',group_id=None,members=[],preferred_openalex_id=None,evidence=[])
     return group(backend,rows[0]['group_id'],m)|base

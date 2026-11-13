@@ -455,13 +455,12 @@ async function loadArxiv(value,replaceResults=false,preferPublication=true) {
     const response=await request("/v1/arxiv/lookup",{identifier:value});if(ticket!==detailRequest)return;
     const preprint=response.data;
     let preferred=preprint.version_links?.preferred_openalex_id;
-    if(preferPublication && preferred && status?.version_groups?.ready && preprint.version_links.confirmed.length>1) {
+    if(preferPublication && preferred && status?.version_groups?.ready) {
       const seed=preprint.version_links.confirmed.find(v=>v.kind==="preprint");
-      if(seed) {
-        const group=(await request(`/v1/works/${seed.openalex_id}/version-group`)).data;
-        if(ticket!==detailRequest)return;
-        preferred=group.state==="confirmed" ? group.preferred_openalex_id : null;
-      }
+      const group=(await request(`/v1/works/${seed?.openalex_id || preferred}/version-group`)).data;
+      if(ticket!==detailRequest)return;
+      if(seed && preprint.version_links.confirmed.length>1) preferred=group.state==="confirmed" ? group.preferred_openalex_id : null;
+      if(group.automatic_display_allowed===false) preferred=null;
     }
     if(preferPublication&&preferred) {
       await loadDetail("works",preferred,"openalex",false,false);

@@ -75,3 +75,5 @@ oa --workspace /path/to/workspace versions publish --release earth_versions_v1
 `var/versions-active.json` 保留前一指针。需要回退时，用兼容软件重新验收并发布保留的
 旧 release，核对关系后再切换指针。沿革文件记录旧组与按共同成员找到的新组，包括退出
 和拆分；它不是 OpenAlex 官方合并映射。旧软件环境也要保留；软件与关系数据分别回滚。
+
+只有一条 OpenAlex 目标的来源关联同样遵守 `automatic_display_allowed`：更正、撤稿等记录不自动跳转展示。

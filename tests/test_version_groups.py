@@ -48,6 +48,8 @@ def test_work_view_retains_requested_and_actual_record_fields(monkeypatch):
     assert result['records'][0]['record']['referenced_works']==[]
     b.ch.return_value=[];b.ch.side_effect=None
     assert versions_api.work(b,'W1')['state']=='unmatched'
+    raw['W1']['is_retracted']=True
+    assert versions_api.work(b,'W1')['automatic_display_allowed'] is False
     with pytest.raises(HTTPException) as e:versions_api.work(b,'W999')
     assert e.value.status_code==404
     with pytest.raises(ValueError):versions_api.group(b,"x' OR 1=1")
