@@ -178,7 +178,7 @@ async function search(event, more = false) {
   } catch (error) { message(error.message); }
   finally { busy = false; $("search-button").disabled = false; $("more-results").disabled = false; updateSelection(); }
 }
-async function loadDetail(entity, value, scheme = "openalex", replaceResults = false, preferPublication = true) {
+async function loadDetail(entity, value, scheme = "openalex", replaceResults = false, preferPublication = true, versionContext = null) {
   if (String(value).startsWith("arxiv:")) return loadArxiv(value);
   const ticket = ++detailRequest; edgeRequest++; message();
   try {
@@ -188,18 +188,53 @@ async function loadDetail(entity, value, scheme = "openalex", replaceResults = f
     if(replaceResults){$("results").replaceChildren(card(record,entity));$("result-count").textContent="1 条 · 精确定位";}
     updateSelection();
     renderDetail();
+    if(entity === "works" && status?.version_groups?.ready) {
+      try {
+        const group = versionContext || (await request(`/v1/works/${record.id.split("/").pop()}/version-group`)).data;
+        if(ticket !== detailRequest) return;
+        versionContext=group;
+        if(group.state === "confirmed") {
+          const preferred = group.preferred_openalex_id;
+          if(preferPublication && preferred && record.id.split("/").pop() !== preferred) {
+            await loadDetail("works",preferred,"openalex",false,false,group); return;
+          }
+          renderVersionGroup(group);
+        }
+      } catch(error) {if(ticket===detailRequest)$("detail").append(node("p","OpenAlex 版本组暂不可用："+error.message,"subtle"));}
+    }
     if(entity === "works" && status?.arxiv?.ready) {
       try {
         const linked=(await request(`/v1/works/${record.id.split("/").pop()}/versions`)).data;
         if(ticket!==detailRequest)return;
         const preferences=[...new Set(linked.results.map(r=>r.version_links?.preferred_openalex_id).filter(Boolean))];
-        if(preferPublication && preferences.length===1 && !record.id.endsWith("/"+preferences[0]) && record.id!==preferences[0]) {await loadDetail("works",preferences[0],"openalex",false,false);return;}
+        if(!status?.version_groups?.ready && preferPublication && preferences.length===1 && !record.id.endsWith("/"+preferences[0]) && record.id!==preferences[0]) {await loadDetail("works",preferences[0],"openalex",false,false);return;}
         for(const r of linked.results)$("detail").prepend(button("已确认关联 · 查看 arXiv 预印本",()=>loadArxiv(r.id,false,false)));
       } catch(error) {if(ticket===detailRequest)$("detail").append(node("p","版本关联暂不可用："+error.message,"subtle"));}
     }
-    document.querySelectorAll(".result-card").forEach(el => el.classList.toggle("selected", el.dataset.id === record.id));
+    document.querySelectorAll(".result-card").forEach(el => el.classList.toggle("selected", el.dataset.id.split("/").pop() === (versionContext?.requested_openalex_id || record.id.split("/").pop())));
     if (innerWidth < 761) $("detail").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"});
   } catch (error) { if (ticket === detailRequest) message(error.message); }
+}
+function renderVersionGroup(group) {
+  const box=node("section",undefined,"version-group");
+  box.setAttribute("aria-label","已确认的文献版本");
+  const displayed=record.id.split("/").pop();
+  box.append(node("h3","已确认的文献版本","block-title"),
+    node("p",`命中记录 ${group.requested_openalex_id} · 当前显示 ${displayed} · 关系版本 ${group.relationship_release}`,"subtle"),
+    node("p","摘要、作者、开放获取和引用关系均属于当前显示的记录；版本间不混用。","subtle"));
+  const controls=node("div",undefined,"version-controls");
+  for(const member of group.records) {
+    const label=(member.openalex_id===group.preferred_openalex_id ? "发表版" : "其他版本")+" · "+(member.record.title||member.openalex_id);
+    const b=button(label,()=>loadDetail("works",member.openalex_id,"openalex",false,false,group),"secondary");
+    b.setAttribute("aria-pressed",String(member.openalex_id===displayed));controls.append(b);
+  }
+  controls.append(button("下载版本组 JSON",()=>{
+    const url=URL.createObjectURL(new Blob([JSON.stringify(group,null,2)],{type:"application/json;charset=utf-8"}));
+    const a=node("a");a.href=url;a.download=group.group_id+".json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  },"secondary"));
+  const evidence=node("details"),summary=node("summary","关联证据：arXiv 来源的唯一精确 DOI 匹配");
+  evidence.append(summary,node("pre",JSON.stringify(group.evidence,null,2),"raw-json"));
+  box.append(controls,evidence);$("detail").prepend(box);
 }
 function entityButton(entity, item) { return button(item.display_name || item.id, () => loadDetail(entity,item.id), "entity-link"); }
 function renderDetail() {
@@ -418,7 +453,16 @@ async function loadArxiv(value,replaceResults=false,preferPublication=true) {
   const ticket=++detailRequest;edgeRequest++;
   try {
     const response=await request("/v1/arxiv/lookup",{identifier:value});if(ticket!==detailRequest)return;
-    const preprint=response.data,preferred=preprint.version_links?.preferred_openalex_id;
+    const preprint=response.data;
+    let preferred=preprint.version_links?.preferred_openalex_id;
+    if(preferPublication && preferred && status?.version_groups?.ready && preprint.version_links.confirmed.length>1) {
+      const seed=preprint.version_links.confirmed.find(v=>v.kind==="preprint");
+      if(seed) {
+        const group=(await request(`/v1/works/${seed.openalex_id}/version-group`)).data;
+        if(ticket!==detailRequest)return;
+        preferred=group.state==="confirmed" ? group.preferred_openalex_id : null;
+      }
+    }
     if(preferPublication&&preferred) {
       await loadDetail("works",preferred,"openalex",false,false);
       if(record?.id?.endsWith(preferred)) $("detail").prepend(button("当前为已确认发表版 · 切换到 arXiv 预印本",()=>loadArxiv(value,false,false)));

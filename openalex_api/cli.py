@@ -19,6 +19,14 @@ def main():
     )
     p.add_argument("--workspace", help="local data/config workspace; overrides OPENALEX_HOME")
     s = p.add_subparsers(dest="command", required=True)
+    q = s.add_parser('versions', help='independent conservative OpenAlex version relationships')
+    q.add_argument('action', choices=['plan','run','resume','status','stop','validate','publish'])
+    q.add_argument('--release', required=True)
+    q.add_argument('--generation')
+    q.add_argument('--arxiv-release')
+    q.add_argument('--collection', default='earth_scope_v1')
+    q.add_argument('--seed', type=int, default=20261113)
+    q.add_argument('--until', choices=['seeds','sample','targets','pilot','groups','store','validate'], default='validate')
     q = s.add_parser('arxiv', help='independent optional arXiv source workflow')
     q.add_argument('action', choices=['plan','run','resume','status','stop','validate','publish'])
     q.add_argument('--release', required=True)
@@ -197,6 +205,32 @@ def main():
         if a.command in ("snapshot", "engines", "pipeline", "verify", "restore", "adopt"):
             from .community_cli import execute
             emit(execute(a))
+            return
+        if a.command == 'versions':
+            from . import versions_pipeline as versions
+            if config().get('adopted_from') and a.action != 'status':
+                raise ValueError('adopted workspaces cannot mutate version releases')
+            if a.action == 'plan':
+                emit(versions.plan(a.release,a.generation,a.arxiv_release,a.collection,a.seed))
+            elif a.action == 'status':
+                emit(versions.read(a.release))
+            elif a.action == 'stop':
+                atomic_json(versions.path(a.release)/'stop.json',dict(stop=True))
+                emit(dict(state='stop_requested'))
+            elif a.action == 'publish':
+                emit(versions.publish(a.release))
+            elif a.action == 'validate':
+                from .backend import Backend
+                from .ingest import lock
+                with lock(versions.path(a.release)/'worker.lock'):
+                    m=versions.read(a.release);b=Backend(writer=True)
+                    try: versions.validate(m,b)
+                    finally:b.close()
+                    emit(m)
+            else:
+                if a.action == 'resume':
+                    (versions.path(a.release)/'stop.json').unlink(missing_ok=True)
+                emit(versions.run(a.release,a.until))
             return
         if a.command == 'arxiv':
             from . import arxiv_pipeline as arxiv

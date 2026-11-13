@@ -19,6 +19,7 @@ references relevant to the task. Human-facing documentation starts at
 - Internal deployments and community releases use the same maintained source
   and package. Put installation-specific choices in workspace configuration.
   Keep historical compatibility code separate from the supported workflow.
+- Version details use independent relationship releases; read [version contracts](docs/agents/VERSIONS.md) before changing decisions or publication. Original work IDs, references, search counts and exports retain record semantics.
 - Read [current status](docs/STATUS.md) for the maintenance baseline and optional
   extensions. Keep implementation, public release and internal deployment status distinct.
 - Read [API coverage](docs/API-COVERAGE.md) before changing query behavior.

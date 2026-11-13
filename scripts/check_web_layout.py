@@ -28,7 +28,7 @@ def main():
         'W6': {'id': 'https://openalex.org/W6', 'title': 'Synthetic missing reference field'},
     }
     arxiv_record = dict(id='arxiv:1001.0001',source='arxiv',title='Synthetic arXiv climate paper',authors='A. Example',abstract='Climate research',categories=['cs.AI'],first_submitted='2010-01-01',latest_submitted='2010-02-01',version_links=dict(preferred_openalex_id='W2',confirmed=[]))
-    state = {'failure': False, 'mismatch': False, 'work_filters': []}
+    state = {'failure': False, 'mismatch': False, 'work_filters': [], 'version_groups': False}
     directories={'domains':[dict(id='https://openalex.org/domains/3',display_name='Physical Sciences')],
                  'fields':[dict(id='https://openalex.org/fields/19',display_name='Earth and Planetary Sciences')],
                  'subfields':[dict(id='https://openalex.org/subfields/1907',display_name='Geology')]}
@@ -63,6 +63,12 @@ def main():
             data={'results':[arxiv_record],'meta':{'count':1}}
         elif path == '/v1/arxiv/lookup':
             data=arxiv_record
+        elif path.endswith('/version-group'):
+            wid=path.split('/')[-2]
+            data=dict(relationship_release='versions_fixture',generation='synthetic',state='confirmed',group_id='vg_'+'1'*32,
+                      requested_openalex_id=wid,requested_record=records[wid],members=['W1','W2'],preferred_openalex_id='W2',
+                      evidence=[dict(source_id='arxiv:1001.0001',rule='unique_exact_doi')],
+                      records=[dict(openalex_id=k,record=records[k]) for k in ['W1','W2']])
         elif path.endswith('/versions'):
             data={'results':[]}
         elif path == '/v1/works/lookup':
@@ -153,6 +159,24 @@ def main():
         page.get_by_role('tab', name='概览', exact=True).focus()
         page.keyboard.press('ArrowRight')
         expect(page.get_by_role('tab', name='引用关系', exact=True)).to_have_attribute('aria-selected', 'true')
+        status['version_groups']={'ready':True}
+        page.reload();page.wait_for_load_state('networkidle')
+        page.locator('#query').fill('W1');page.locator('#search-button').click()
+        expect(page.locator('.record-title')).to_have_text(records['W2']['title'])
+        expect(page.locator('.version-group')).to_contain_text('命中记录 W1 · 当前显示 W2')
+        page.locator('.version-group').get_by_role('button',name='其他版本 · '+records['W1']['title'],exact=True).click()
+        expect(page.locator('.record-title')).to_have_text(records['W1']['title'])
+        expect(page.locator('.version-group')).to_contain_text('命中记录 W1 · 当前显示 W1')
+        page.get_by_role('tab',name='引用关系',exact=True).click()
+        expect(page.locator('[data-direction=references]')).to_have_text('参考文献 · 0')
+        with page.expect_download() as download:
+            page.get_by_role('button',name='下载版本组 JSON',exact=True).click()
+        assert download.value.suggested_filename.startswith('vg_')
+        for width in [1440,390]:
+            page.set_viewport_size({'width':width,'height':1000})
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+        page.set_viewport_size({'width':1440,'height':1000})
+        status['version_groups']={'ready':False}
         page.goto('http://openalex.test/?author-query=Synthetic&oa-only=1')
         page.wait_for_load_state('networkidle')
         assert page.locator('#advanced-filters').evaluate('(el)=>el.open')
@@ -213,7 +237,7 @@ def main():
     result = {'passed': True, 'widths': [1440, 1024, 760, 390], 'synthetic_only': True,
               'checks': ['layout', 'disclosures', 'source-empty', 'missing-field', 'directions',
                          'pagination', 'unresolved-ID', 'request-error', 'source-mismatch',
-                         'keyboard-tabs', 'query-URL', 'filter-reset', 'active-conditions', 'selection-count', 'service-version','taxonomy-hierarchy','taxonomy-filter-payload','taxonomy-URL'], 'page_errors': errors}
+                         'keyboard-tabs', 'query-URL', 'filter-reset', 'active-conditions', 'selection-count', 'service-version','taxonomy-hierarchy','taxonomy-filter-payload','taxonomy-URL', 'version-preference', 'manual-version-selection', 'version-reference-provenance', 'version-group-download'], 'page_errors': errors}
     (args.output / 'acceptance.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result))
 

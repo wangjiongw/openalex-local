@@ -2,7 +2,7 @@
 
 [中文](VERSION-GROUPS-PLAN.zh-CN.md) · [Development plan](NEXT-STEPS.md)
 
-Status: proposed, not an implemented full-OpenAlex grouping feature. v0.4.1 already provides exact DOI associations between an optional arXiv source and OpenAlex. Extend that evidence while retaining ClickHouse/Manticore, source records and qualified indexes.
+Status: the first detail-only stage is implemented in the v0.5.0 candidate; data validation/publication and deployment are separate gates. See the [operating workflow](VERSIONS.md). Existing arXiv exact DOI evidence and qualified ClickHouse/Manticore indexes are reused. Grouped search remains a later design, not an available feature.
 
 ## Goal and coverage
 

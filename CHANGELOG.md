@@ -2,6 +2,13 @@
 
 [中文](CHANGELOG.zh-CN.md) · [Documentation](docs/INDEX.md)
 
+## 0.5.0 — candidate
+
+- Add independent resumable, input-pinned version relationship releases and a deterministic stratified Earth pilot.
+- Reuse confirmed arXiv exact evidence; retain DOI/title candidates and conflicting/notice relationships for review.
+- Add version-group API, evidence, matched/displayed labels, persistent manual selection and group JSON download.
+- Preserve raw metadata/references, existing search indexes, pagination and selected/query export semantics.
+
 ## 0.4.1 — v0.4.1
 
 - Browse small imported entity names without text indexes through both API contracts.

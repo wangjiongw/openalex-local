@@ -2,7 +2,7 @@
 
 [中文](NEXT-STEPS.zh-CN.md) · [Current status](STATUS.md) · [Roadmap](ROADMAP.md)
 
-Implementation status reviewed on 2026-11-13 against **v0.4.1**. M0/M1 is delivered in v0.4.0; M2 small-directory search and hierarchy navigation are delivered in v0.4.1. The next coding batch is M2 publisher/funder names and award associations. M3–M5 and optional Crossref enrichment remain later work.
+Implementation status reviewed on 2026-11-13 against **v0.4.1**. M0/M1 is delivered in v0.4.0; M2 small-directory search and hierarchy navigation are delivered in v0.4.1. The selected next delivery is conservative OpenAlex version details, implemented in the v0.5.0 candidate with independent data qualification; see [the workflow](VERSIONS.md). M2 publisher/funder names and award associations follow it. M3–M5 and optional Crossref enrichment remain later work.
 
 The original milestone descriptions retain planning context. [ARXIV.md](ARXIV.md) documents Kaggle JSONL as standard input and optional read-only DuckDB compatibility; [DIRECTORIES.md](DIRECTORIES.md) documents the delivered M2 first batch. Keep current services and qualified indexes available while developing additions independently.
 

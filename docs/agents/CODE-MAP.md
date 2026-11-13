@@ -19,6 +19,7 @@ before editing; file names alone do not imply the active execution path.
 | Current search execution | `api.py`, `manticore_api.py`, `manticore_native_query.py`, `identity_filters.py` | `test_manticore_pipeline.py`, `test_identity_filters.py`, `test_native_e2e.py` |
 | Identifier resolution and relation expansion | `api.py`, `backend.py`, `model.py`, `exact.py`, `exact_fast.py` | `test_backend_details.py`, `test_exact_fast.py`, `test_native_e2e.py` |
 | Query exports | `exports.py`, API routes in `api.py`, CLI dispatch in `cli.py` | `test_exports.py`, `test_native_e2e.py` |
+| Version relationships | `version_groups.py`, `versions_pipeline.py`, `versions_api.py`; CLI/API/web | `test_version_groups.py`, `test_native_e2e.py`, `check_web_layout.py`; see [contracts](VERSIONS.md) |
 | Optional arXiv source | `arxiv_source.py`, `arxiv_pipeline.py`, `arxiv_index.py`, `arxiv_api.py`; existing CLI, API and export worker | `test_arxiv.py`, arXiv portion of `test_native_e2e.py`, browser source-switch checks |
 | UI | `static/app.js`, `static/index.html`, `static/app.css` | `scripts/check_manticore_browser.py`, browser acceptance described in validation docs |
 | Services, ownership and resources | `manage.py`, `workspace.py`, `budget.py`, `config.py`, `engines.py` | `test_management.py`, `test_capacity_guard.py`, `test_community.py` |

@@ -65,6 +65,24 @@ finally:c.sql('DROP TABLE '+table);c.close()
 def test_native_pipeline_publish_restore_and_resume(tmp_path, profile):
     snapshot = tmp_path / 'snapshot'
     make_snapshot(snapshot)
+    if profile == 'earth_sciences':
+        # A real exact arXiv DOI points at a separate synthetic preprint record.
+        import gzip
+        source_file=snapshot/'data/jsonl/works/updated_date=2026-01-01/part_0000.gz'
+        with gzip.open(source_file,'rt') as stream: rows=[json.loads(line) for line in stream]
+        rows[0].update(ids={'doi':'https://doi.org/10.48550/arxiv.1001.0001'},type='preprint')
+        with gzip.open(source_file,'wt') as stream:
+            for row in rows:stream.write(json.dumps(row)+'\n')
+        manifest_file=snapshot/'data/jsonl/works/manifest.json'
+        manifest=json.loads(manifest_file.read_text());manifest['content_length']=source_file.stat().st_size
+        manifest['files'][0]['meta']['content_length']=source_file.stat().st_size
+        manifest_file.write_text(json.dumps(manifest))
+        top=snapshot/'data/jsonl/manifest.json';manifest=json.loads(top.read_text())
+        for entry in manifest['entities']:
+            if entry['entity']=='works':
+                entry['content_length']=source_file.stat().st_size
+                entry['files'][0]['meta']['content_length']=source_file.stat().st_size
+        top.write_text(json.dumps(manifest))
     workspace = tmp_path / 'workspace.v1'
     command = [sys.executable, '-m', 'openalex_api.cli', '--workspace', str(workspace)]
     def run(*args):
@@ -170,6 +188,20 @@ def test_native_pipeline_publish_restore_and_resume(tmp_path, profile):
                 reply=client.get('/v1/arxiv/lookup',params={'identifier':'1001.0001v2'});reply.raise_for_status()
                 ar=reply.json();assert ar['version_links']['preferred_openalex_id']=='W2' and ar['raw_source']['unknown_source_field']=={'keep':True},ar
                 reply=client.get('/v1/works/W2/versions');reply.raise_for_status();assert reply.json()['results'][0]['id']=='arxiv:1001.0001'
+                assert client.get('/v1/works/W1/version-group').status_code==503
+                # Only fixture quotas shrink; production defaults remain 30k/35k/35k.
+                code="from openalex_api import versions_pipeline as p; p.QUOTAS=dict(zip(p.GROUPS,(6,0,0))); p.plan('versions_fixture'); p.run('versions_fixture'); p.publish('versions_fixture')"
+                subprocess.run([sys.executable,'-c',code],env=os.environ|dict(OPENALEX_HOME=str(workspace)),check=True,timeout=180)
+                reply=client.get('/v1/works/W1/version-group');reply.raise_for_status();group=reply.json()
+                assert group['requested_openalex_id']=='W1' and group['preferred_openalex_id']=='W2',group
+                assert group['requested_record']['referenced_works']==[]
+                reply=client.get('/v1/version-groups/'+group['group_id']);reply.raise_for_status()
+                assert len(reply.json()['records'])==2
+                assert client.get('/v1/works/W3/version-group').json()['state']=='unmatched'
+                assert client.get('/status').json()['version_groups']['ready']
+                assert client.get('/capabilities').json()['version_groups']['search_folding'] is False
+                assert (workspace/'var/active.json').read_bytes()==pointer_before
+                assert (workspace/'var/generations/demo/search-active.json').read_bytes()==search_before
                 created=client.post('/v1/exports',json=dict(source='arxiv',query=dict(route='/v1/arxiv/works',params=dict(search='climate')),formats=['jsonl.gz','csv','doi.txt','ids.txt']))
                 created.raise_for_status();job=created.json()['id']
                 for _ in range(120):

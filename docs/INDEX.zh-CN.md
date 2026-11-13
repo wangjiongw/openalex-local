@@ -37,3 +37,5 @@ OpenAlex Local 从本地快照建立元数据与引用服务，并允许按需�
 - [小型实体目录与文献导航](DIRECTORIES.zh-CN.md)。
 
 - [OpenAlex 内部版本整合计划](VERSION-GROUPS-PLAN.zh-CN.md)。
+
+- [可选 OpenAlex 文献版本关联](VERSIONS.zh-CN.md).

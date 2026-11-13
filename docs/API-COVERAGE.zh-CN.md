@@ -35,3 +35,5 @@ Parquet 导入、实时删除／合并应用和外部 A/D 图谱写入不属于�
 实体名称仅在新增目录通过验收并发布后可检索；标识符查询保持对已导入数据的覆盖。
 
 小型来源词表无需文本索引即可按名称浏览；层级选择和文献导航复用现有作品过滤。见[实体目录](DIRECTORIES.zh-CN.md)。出版商／资助方／项目名称扩展仍为 M2 后续任务。
+
+[版本关联](VERSIONS.zh-CN.md) — `/v1/works/{id}/version-group`, `/v1/version-groups/{group_id}`; `/status.version_groups`, `/capabilities.version_groups`.

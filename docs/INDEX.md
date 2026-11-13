@@ -42,3 +42,5 @@ Earth entities, wider scopes and later content downloads, separately from releas
 - [Small entity directories and work navigation](DIRECTORIES.md).
 
 - [Proposed OpenAlex version groups](VERSION-GROUPS-PLAN.md).
+
+- [Optional OpenAlex version relationships](VERSIONS.md).

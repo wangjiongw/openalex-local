@@ -72,3 +72,7 @@ indexes, credentials, runtimes, exports and machine reports stay local.
 ## M2 first batch (v0.4.1)
 
 Metadata-backed small directories and hierarchy controls are implemented, reusing existing work filters and exports without reindexing. See [directories](DIRECTORIES.md). Publisher/funder/award expansion remains pending; deployment is explicit.
+
+## Version details candidate
+
+v0.5.0 implements an independent conservative version release, all existing arXiv seeds and a deterministic 100,000-record Earth pilot, new group API/detail selection and group JSON download. The data release and service upgrade require their own validation; inspect `/status.version_groups` for actual availability. Search counts, paging, selected/query exports and raw references stay record-based. See [the workflow](VERSIONS.md).

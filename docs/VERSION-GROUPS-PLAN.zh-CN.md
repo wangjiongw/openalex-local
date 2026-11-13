@@ -2,7 +2,7 @@
 
 [English](VERSION-GROUPS-PLAN.md) · [开发路线](NEXT-STEPS.zh-CN.md)
 
-状态：规划，尚未实现 OpenAlex 全库版本归组。v0.4.1 已实现可选 arXiv 来源与 OpenAlex 的精确 DOI 关联；本文在此基础上扩展。保留现有 ClickHouse＋Manticore、源记录和已发布索引。
+状态：第一阶段的版本详情关联已在 v0.5.0 候选版实现；数据验收、发布和部署分别执行。参见[操作流程](VERSIONS.zh-CN.md)。复用 arXiv 精确 DOI 证据及已验收的 ClickHouse＋Manticore 索引。分组搜索仍是后续设计，当前不提供。
 
 ## 目标与当前覆盖
 

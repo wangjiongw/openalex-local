@@ -32,7 +32,7 @@ routes are the compatibility contract, with documented coverage and limits.
 
 M0/M1 is delivered in v0.4.0, including source provenance, exact DOI associations, independent arXiv retrieval and exports. M2's small directories and hierarchy navigation are delivered in v0.4.1. See the [arXiv workflow](ARXIV.md) and [directory guide](DIRECTORIES.md).
 
-The next M2 batch is publisher/funder name catalogs and award-to-work associations. M3 covers reliable updates/deletions/redirects; M4 covers configurable additional work search scopes; M5 covers links and content downloads. See [the staged development plan](NEXT-STEPS.md) for dependencies and acceptance. These later stages are not implemented by the current release.
+After the selected version-details delivery, the next M2 batch is publisher/funder name catalogs and award-to-work associations. M3 covers reliable updates/deletions/redirects; M4 covers configurable additional work search scopes; M5 covers links and content downloads. See [the staged development plan](NEXT-STEPS.md) for dependencies and acceptance. These later stages are not implemented by the current release.
 
 Semantic Scholar remains deferred. Crossref REST/public files are a separate optional bibliography source after DOI/version identity is established. Large new scopes follow the freshness contract; PDF/TEI retrieval remains later.
 
@@ -44,3 +44,5 @@ retrieval, SDK and MCP are separate future tasks. They do not block this release
 or require replacing the current engines. External A/D graph writing remains
 outside the core project. Snapshot acquisition stays user-managed; private data,
 engines, credentials and outputs remain outside Git.
+
+The selected next delivery is conservative version details (v0.5.0 candidate), before the remaining M2 catalogs. See [the version workflow](VERSIONS.md); grouped search remains later work.
