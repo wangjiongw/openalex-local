@@ -2,7 +2,7 @@
 
 [English](CHANGELOG.md) · [文档导航](docs/INDEX.zh-CN.md)
 
-## 0.5.0 — candidate
+## 0.5.0 — v0.5.0
 
 - 新增独立、可恢复并冻结输入的版本关联 release，以及确定性地学分层试跑。
 - 复用 arXiv 精确确认种子，重复 DOI、标题相似及冲突、更正等关系保留待审。

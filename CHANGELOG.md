@@ -2,7 +2,7 @@
 
 [中文](CHANGELOG.zh-CN.md) · [Documentation](docs/INDEX.md)
 
-## 0.5.0 — candidate
+## 0.5.0 — v0.5.0
 
 - Add independent resumable, input-pinned version relationship releases and a deterministic stratified Earth pilot.
 - Reuse confirmed arXiv exact evidence; retain DOI/title candidates and conflicting/notice relationships for review.

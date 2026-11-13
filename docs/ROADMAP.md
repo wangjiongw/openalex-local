@@ -2,7 +2,7 @@
 
 [中文](ROADMAP.zh-CN.md) · [Documentation](INDEX.md)
 
-Current stable release: **v0.4.1**. M0/M1 delivers the optional arXiv source and exact version associations; M2 first batch delivers small metadata directories and work navigation. Existing indexes are reused. See [current status](STATUS.md).
+Current stable release: **v0.5.0**. M0/M1 delivers the optional arXiv source and exact version associations; M2 first batch delivers small metadata directories and work navigation. Existing indexes are reused. See [current status](STATUS.md).
 
 ## v0.3.0: usable local retrieval
 
@@ -45,4 +45,4 @@ or require replacing the current engines. External A/D graph writing remains
 outside the core project. Snapshot acquisition stays user-managed; private data,
 engines, credentials and outputs remain outside Git.
 
-The selected next delivery is conservative version details (v0.5.0 candidate), before the remaining M2 catalogs. See [the version workflow](VERSIONS.md); grouped search remains later work.
+Conservative version details are delivered in v0.5.0; the remaining M2 catalogs follow. See [the version workflow](VERSIONS.md); grouped search remains later work.
