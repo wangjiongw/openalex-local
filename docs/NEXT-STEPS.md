@@ -256,3 +256,5 @@ Verified for planning on 2026-11-11; service policies can change.
 - [Crossref REST API](https://www.crossref.org/documentation/retrieve-metadata/rest-api/)
 
 M2 first batch: v0.4.1 implements metadata small-directory name browsing and work hierarchy/navigation controls, reusing existing work indexes and exports. Publisher/funder/award expansion remains the next batch. See [directories](DIRECTORIES.md).
+
+A proposed [OpenAlex-internal version-group plan](VERSION-GROUPS-PLAN.md) reuses the delivered arXiv links. Deliver confirmed relation/details first and optional complete-set grouped search later; it does not imply those APIs already exist.
