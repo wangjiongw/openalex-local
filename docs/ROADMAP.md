@@ -2,7 +2,7 @@
 
 [中文](ROADMAP.zh-CN.md) · [Documentation](INDEX.md)
 
-v0.3.2 consolidates the search UI, reference-coverage explanations and project documentation. Optional keyless internal access remains available; authentication stays enabled by default. Existing indexes are reused. See [current status](STATUS.md).
+Current stable release: **v0.4.1**. M0/M1 delivers the optional arXiv source and exact version associations; M2 first batch delivers small metadata directories and work navigation. Existing indexes are reused. See [current status](STATUS.md).
 
 ## v0.3.0: usable local retrieval
 
@@ -30,22 +30,15 @@ routes are the compatibility contract, with documented coverage and limits.
 
 ## Selected next work
 
-The next priorities are source/identity contracts, optional local arXiv enrichment,
-Earth entity coverage, reliable freshness, configurable search scopes, and later
-content links/downloads. See [the staged development plan](NEXT-STEPS.md) for
-inputs, dependencies and acceptance conditions. These are planned additions;
-v0.3.2 remains the current stable implementation.
+M0/M1 is delivered in v0.4.0, including source provenance, exact DOI associations, independent arXiv retrieval and exports. M2's small directories and hierarchy navigation are delivered in v0.4.1. See the [arXiv workflow](ARXIV.md) and [directory guide](DIRECTORIES.md).
 
-The first implementation package is M0 + local arXiv M1 and small Earth dictionaries
-from M2. Semantic Scholar is deferred entirely. Crossref REST/public files are a
-later optional bibliography source after DOI/version identity is established;
-monthly Plus snapshots are distinct from annual public releases. Neither is a
-prerequisite for the current service. Large new scopes follow the freshness contract;
-PDF/TEI retrieval remains later. See the plan for acceptance and deferred scope.
+The next M2 batch is publisher/funder name catalogs and award-to-work associations. M3 covers reliable updates/deletions/redirects; M4 covers configurable additional work search scopes; M5 covers links and content downloads. See [the staged development plan](NEXT-STEPS.md) for dependencies and acceptance. These later stages are not implemented by the current release.
+
+Semantic Scholar remains deferred. Crossref REST/public files are a separate optional bibliography source after DOI/version identity is established. Large new scopes follow the freshness contract; PDF/TEI retrieval remains later.
 
 ## Optional extensions
 
-PDF/TEI downloads, version association, calibrated matching, additional text
+PDF/TEI downloads, broader non-DOI version association and calibrated matching, additional text
 scopes/entity names, Parquet input, snapshot updates/deleted/merged IDs, semantic
 retrieval, SDK and MCP are separate future tasks. They do not block this release
 or require replacing the current engines. External A/D graph writing remains

@@ -66,3 +66,5 @@ Manticore 启动时独立恢复可选来源；arXiv 恢复失败会标记该来�
 
 
 精确关联先按全局 DOI 顺序批量解析，再按已确认的 OpenAlex ID 顺序读取详情，最后从持久证据应用同一套精确匹配规则。各子步骤分别保存检查点，减少反复随机读取元数据。工作区可配置 `arxiv_link_workers`（默认 8）和 `arxiv_link_batch_rows`（默认 2000）；这是离线任务设置，与 API 请求准入无关。SQLite 暂存使用有界的 128 MiB 页缓存，保留 FULL 同步提交。关联证据与暂存随来源版本保留，不因索引发布而丢弃。
+
+处理计数 `linked` 表示已完成关联处理的来源记录数，不是成功匹配发表版的数量。`version_links.status=confirmed` 也可能只有预印本关联；应查看 `confirmed[].kind` 和 `preferred_openalex_id` 区分发表版与预印本。全量输入处理完成，不代表每篇都已找到发表版。

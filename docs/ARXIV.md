@@ -125,3 +125,5 @@ reading random metadata granules. `arxiv_link_workers` defaults to 8 and
 settings, independent of API admission. SQLite staging keeps a bounded 128 MiB
 page cache and FULL synchronous commits. Matching evidence and staging are retained
 with the release, not discarded when an index is published.
+
+The processing counter `linked` counts source records processed for associations; it is not a publication-match count. `version_links.status=confirmed` can mean a preprint-only association. Inspect `confirmed[].kind` and `preferred_openalex_id` to distinguish a confirmed publication from a preprint. Processing every input does not guarantee publication coverage for every paper.

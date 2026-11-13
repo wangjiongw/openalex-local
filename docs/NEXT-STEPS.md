@@ -2,20 +2,13 @@
 
 [中文](NEXT-STEPS.zh-CN.md) · [Current status](STATUS.md) · [Roadmap](ROADMAP.md)
 
-Plan reviewed on 2026-11-11 against v0.3.2. M0/M1 are delivered in v0.4.0; M2 is the next feature milestone.
-The original milestone descriptions below retain planning context. Keep the current service and existing
-qualified indexes available while building and validating additions separately.
+Implementation status reviewed on 2026-11-13 against **v0.4.1**. M0/M1 is delivered in v0.4.0; M2 small-directory search and hierarchy navigation are delivered in v0.4.1. The next coding batch is M2 publisher/funder names and award associations. M3–M5 and optional Crossref enrichment remain later work.
 
-
-Implementation note: v0.4.0 implements the independent M0/M1 source workflow in
-[ARXIV.md](ARXIV.md), with Kaggle JSONL as the standard public input and optional
-read-only DuckDB compatibility. Small-dictionary expansion, live synchronization
-and content jobs below remain later work. Older milestone descriptions are the
-roadmap context, not a claim that every stage is deployed.
+The original milestone descriptions retain planning context. [ARXIV.md](ARXIV.md) documents Kaggle JSONL as standard input and optional read-only DuckDB compatibility; [DIRECTORIES.md](DIRECTORIES.md) documents the delivered M2 first batch. Keep current services and qualified indexes available while developing additions independently.
 
 ## Source choices fixed for this plan
 
-- Keep v0.3.2 and its qualified ClickHouse + Manticore indexes as the running baseline.
+- Keep v0.4.1 and its qualified ClickHouse + Manticore indexes as the running baseline; retain older runtimes for rollback.
 - Use the existing local arXiv metadata as the next optional input, covering first
   submissions from 2010 onward across all arXiv subjects. This supplements metadata
   and version evidence; it does not supply a structured bibliography.
@@ -33,7 +26,7 @@ roadmap context, not a claim that every stage is deployed.
 | Milestone | Deliverable | Main acceptance condition |
 | --- | --- | --- |
 | M0: source and identity contracts | Read-only arXiv audit; versioned source records, identifiers, field provenance and incremental release plan | Account for every input; deterministic IDs; preserve source/unknown/conflicting fields; replay changes without duplicates |
-| M1: local arXiv integration | Optional DuckDB/Parquet adapter, 2010+ first submissions, exact links to OpenAlex, supplemental views and separate unmatched records | Matching precision measured on a labeled sample; ambiguous/unmatched records retained; no fabricated OpenAlex IDs or references |
+| M1: local arXiv integration | Kaggle JSONL with optional read-only DuckDB adapter, 2010+ first submissions, exact links to OpenAlex, supplemental views and separate unmatched records | Matching precision measured on a labeled sample; ambiguous/unmatched records retained; no fabricated OpenAlex IDs or references |
 | M2: complete Earth entity access | Small reference/name catalogs, then Earth-linked publishers/funders/awards; entity-to-works navigation and supported filters | Every selected ID resolves or is explicitly missing; names, filters, pagination and exports agree; do not rebuild work documents merely for name lookup |
 | M3: sustainable freshness | arXiv OAI-PMH harvesting; OpenAlex local-release diff or authorized sync-filter adapter; update/delete/redirect processing | Stopping/replaying yields the same effective release; old references disappear when replaced; metadata, search and exports pin one release |
 | M4: configurable search scopes | Domain/field/topic/ID selectors, multilabel scope membership and reusable search blocks; pilot AI/CS/math/engineering intersections | Deduplicated counts/paging across overlapping scopes; existing Earth segments preserved; measured pilot predicts time/disk |
@@ -217,7 +210,7 @@ Content caching/downloads do not require reindexing existing literature titles.
 
 ## First implementation package and deferred scope
 
-The next coding task is M0 + M1 and the independent small-dictionary part of M2:
+The original first package below is delivered in v0.4.0/v0.4.1. It records the delivery boundary, not a request to rebuild it. The next batch is publisher/funder/award expansion:
 
 1. Freeze/audit the configured local arXiv input and 2010+ selection; reconcile
    counts, dates, duplicates, unavailable raw/version fields and source hashes.

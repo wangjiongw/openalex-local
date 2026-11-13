@@ -53,13 +53,13 @@ The selected future sequence is documented in [next development steps](NEXT-STEP
 The entries below remain unimplemented until their own acceptance and release.
 
 Semantic Scholar is outside the selected scope. Crossref API/public-file enrichment
-is planned as a later optional source, not implemented or required by v0.3.2.
+is planned as a later optional source, not implemented or required by v0.4.1.
 
 ## Maintenance and optional extensions
 
 Maintain supported lookup/search/relations/exports, capabilities, regression cases,
 paired documentation and compatible recovery. Do not replace qualified engines or
-rebuild data merely to pursue official parity. Version association, bibliography
+rebuild data merely to pursue official parity. Broader non-DOI version association, bibliography
 recovery from external sources/full text, PDF/TEI downloads, additional text scopes,
 snapshot synchronization and semantic retrieval remain separate optional tasks.
 External graph-enrichment jobs are outside this project's core.
