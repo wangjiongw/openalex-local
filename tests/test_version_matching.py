@@ -137,3 +137,26 @@ def test_sample_ranks_only_ids_and_resumes_verified_hydration(tmp_path,monkeypat
     assert not any(q.startswith('INSERT INTO oa_versions_fixture.sample FORMAT') for q in queries)
     (full.path('fixture')/'sample-selection.json').write_text(json.dumps(dict(identity='changed',n=2,checksum=42)))
     with pytest.raises(RuntimeError,match='identity'):full.sample(m,b)
+
+
+def test_candidate_key_batches_bound_escaped_utf8_bytes_and_rows():
+    from openalex_api.backend import sql_list
+    values=["论文'\\"+str(i)+'气候'*500 for i in range(160)]
+    batches=list(full.key_batches(values))
+    assert len(batches)>1
+    assert [v for batch in batches for v in batch]==sorted(set(values))
+    assert all(len(sql_list(batch).encode('utf-8'))<132000 for batch in batches)
+    assert len(list(full.key_batches(['W'+str(i) for i in range(full.BATCH+1)])))==2
+    assert list(full.key_batches([]))==[]
+    with pytest.raises(ValueError,match='byte budget'):list(full.key_batches(['x'*131073]))
+
+
+def test_candidate_feature_lookup_splits_large_sets_without_losing_targets(monkeypatch):
+    monkeypatch.setattr(full,'BATCH',2);b=Mock();calls=[]
+    def query(sql):
+        calls.append(sql)
+        import re
+        return [dict(id=key,payload='{}') for key in re.findall(r"'(W[1-9])'",sql)]
+    b.ch.side_effect=query
+    result=full.fetch_features(dict(feature_database='features'),b,['W1','W2','W3','W4','W5'])
+    assert len(calls)==3 and set(result)=={'W1','W2','W3','W4','W5'}

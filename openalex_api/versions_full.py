@@ -246,9 +246,22 @@ def sample(m,b):
     m['selected_works']=count;m['counts']['sample']=count;save(m)
 
 
+def key_batches(values):
+    batch=[];size=0
+    for value in sorted(set(values)):
+        length=len(sql_string(value).encode('utf-8'))+1
+        if length>131072:raise ValueError('single candidate key exceeds SQL byte budget')
+        if batch and (size+length>131072 or len(batch)>=BATCH):
+            yield batch;batch=[];size=0
+        batch.append(value);size+=length
+    if batch:yield batch
+
+
 def fetch_features(m,b,ids):
-    if not ids:return {}
-    return {v['id']:json.loads(v['payload']) for v in b.ch(f'SELECT id,payload FROM {m["feature_database"]}.features FINAL WHERE id IN {sql_list(sorted(ids))} FORMAT JSONEachRow')}
+    result={}
+    for batch in key_batches(ids):
+        result.update({v['id']:json.loads(v['payload']) for v in b.ch(f'SELECT id,payload FROM {m["feature_database"]}.features FINAL WHERE id IN {sql_list(batch)} FORMAT JSONEachRow')})
+    return result
 
 
 def inputs_parent(m):
@@ -263,14 +276,18 @@ def candidates(m,b):
     while rows:=b.ch(f'SELECT id,payload FROM {table(m)}.sample FINAL WHERE id>{sql_string(p["after"])} ORDER BY id LIMIT {BATCH} FORMAT JSONEachRow'):
         protect(m)
         source={v['id']:json.loads(v['payload']) for v in rows}
-        key_sources={}
+        key_sources={};overflow=set()
         for key,f in source.items():
-            for block in rules.blocks(f): key_sources.setdefault(block,[]).append(key)
-        targets={k:set() for k in source};overflow=set();methods={}
+            for block in rules.blocks(f):
+                if len(sql_string(block).encode('utf-8'))+1>131072:
+                    overflow.add(key);continue
+                key_sources.setdefault(block,[]).append(key)
+        targets={k:set() for k in source};methods={}
         if key_sources:
-            postings=b.ch(f'SELECT key,id FROM {m["feature_database"]}.postings FINAL WHERE key IN {sql_list(sorted(key_sources))} ORDER BY key,id LIMIT {rules.MAX_CANDIDATES+1} BY key FORMAT JSONEachRow')
             by_key={}
-            for r in postings: by_key.setdefault(r['key'],[]).append(r['id'])
+            for batch in key_batches(key_sources):
+                postings=b.ch(f'SELECT key,id FROM {m["feature_database"]}.postings FINAL WHERE key IN {sql_list(batch)} ORDER BY key,id LIMIT {rules.MAX_CANDIDATES+1} BY key FORMAT JSONEachRow')
+                for r in postings:by_key.setdefault(r['key'],[]).append(r['id'])
             for block,ids in by_key.items():
                 for key in key_sources[block]:
                     if len(ids)>rules.MAX_CANDIDATES:overflow.add(key)
@@ -278,7 +295,7 @@ def candidates(m,b):
                         if target==key:continue
                         targets[key].add(target)
                         methods.setdefault((key,target),set()).add('normalized_title' if block.startswith('t:') else 'author_title_block')
-        fallback=[k for k,f in source.items() if f['kind']=='preprint' and not targets[k] and f['normalized']]
+        fallback=[k for k,f in source.items() if f['kind']=='preprint' and not targets[k] and f['normalized'] and k not in overflow]
         def native(key):
             f=source[key]
             words=sorted({w for w in f['normalized'].split() if len(w)>=5 and w not in rules.STOP},key=lambda w:(-len(w),w))[:3]
@@ -297,7 +314,8 @@ def candidates(m,b):
                     targets[key].add(target);methods.setdefault((key,target),set()).add('native_title_terms')
         # DOI ambiguity is retained as review, including targets outside the text scope.
         dois={v[4:]:[] for f in source.values() for v in f['identifiers'] if v.startswith('doi:')}
-        resolved=b.resolve_many(m['generation'],'works','doi',list(dois)) if dois else {}
+        resolved={}
+        for batch in key_batches(dois):resolved.update(b.resolve_many(m['generation'],'works','doi',batch))
         outside=set()
         for key,f in source.items():
             for value in f['identifiers']:
@@ -318,8 +336,10 @@ def candidates(m,b):
             for key,record in raw.items():
                 attrs=model.project('works',record);attrs['name_literal']=record.get('title') or record.get('display_name') or ''
                 found[key]=rules.feature(dict(id=int(key[1:]),original_id=key,source_hash=digest(record),attrs=attrs),'outside_text_scope')
-        parent_members=b.ch(f'SELECT id,group_id FROM {legacy.table(inputs_parent(m))}.members FINAL WHERE id IN {sql_list(sorted(set(source)|all_targets))} FORMAT JSONEachRow')
-        parent_map={v['id']:v['group_id'] for v in parent_members}
+        parent_map={};parent_table=legacy.table(inputs_parent(m))
+        for batch in key_batches(set(source)|all_targets):
+            parent_members=b.ch(f'SELECT id,group_id FROM {parent_table}.members FINAL WHERE id IN {sql_list(batch)} FORMAT JSONEachRow')
+            parent_map.update({v['id']:v['group_id'] for v in parent_members})
         output=[];coverage=[]
         for key,f in source.items():
             scored=[]

@@ -132,3 +132,5 @@ under load before increasing workers. A same-Pod check does not establish remote
 Pod reachability or high-concurrency capacity. Do not restart metadata/search
 engines or bypass checksum validation for this workflow. Keep a compatible old
 runtime and relationship pointer for rollback.
+
+Candidate lookup batches are bounded by both row count and escaped UTF-8 SQL bytes (128 KiB per value list), below the standard 256 KiB parser limit. This applies to title/author postings, feature targets, DOI lookup and parent membership. Oversized individual retrieval keys keep the source in overflow review.
