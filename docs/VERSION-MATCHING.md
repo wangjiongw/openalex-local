@@ -134,3 +134,5 @@ engines or bypass checksum validation for this workflow. Keep a compatible old
 runtime and relationship pointer for rollback.
 
 Candidate lookup batches are bounded by both row count and escaped UTF-8 SQL bytes (128 KiB per value list), below the standard 256 KiB parser limit. This applies to title/author postings, feature targets, DOI lookup and parent membership. Oversized individual retrieval keys keep the source in overflow review.
+
+Offline candidate workers also bound concurrent independent ClickHouse reads; batches retain deterministic result order and the same byte limits. Year-window rejection and proven upper bounds on string similarity avoid computing scores for pairs the original policy would discard. Candidate rules, retained evidence and independent-review gates remain unchanged. Measure foreground API latency before raising offline workers.

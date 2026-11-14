@@ -160,3 +160,22 @@ def test_candidate_feature_lookup_splits_large_sets_without_losing_targets(monke
     b.ch.side_effect=query
     result=full.fetch_features(dict(feature_database='features'),b,['W1','W2','W3','W4','W5'])
     assert len(calls)==3 and set(result)=={'W1','W2','W3','W4','W5'}
+
+
+def test_parallel_reads_preserve_query_order_and_surface_failures():
+    b=Mock();b.ch.side_effect=lambda q:[dict(id=q)]
+    assert list(full.read_batches(b,['q1','q2','q3'],3))==[dict(id='q1'),dict(id='q2'),dict(id='q3')]
+    b.ch.side_effect=RuntimeError('read failed')
+    with pytest.raises(RuntimeError,match='read failed'):list(full.read_batches(b,['query'],2))
+
+
+def test_fast_candidate_filter_is_identical_to_original_full_comparison():
+    titles=['Global high resolution weather forecasting','Climate change in Europe','全球气候预报','Weather','', 'a'*150+' forecast']
+    for title in titles:
+        for other in titles:
+            for year in (0,1990,2021):
+                for methods in (['author_title_block'],['shared_doi_review']):
+                    a=f(title=title);b=f('W2','article',title=other,year=year)
+                    expected=r.evidence(a,b,methods)
+                    if 'shared_doi_review' not in methods and ((expected['year_distance'] is not None and expected['year_distance']>r.YEAR_WINDOW) or expected['title_similarity']<0.6):expected=None
+                    assert full.candidate_evidence(a,b,methods)==expected

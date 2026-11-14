@@ -2,6 +2,7 @@
 import inspect
 import json
 import time
+from difflib import SequenceMatcher
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -257,10 +258,25 @@ def key_batches(values):
     if batch:yield batch
 
 
+def read_batches(backend, queries, workers):
+    with ThreadPoolExecutor(max_workers=max(1,int(workers))) as pool:
+        for rows in pool.map(backend.ch,queries):
+            yield from rows
+
+
 def fetch_features(m,b,ids):
-    result={}
-    for batch in key_batches(ids):
-        result.update({v['id']:json.loads(v['payload']) for v in b.ch(f'SELECT id,payload FROM {m["feature_database"]}.features FINAL WHERE id IN {sql_list(batch)} FORMAT JSONEachRow')})
+    queries=(f'SELECT id,payload FROM {m["feature_database"]}.features FINAL WHERE id IN {sql_list(batch)} FORMAT JSONEachRow' for batch in key_batches(ids))
+    return {v['id']:json.loads(v['payload']) for v in read_batches(b,queries,m.get('workers',1))}
+
+
+def candidate_evidence(source, target, methods):
+    shared_doi='shared_doi_review' in methods
+    if not shared_doi:
+        if source['year'] and target['year'] and abs(source['year']-target['year'])>rules.YEAR_WINDOW:return None
+        matcher=SequenceMatcher(None,source['normalized'],target['normalized'],autojunk=False)
+        if matcher.real_quick_ratio()<0.6 or matcher.quick_ratio()<0.6:return None
+    result=rules.evidence(source,target,methods)
+    if not shared_doi and result['title_similarity']<0.6:return None
     return result
 
 
@@ -285,9 +301,8 @@ def candidates(m,b):
         targets={k:set() for k in source};methods={}
         if key_sources:
             by_key={}
-            for batch in key_batches(key_sources):
-                postings=b.ch(f'SELECT key,id FROM {m["feature_database"]}.postings FINAL WHERE key IN {sql_list(batch)} ORDER BY key,id LIMIT {rules.MAX_CANDIDATES+1} BY key FORMAT JSONEachRow')
-                for r in postings:by_key.setdefault(r['key'],[]).append(r['id'])
+            queries=(f'SELECT key,id FROM {m["feature_database"]}.postings FINAL WHERE key IN {sql_list(batch)} ORDER BY key,id LIMIT {rules.MAX_CANDIDATES+1} BY key FORMAT JSONEachRow' for batch in key_batches(key_sources))
+            for r in read_batches(b,queries,m['workers']):by_key.setdefault(r['key'],[]).append(r['id'])
             for block,ids in by_key.items():
                 for key in key_sources[block]:
                     if len(ids)>rules.MAX_CANDIDATES:overflow.add(key)
@@ -337,18 +352,15 @@ def candidates(m,b):
                 attrs=model.project('works',record);attrs['name_literal']=record.get('title') or record.get('display_name') or ''
                 found[key]=rules.feature(dict(id=int(key[1:]),original_id=key,source_hash=digest(record),attrs=attrs),'outside_text_scope')
         parent_map={};parent_table=legacy.table(inputs_parent(m))
-        for batch in key_batches(set(source)|all_targets):
-            parent_members=b.ch(f'SELECT id,group_id FROM {parent_table}.members FINAL WHERE id IN {sql_list(batch)} FORMAT JSONEachRow')
-            parent_map.update({v['id']:v['group_id'] for v in parent_members})
+        queries=(f'SELECT id,group_id FROM {parent_table}.members FINAL WHERE id IN {sql_list(batch)} FORMAT JSONEachRow' for batch in key_batches(set(source)|all_targets))
+        parent_map.update({v['id']:v['group_id'] for v in read_batches(b,queries,m['workers'])})
         output=[];coverage=[]
         for key,f in source.items():
             scored=[]
             for target in selected[key]:
                 if target not in found: raise RuntimeError('candidate target missing from pinned metadata/index')
-                e=rules.evidence(f,found[target],methods[(key,target)])
-                if e['year_distance'] is not None and e['year_distance']>rules.YEAR_WINDOW and 'shared_doi_review' not in e['methods']:continue
-                # Author blocking is deliberately broad; retain plausible title candidates only.
-                if e['title_similarity']<0.6 and 'shared_doi_review' not in e['methods']:continue
+                e=candidate_evidence(f,found[target],methods[(key,target)])
+                if e is None:continue
                 if 'shared_doi_review' in e['methods']:e['conflicts'].append('duplicate_doi_requires_review')
                 if key in overflow:e['conflicts'].append('candidate_overflow')
                 anchor=target if f['kind']=='preprint' else key
