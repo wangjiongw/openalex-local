@@ -111,3 +111,29 @@ def test_transport_retry_is_bounded_and_semantic_errors_fail(monkeypatch):
     c.rows.reset_mock();c.rows.side_effect=RuntimeError('checksum mismatch')
     with pytest.raises(RuntimeError):full.native_rows(c,'query')
     assert c.rows.call_count==1
+
+
+def test_sample_ranks_only_ids_and_resumes_verified_hydration(tmp_path,monkeypatch):
+    monkeypatch.setattr(full,'ROOT',tmp_path);monkeypatch.setattr(full,'save',lambda m:None)
+    monkeypatch.setattr(full,'protect',lambda m:None);monkeypatch.setattr(full,'inputs_parent',lambda m:{'schema':1})
+    full.path('fixture').mkdir(parents=True)
+    m=dict(release='fixture',feature_signature='features',parent_signature='parent',seed=42,pilot_size=2,feature_database='features',counts={})
+    ids=[dict(id='W1'),dict(id='W2')];rows=[v|dict(payload=json.dumps(v)) for v in ids];queries=[]
+    def query(sql,*args):
+        queries.append(sql)
+        if 'sum(cityHash64(id))' in sql:return [dict(n=2,checksum=42)]
+        if sql.startswith('SELECT id FROM '):return ids if "id>''" in sql else []
+        if sql.startswith('SELECT id,payload'):return rows
+        if sql.startswith('SELECT count()'):return [dict(n=2)]
+        return []
+    b=Mock();b.ch.side_effect=query
+    full.sample(m,b)
+    ranked=[q for q in queries if q.startswith('INSERT INTO oa_versions_fixture.sample_ids')]
+    assert len(ranked)==1 and 'SELECT id FROM features.features FINAL ORDER BY sipHash64' in ranked[0]
+    assert 'payload' not in ranked[0] and 'max_memory_usage=8589934592' in ranked[0]
+    assert m['selected_works']==2 and json.loads((full.path('fixture')/'sample-progress.json').read_text())['processed']==2
+    queries.clear();full.sample(m,b)
+    assert not any(q.startswith('INSERT INTO oa_versions_fixture.sample_ids') for q in queries)
+    assert not any(q.startswith('INSERT INTO oa_versions_fixture.sample FORMAT') for q in queries)
+    (full.path('fixture')/'sample-selection.json').write_text(json.dumps(dict(identity='changed',n=2,checksum=42)))
+    with pytest.raises(RuntimeError,match='identity'):full.sample(m,b)

@@ -212,9 +212,37 @@ def sample(m,b):
     where=' WHERE '+' AND '.join(conditions) if conditions else ''
     order='id' if m.get('stratum') else f"sipHash64(concat(id,{sql_string(str(m['seed']))}))"
     limit=m['batch_size'] if m.get('stratum') else m['pilot_size']
-    b.ch(f'INSERT INTO {db}.sample SELECT id,payload FROM {m["feature_database"]}.features FINAL{where} ORDER BY {order} LIMIT {int(limit)}')
+    b.ch(f'CREATE TABLE IF NOT EXISTS {db}.sample_ids (id String) ENGINE=ReplacingMergeTree ORDER BY id')
+    receipt=path(m['release'])/'sample-selection.json'
+    identity=digest(dict(feature=m['feature_signature'],parent=m['parent_signature'],seed=m['seed'],stratum=m.get('stratum'),limit=limit))
+    if receipt.exists():
+        selected=read_json(receipt)
+        if selected['identity']!=identity:raise RuntimeError('sample selection identity changed')
+    else:
+        # Sorting full payloads exceeds query memory on large collections; rank IDs only.
+        b.ch(f'INSERT INTO {db}.sample_ids SELECT id FROM {m["feature_database"]}.features FINAL{where} ORDER BY {order} LIMIT {int(limit)} SETTINGS max_threads=2,max_final_threads=2,max_memory_usage=8589934592,max_bytes_before_external_sort=268435456')
+        selected=dict(identity=identity,**b.ch(f'SELECT count() n,sum(cityHash64(id)) checksum FROM {db}.sample_ids FINAL FORMAT JSONEachRow')[0])
+        if not 0<int(selected['n'])<=limit:raise RuntimeError('no unprocessed works or invalid sample cardinality')
+        atomic_json(receipt,selected)
+    actual=b.ch(f'SELECT count() n,sum(cityHash64(id)) checksum FROM {db}.sample_ids FINAL FORMAT JSONEachRow')[0]
+    if any(actual[k]!=selected[k] for k in ('n','checksum')):raise RuntimeError('frozen sample IDs changed')
+    checkpoint=path(m['release'])/'sample-progress.json'
+    progress=read_json(checkpoint) if checkpoint.exists() else dict(identity=identity,after='',processed=0)
+    if progress['identity']!=identity:raise RuntimeError('sample checkpoint identity changed')
+    initial=progress['processed'];started=time.monotonic()
+    while ids:=b.ch(f'SELECT id FROM {db}.sample_ids FINAL WHERE id>{sql_string(progress["after"])} ORDER BY id LIMIT {BATCH} FORMAT JSONEachRow'):
+        protect(m);keys=[v['id'] for v in ids]
+        rows=b.ch(f'SELECT id,payload FROM {m["feature_database"]}.features FINAL WHERE id IN {sql_list(keys)} ORDER BY id FORMAT JSONEachRow')
+        if [v['id'] for v in rows]!=keys:raise RuntimeError('selected sample feature missing')
+        insert(b,db+'.sample',rows)
+        found=b.ch(f'SELECT id,payload FROM {db}.sample FINAL WHERE id IN {sql_list(keys)} ORDER BY id FORMAT JSONEachRow')
+        if found!=rows:raise RuntimeError('sample feature write reconciliation failed')
+        progress.update(after=keys[-1],processed=progress['processed']+len(keys));atomic_json(checkpoint,progress)
+        speed=(progress['processed']-initial)/max(.001,time.monotonic()-started)
+        m['counts'].update(sample_ids=int(selected['n']),sample=progress['processed'])
+        m['progress']=dict(records_per_second=speed,eta_seconds=(int(selected['n'])-progress['processed'])/max(.001,speed),updated=time.time());save(m)
     count=int(b.ch(f'SELECT count() n FROM {db}.sample FINAL FORMAT JSONEachRow')[0]['n'])
-    if not count:raise RuntimeError('no unprocessed works remain in the requested scope')
+    if count!=int(selected['n']) or progress['processed']!=count:raise RuntimeError('sample hydration coverage mismatch')
     m['selected_works']=count;m['counts']['sample']=count;save(m)
 
 

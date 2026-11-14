@@ -21,7 +21,10 @@ requires that parent; the existing arXiv workflow can create it.
    directory. No text reindex or per-record API call is required. Durable batch
    checkpoints and content digests support replay. Feature writes are read back;
    an interrupted checkpoint replays through idempotent replacing tables.
-2. **Pilot:** select approximately one million uniformly hash-ordered works
+2. **Pilot:** rank only work IDs under an explicit 8 GiB/two-thread query bound,
+   freeze the selected-ID receipt, then read back and checkpoint feature payloads
+   in bounded batches. This avoids sorting complete payloads at full-corpus scale.
+   Select approximately one million uniformly hash-ordered works
    across the entire published work index. This is independent of the old 100k
    pilot. Later batches exclude all previously processed IDs.
 3. **Candidates:** normalized titles, author/content-word blocks and bounded
