@@ -52,3 +52,8 @@ Read `AGENTS.md`, `DEVELOPMENT.md` and the reader guide `../VERSIONS.md`.
   Existing packages must match committed staging; interrupted public exports can
   be rebuilt without resampling. Changed implementations require a new release;
   bind reused completed tables to semantic identities and content/count proofs.
+- Feature rule v2 normalizes SQL JSON scalar retraction flags before notice
+  detection and rejects unknown values. v1 could turn string zero into a truthy
+  blocked flag. Rebuild affected feature payloads, candidate decisions and review
+  packages under a new release; unchanged metadata/text indexes remain usable.
+  Never clear all blocked flags or relax review gates to repair this defect.

@@ -1,4 +1,5 @@
 """Explainable bibliographic candidates, never a probability or an identity rewrite."""
+import json
 import re
 from difflib import SequenceMatcher
 
@@ -6,7 +7,7 @@ from .model import canonical_id, normalize_title
 from .semantics import digest
 from .version_groups import notice
 
-FEATURE_RULE = 'earth-bibliographic-features-v1'
+FEATURE_RULE = 'earth-bibliographic-features-v2'
 CANDIDATE_RULE = 'title-author-blocks-v1'
 POLICY_RULE = 'publication-anchor-v1'
 MAX_CANDIDATES = 200
@@ -19,8 +20,14 @@ STOP = {'the', 'and', 'for', 'with', 'from', 'using', 'study', 'analysis', 'base
 def feature(row, stratum):
     a = row.get('attrs') or {}
     if isinstance(a, str):
-        import json
         a = json.loads(a)
+    retracted = a.get('is_retracted')
+    if isinstance(retracted, str):
+        if retracted not in ('0', '1', 'false', 'true', 'null'):
+            raise ValueError('invalid matching is_retracted flag')
+        retracted = json.loads(retracted)
+    if retracted is not None and (type(retracted) not in (bool, int) or retracted not in (0, 1)):
+        raise ValueError('invalid matching is_retracted flag')
     authors = a.get('authorships') or []
     title = a.get('name_literal') or ''
     key = canonical_id(row['original_id'])
@@ -28,7 +35,7 @@ def feature(row, stratum):
         raise ValueError('matching directory source ID mismatch')
     return dict(id=key, stratum=stratum, source_hash=row['source_hash'], title=title,
                 normalized=normalize_title(title), year=int(a.get('publication_year') or 0),
-                kind=a.get('type') or '', blocked=bool(notice(dict(title=title,type=a.get('type'),is_retracted=a.get('is_retracted'))) or re.match(r'^(?:withdrawn|addendum|comment on|response to|reply to)\b',title,re.I)),
+                kind=a.get('type') or '', blocked=bool(notice(dict(title=title,type=a.get('type'),is_retracted=retracted)) or re.match(r'^(?:withdrawn|addendum|comment on|response to|reply to)\b',title,re.I)),
                 authors=sorted({canonical_id(v['author_id']) for v in authors if v.get('author_id')}),
                 orcids=sorted({v['orcid'] for v in authors if v.get('orcid')}),
                 names=sorted({n for v in authors for n in v.get('author_name', []) if n}),

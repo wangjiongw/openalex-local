@@ -70,7 +70,8 @@ def test_native_pipeline_publish_restore_and_resume(tmp_path, profile):
         import gzip
         source_file=snapshot/'data/jsonl/works/updated_date=2026-01-01/part_0000.gz'
         with gzip.open(source_file,'rt') as stream: rows=[json.loads(line) for line in stream]
-        rows[0].update(ids={'doi':'https://doi.org/10.48550/arxiv.1001.0001'},type='preprint')
+        rows[0].update(ids={'doi':'https://doi.org/10.48550/arxiv.1001.0001'},type='preprint',is_retracted=False)
+        rows[-1]['is_retracted']=True
         with gzip.open(source_file,'wt') as stream:
             for row in rows:stream.write(json.dumps(row)+'\n')
         manifest_file=snapshot/'data/jsonl/works/manifest.json'
@@ -204,6 +205,8 @@ def test_native_pipeline_publish_restore_and_resume(tmp_path, profile):
                 assert (workspace/'var/generations/demo/search-active.json').read_bytes()==search_before
                 run('versions','plan','--profile','full-index','--release','full_fixture','--pilot-size','12','--workers','2')
                 run('versions','run','--release','full_fixture','--until','validate')
+                code="from openalex_api import versions_full as f; from openalex_api.backend import Backend; b=Backend(); m=f.read('full_fixture'); rows=f.fetch_features(m,b,['W1','W12']); assert rows['W1']['blocked'] is False,rows; assert rows['W12']['blocked'] is True,rows; b.close()"
+                subprocess.run([sys.executable,'-c',code],env=os.environ|dict(OPENALEX_HOME=str(workspace)),check=True,timeout=60)
                 run('versions','publish','--release','full_fixture')
                 full_status=client.get('/capabilities').json()['version_groups']
                 assert full_status['ready'] and full_status['feature_coverage']==12 and full_status['full_earth_scan']

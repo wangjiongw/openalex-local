@@ -32,6 +32,25 @@ def test_feature_preserves_all_authors_and_id_integrity():
     with pytest.raises(ValueError):r.feature(row|dict(id=2),'core')
 
 
+@pytest.mark.parametrize('flag,blocked', [(None,False),(False,False),(True,True),(0,False),(1,True),
+    ('0',False),('1',True),('false',False),('true',True),('null',False)])
+def test_feature_normalizes_native_retraction_flags(flag,blocked):
+    attrs=dict(name_literal='Climate reconstruction',type='preprint',is_retracted=flag)
+    row=dict(id=1,original_id='W1',source_hash='hash',attrs=attrs)
+    assert r.feature(row,'core')['blocked'] is blocked
+    assert r.feature(row|dict(attrs=json.dumps(attrs)),'core')['blocked'] is blocked
+    for override in (dict(type='retraction'),dict(name_literal='Correction: Climate reconstruction'),
+                     dict(name_literal='Withdrawn climate reconstruction')):
+        assert r.feature(row|dict(attrs=attrs|override),'core')['blocked']
+
+
+@pytest.mark.parametrize('flag', ['', 'unknown', '2', 'False', 2, -1, 0.0, [], {}])
+def test_feature_rejects_unknown_retraction_flags(flag):
+    row=dict(id=1,original_id='W1',source_hash='hash',attrs=dict(is_retracted=flag))
+    with pytest.raises(ValueError,match='is_retracted'):
+        r.feature(row,'core')
+
+
 def test_calibration_requires_real_labels_and_independent_holdout_counts():
     e=r.evidence(f(),f('W2','article'))
     rows=[dict(id=str(i),role=role,label='same_study',reviewer='independent',evidence=e,unique_anchor=True,stratum='core') for role,n in [('development',500),('blind',600),('hard_negative',400)] for i in range(n)]

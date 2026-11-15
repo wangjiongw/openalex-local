@@ -163,3 +163,13 @@ it requires a new relationship release and retained compatible runtime; reuse
 completed sample, coverage and candidate tables only after comparing semantic
 identities and persisted counts/content receipts. Never edit an old signature.
 The active published pointer remains unchanged until separate qualification.
+
+Version feature rule v2 normalizes Manticore's JSON scalar retraction flags
+(`"0"`/`"1"`) before notice detection. Boolean, integer 0/1 and JSON literal
+strings are accepted; unrecognized values stop extraction. Ordinary false flags
+do not block a work, while genuine retractions and notice titles/types still do.
+The earlier rule could treat a nonempty `"0"` as true and leave no eligible blind
+pairs. Its feature payloads, candidate decisions and review packages cannot be
+reused unchanged: create a new relationship release and regenerate these derived
+artifacts. Frozen metadata and text indexes remain reusable; no text reindex is
+required. Keep the existing release/runtime and do not rewrite its signatures.
