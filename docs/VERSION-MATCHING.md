@@ -136,3 +136,30 @@ runtime and relationship pointer for rollback.
 Candidate lookup batches are bounded by both row count and escaped UTF-8 SQL bytes (128 KiB per value list), below the standard 256 KiB parser limit. This applies to title/author postings, feature targets, DOI lookup and parent membership. Oversized individual retrieval keys keep the source in overflow review.
 
 Offline candidate workers also bound concurrent independent ClickHouse reads; batches retain deterministic result order and the same byte limits. Year-window rejection and proven upper bounds on string similarity avoid computing scores for pairs the original policy would discard. Candidate rules, retained evidence and independent-review gates remain unchanged. Measure foreground API latency before raising offline workers.
+
+## Large review datasets and recovery
+
+Candidate consumers use bounded keyset pages, closing each HTTP response before
+processing its records. Review reads compact evidence and IDs in 10,000-row pages
+into `review-staging.sqlite`, using FULL synchronization and DELETE journaling.
+Each transaction commits its input cursor with the rows; a failed page resumes
+from the last committed cursor. It does not rerun feature extraction or matching.
+
+The staging database retains first-direction pair deduplication, deterministic
+rank order and every graph connection, rather than millions of full payloads in
+Python memory. Connected components use iterative path compression, and each
+component's review partition is calculated once. Full metadata is fetched only
+for the selected review pairs. Quotas, blind separation and independent-label
+requirements are unchanged; insufficient independent components remain a failed
+acceptance gate. Graph construction can restart from compact local staging.
+
+`review-progress.json` reports ingest, component construction and selection;
+its units are candidate/graph records, distinct from processed source works.
+A committed package can regenerate interrupted public exports without resampling.
+Changed input identities or a package that differs from committed staging fail.
+
+The review implementation is included in the relationship signature. Upgrading
+it requires a new relationship release and retained compatible runtime; reuse
+completed sample, coverage and candidate tables only after comparing semantic
+identities and persisted counts/content receipts. Never edit an old signature.
+The active published pointer remains unchanged until separate qualification.

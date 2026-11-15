@@ -31,7 +31,7 @@ def table(m):
 
 
 def signature():
-    return digest({n:file_hash(Path(__file__).with_name(n)) for n in ('version_matching.py','versions_full.py')})
+    return digest({n:file_hash(Path(__file__).with_name(n)) for n in ('version_matching.py','versions_full.py','version_review.py')})
 
 
 def save(m):
@@ -289,6 +289,7 @@ def candidates(m,b):
     tables(m,b);checkpoint=path(m['release'])/'candidates-progress.json'
     p=read_json(checkpoint) if checkpoint.exists() else dict(after='',processed=0,pairs=0,overflow=0)
     initial=p['processed'];started=time.monotonic()
+    m['counts'].update(matched=p['processed'],pairs=p['pairs'],overflow=p['overflow'])
     while rows:=b.ch(f'SELECT id,payload FROM {table(m)}.sample FINAL WHERE id>{sql_string(p["after"])} ORDER BY id LIMIT {BATCH} FORMAT JSONEachRow'):
         protect(m)
         source={v['id']:json.loads(v['payload']) for v in rows}
@@ -387,47 +388,23 @@ def candidates(m,b):
         m['progress']=dict(records_per_second=speed,eta_seconds=(m['selected_works']-p['processed'])/max(.001,speed),updated=time.time());save(m)
 
 
+def candidate_pages(m,b,columns='id,payload',size=BATCH,after=''):
+    while rows:=b.ch(f"SELECT {columns} FROM {table(m)}.candidates FINAL WHERE id>{sql_string(after)} AND splitByChar(':',id)[1] IN (SELECT id FROM {table(m)}.sample FINAL) ORDER BY id LIMIT {int(size)} FORMAT JSONEachRow"):
+        protect(m)
+        ids=[r['id'] for r in rows]
+        if ids!=sorted(set(ids)) or ids[0]<=after:raise RuntimeError('candidate page cursor did not advance')
+        yield rows
+        after=ids[-1]
+
+
 def candidate_rows(m,b):
-    for row in b.ch_stream(f"SELECT payload FROM {table(m)}.candidates FINAL WHERE splitByChar(':',id)[1] IN (SELECT id FROM {table(m)}.sample FINAL) ORDER BY id FORMAT JSONEachRow"):
-        yield json.loads(row['payload'])
+    for page in candidate_pages(m,b):
+        for row in page:yield json.loads(row['payload'])
 
 
 def review(m,b):
-    """Freeze disjoint connected components before exporting development/holdout pairs."""
-    if m.get('calibration',{}).get('passed'):return
-    root=path(m['release']);target=root/'review-package.json'
-    if target.exists():
-        package=read_json(target)
-        if package['identity']!=m.get('review_identity'):raise RuntimeError('review package identity changed')
-        return
-    rows={};parents={}
-    def find(k):
-        parents.setdefault(k,k)
-        if parents[k]!=k:parents[k]=find(parents[k])
-        return parents[k]
-    for r in candidate_rows(m,b):
-        rows.setdefault(r['id'],r)
-        nodes=[r['work_id'],r['target_id']]+r.get('parent_groups',[])
-        for key in nodes[1:]:
-            a,c=find(nodes[0]),find(key);parents[max(a,c)]=min(a,c)
-    components={}
-    for key in parents:components.setdefault(find(key),[]).append(key)
-    choices=dict(development=[],blind=[],hard_negative=[]);selected_studies=set()
-    for r in sorted(rows.values(),key=lambda r:digest([m['seed'],r['id']])):
-        part=rules.partition(components[find(r['work_id'])],m['seed'])
-        role='development' if part<3 else 'blind' if part<8 and rules.proposed(r['evidence']) and r['unique_anchor'] and not r.get('known_pair') else 'hard_negative' if part>=8 and not rules.proposed(r['evidence']) else None
-        study=find(r['work_id'])
-        if study in selected_studies:continue
-        if role and len(choices[role])<dict(development=500,blind=600,hard_negative=400)[role]:
-            choices[role].append(r|dict(role=role,label=None,reviewer=None));selected_studies.add(study)
-    selected=[r for values in choices.values() for r in values]
-    identity=digest(dict(feature=m['feature_signature'],candidate=m['candidate_signature'],confirmation=m['confirmation_signature'],pairs=[(r['id'],r['role'],r['evidence']) for r in selected]))
-    package=dict(threshold=0.99,schema=1,release=m['release'],identity=identity,counts={k:len(v) for k,v in choices.items()},required=dict(development=500,blind=600,hard_negative=400),pairs=selected)
-    atomic_json(target,package);m['review_identity']=identity;m['calibration']=dict(state='awaiting_independent_labels',counts=package['counts']);save(m)
-    # Blind reviewers receive metadata without policy scores or proposed decisions.
-    public=[{k:r[k] for k in ('id','source','target')}|dict(label=None,reviewer=None) for r in selected if r['role']!='development']
-    atomic_json(root/'review-blind.json',dict(identity=identity,pairs=public))
-    atomic_json(root/'review-development.json',dict(identity=identity,pairs=choices['development']))
+    from .version_review import review
+    return review(m,b)
 
 
 def import_labels(release,filename,threshold=0.99):

@@ -44,3 +44,11 @@ Read `AGENTS.md`, `DEVELOPMENT.md` and the reader guide `../VERSIONS.md`.
 - Only schema-compatible software may publish schema-2 active pointers. Upgrade
   software against the old pointer first. Preserve old runtimes and pointers;
   candidate cursors pin their relationship release.
+
+- `version_review.py` is included in schema-2 implementation signatures. Review
+  stages compact paged records in durable SQLite, commits cursor/data together,
+  retains first-direction deduplication and all graph edges, and partitions each
+  component once. Do not replace independent study partitions with row sampling.
+  Existing packages must match committed staging; interrupted public exports can
+  be rebuilt without resampling. Changed implementations require a new release;
+  bind reused completed tables to semantic identities and content/count proofs.
