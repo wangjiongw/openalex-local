@@ -198,3 +198,49 @@ def test_fast_candidate_filter_is_identical_to_original_full_comparison():
                     expected=r.evidence(a,b,methods)
                     if 'shared_doi_review' not in methods and ((expected['year_distance'] is not None and expected['year_distance']>r.YEAR_WINDOW) or expected['title_similarity']<0.6):expected=None
                     assert full.candidate_evidence(a,b,methods)==expected
+
+
+@pytest.mark.parametrize('case', ['success', 'failure', 'no_fallback'])
+def test_native_fallback_reuses_client_and_closes_after_workers(tmp_path,monkeypatch,case):
+    monkeypatch.setattr(full,'ROOT',tmp_path)
+    monkeypatch.setattr(full,'tables',lambda m,b:None)
+    monkeypatch.setattr(full,'protect',lambda m:None)
+    monkeypatch.setattr(full,'save',lambda m:None)
+    monkeypatch.setattr(full,'inputs_parent',lambda m:dict(release='parent'))
+    full.path('fixture').mkdir(parents=True)
+    sources=[f(key,kind='article' if case=='no_fallback' else 'preprint') for key in ('W1','W2')]
+    fetched=False
+    def query(sql):
+        nonlocal fetched
+        if '.sample ' in sql:
+            if fetched:return []
+            fetched=True
+            return [dict(id=v['id'],payload=json.dumps(v)) for v in sources]
+        if sql.startswith('SELECT count()'):return [dict(n=2)]
+        return []
+    backend=Mock();backend.ch.side_effect=query;backend.resolve_many.return_value={}
+    client=Mock()
+    def native_query(sql):
+        assert client.close.call_count==0
+        if case=='failure':raise RuntimeError('native query failed')
+        return [dict(original_id='W3')]
+    client.rows.side_effect=native_query
+    factory=Mock(return_value=client);monkeypatch.setattr(full,'Client',factory)
+    monkeypatch.setattr(full,'fetch_features',lambda m,b,ids:{key:f(key,'article') for key in ids})
+    writes=[];monkeypatch.setattr(full,'insert',lambda b,name,rows:writes.append((name,rows)))
+    m=dict(release='fixture',generation='demo',feature_database='features',workers=2,
+           selected_works=2,counts={},segments=[dict(index='fixture_index')])
+    if case=='failure':
+        with pytest.raises(RuntimeError,match='native query failed'):full.candidates(m,backend)
+        assert not writes
+    else:
+        full.candidates(m,backend)
+        assert m['counts']['matched']==2
+        candidates=[json.loads(r['payload']) for name,rows in writes if name.endswith('.candidates') for r in rows]
+        assert len(candidates)==(0 if case=='no_fallback' else 2)
+        assert all(r['evidence']['methods']==['native_title_terms'] for r in candidates)
+    if case=='no_fallback':factory.assert_not_called()
+    else:
+        factory.assert_called_once_with(timeout=120)
+        client.close.assert_called_once()
+        assert (1<=client.rows.call_count<=2) if case=='failure' else client.rows.call_count==2

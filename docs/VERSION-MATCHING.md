@@ -164,6 +164,14 @@ completed sample, coverage and candidate tables only after comparing semantic
 identities and persisted counts/content receipts. Never edit an old signature.
 The active published pointer remains unchanged until separate qualification.
 
+Native title fallback shares one HTTP client across a batch's bounded worker
+pool, then closes it after all workers finish, including on query failure. It
+does not initialize a new connection pool and TLS context for each work. Empty
+fallback batches create no client. Query text, result limits, evidence and review
+gates are unchanged. This implementation change requires a new relationship
+release/runtime; compatible frozen features and acknowledged candidate progress
+may be reused with count/content proofs rather than recomputing them.
+
 Version feature rule v2 normalizes Manticore's JSON scalar retraction flags
 (`"0"`/`"1"`) before notice detection. Boolean, integer 0/1 and JSON literal
 strings are accepted; unrecognized values stop extraction. Ordinary false flags

@@ -2,6 +2,7 @@
 import inspect
 import json
 import time
+from contextlib import closing
 from difflib import SequenceMatcher
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -316,18 +317,16 @@ def candidates(m,b):
             f=source[key]
             words=sorted({w for w in f['normalized'].split() if len(w)>=5 and w not in rules.STOP},key=lambda w:(-len(w),w))[:3]
             if not words:return key,[]
-            client=Client(timeout=120)
-            try:
-                indexes=','.join(checked_name(s['index']) for s in m['segments'])
-                year=f" AND publication_year BETWEEN {max(0,f['year']-rules.YEAR_WINDOW)} AND {f['year']+rules.YEAR_WINDOW}" if f['year'] else ''
-                rows=native_rows(client,f"SELECT original_id FROM {indexes} WHERE MATCH({sql_string('@name '+ ' '.join(words))}){year} LIMIT {rules.MAX_CANDIDATES+1} OPTION max_matches={rules.MAX_CANDIDATES+1},threads=1")
-                return key,[v['original_id'] for v in rows if v['original_id']!=key]
-            finally:client.close()
-        with ThreadPoolExecutor(max_workers=m['workers']) as pool:
-            for key,ids in pool.map(native,fallback):
-                if len(ids)>=rules.MAX_CANDIDATES:overflow.add(key)
-                for target in ids:
-                    targets[key].add(target);methods.setdefault((key,target),set()).add('native_title_terms')
+            indexes=','.join(checked_name(s['index']) for s in m['segments'])
+            year=f" AND publication_year BETWEEN {max(0,f['year']-rules.YEAR_WINDOW)} AND {f['year']+rules.YEAR_WINDOW}" if f['year'] else ''
+            rows=native_rows(client,f"SELECT original_id FROM {indexes} WHERE MATCH({sql_string('@name '+ ' '.join(words))}){year} LIMIT {rules.MAX_CANDIDATES+1} OPTION max_matches={rules.MAX_CANDIDATES+1},threads=1")
+            return key,[v['original_id'] for v in rows if v['original_id']!=key]
+        if fallback:
+            with closing(Client(timeout=120)) as client, ThreadPoolExecutor(max_workers=m['workers']) as pool:
+                for key,ids in pool.map(native,fallback):
+                    if len(ids)>=rules.MAX_CANDIDATES:overflow.add(key)
+                    for target in ids:
+                        targets[key].add(target);methods.setdefault((key,target),set()).add('native_title_terms')
         # DOI ambiguity is retained as review, including targets outside the text scope.
         dois={v[4:]:[] for f in source.values() for v in f['identifiers'] if v.startswith('doi:')}
         resolved={}
