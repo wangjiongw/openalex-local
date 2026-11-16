@@ -59,7 +59,7 @@ is planned as a later optional source, not implemented or required by v0.4.1.
 
 Maintain supported lookup/search/relations/exports, capabilities, regression cases,
 paired documentation and compatible recovery. Do not replace qualified engines or
-rebuild data merely to pursue official parity. Broader non-DOI version association, bibliography
+rebuild data merely to pursue official parity. Further version-matching recall and evidence, bibliography
 recovery from external sources/full text, PDF/TEI downloads, additional text scopes,
 snapshot synchronization and semantic retrieval remain separate optional tasks.
 External graph-enrichment jobs are outside this project's core.
@@ -79,4 +79,11 @@ v0.5.0 delivers an independent conservative version release, all existing arXiv 
 
 ## v0.6 development candidate
 
-Full-index bibliographic association is under qualification. The new [matching workflow](VERSION-MATCHING.md) reuses published indexes, adds resumable feature/candidate processing, independent review packages and cumulative batches. v0.5.0 remains the stable deployment until separately qualified and upgraded; no full-corpus or independent-label pass is implied.
+The [matching workflow](VERSION-MATCHING.md) reuses published indexes and adds
+resumable feature/candidate processing and cumulative batches. Candidate rc8
+supports conservative automatic assessment by default, with optional independent
+review. Automatic decisions have explicit API/web provenance and no independent
+precision claim. Compatible installations can publish qualified batches after
+upgrading API/web/export workers; this does not imply whole-corpus coverage or a
+new community stable release. Inspect the actual service version and relationship
+release rather than assuming every installation still runs the stable baseline.

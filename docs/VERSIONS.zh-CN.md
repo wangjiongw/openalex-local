@@ -1,5 +1,8 @@
 # OpenAlex 文献版本关联
 
+本页介绍最初的精确证据流程（schema 1）。全索引自动评估、明确判定来源和累积批次见
+[匹配流程](VERSION-MATCHING.zh-CN.md)。两种流程均保留原记录的查询及参考文献语义。
+
 [English](VERSIONS.md) · [API 覆盖](API-COVERAGE.zh-CN.md) · [开发设计](VERSION-GROUPS-PLAN.zh-CN.md)
 
 可选版本流水线复用已发布 arXiv 来源中验明的精确 DOI 证据，关联彼此独立的

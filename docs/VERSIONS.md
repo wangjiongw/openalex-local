@@ -2,6 +2,11 @@
 
 [中文](VERSIONS.zh-CN.md) · [API coverage](API-COVERAGE.md) · [Development plan](VERSION-GROUPS-PLAN.md)
 
+This page covers the initial exact-evidence workflow (schema 1). For full-index
+automatic assessment, explicit decision provenance and cumulative batches, use
+the [matching workflow](VERSION-MATCHING.md). Both retain original-record query
+and bibliography semantics.
+
 The optional version workflow associates separate OpenAlex records using the
 published arXiv source's verified exact DOI evidence. It preserves every original
 W ID, field and reference list. It does not change search counts or pagination.
