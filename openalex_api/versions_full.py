@@ -10,7 +10,7 @@ from pathlib import Path
 import orjson
 import httpx
 
-from . import version_matching as rules, versions_pipeline as legacy
+from . import version_matching as rules, versions_pipeline as legacy, version_auto_review as automatic
 from .backend import Backend, sql_list, sql_string
 from .config import ROOT, active, atomic_json, config, generation_name
 from .earth_control import read_json
@@ -32,7 +32,7 @@ def table(m):
 
 
 def signature():
-    return digest({n:file_hash(Path(__file__).with_name(n)) for n in ('version_matching.py','versions_full.py','version_review.py')})
+    return digest({n:file_hash(Path(__file__).with_name(n)) for n in ('version_matching.py','versions_full.py','version_review.py','version_auto_review.py')})
 
 
 def save(m):
@@ -47,11 +47,12 @@ def read(release):
     return m
 
 
-def plan(release, generation=None, collection='earth_scope_v1', seed=20261113, pilot_size=1000000, workers=4, stratum=None, batch_size=5000000):
+def plan(release, generation=None, collection='earth_scope_v1', seed=20261113, pilot_size=1000000, workers=4, stratum=None, batch_size=5000000, review_mode='automatic'):
     from . import versions_reader
     from .search_versions import active as search_active, build_path, require_metadata
     from .earth_collections import collection_path
     if config().get('adopted_from'): raise ValueError('adopted workspace cannot build relationships')
+    if review_mode not in ('automatic','independent'):raise ValueError('unknown version review mode')
     generation = generation or active()['generation']
     parent = versions_reader.published()
     if parent['generation'] != generation: raise ValueError('relationship parent generation differs')
@@ -74,9 +75,9 @@ def plan(release, generation=None, collection='earth_scope_v1', seed=20261113, p
                 parent_release=parent['release'],parent_signature=parent['signature'],
                 files={str(buildfile):file_hash(buildfile),str(collectionfile):file_hash(collectionfile)},
                 feature_signature=feature_signature,candidate_signature=digest(dict(rule=rules.CANDIDATE_RULE,blocks=inspect.getsource(rules.blocks),evidence=inspect.getsource(rules.evidence),window=rules.YEAR_WINDOW,negations=sorted(rules.NEGATIONS),stop=sorted(rules.STOP),cap=rules.MAX_CANDIDATES)),
-                confirmation_signature=digest(dict(rule=rules.POLICY_RULE,grid=rules.GRID,proposed=inspect.getsource(rules.proposed))),
+                confirmation_signature=digest(dict(rule=rules.POLICY_RULE,grid=rules.GRID,proposed=inspect.getsource(rules.proposed),review_mode=review_mode,automatic_policy=automatic.POLICY,automatic=inspect.getsource(automatic.allows))),
                 feature_database='oa_vfeatures_'+feature_signature[:16],seed=seed,pilot_size=pilot_size,
-                workers=workers,stratum=stratum,batch_size=batch_size,expected_works=total,signature=signature(),segments=segments)
+                workers=workers,stratum=stratum,batch_size=batch_size,review_mode=review_mode,expected_works=total,signature=signature(),segments=segments)
     path(release).mkdir(parents=True,exist_ok=True)
     with lock(path(release)/'worker.lock'):
         if (path(release)/'release.json').exists():
@@ -84,7 +85,7 @@ def plan(release, generation=None, collection='earth_scope_v1', seed=20261113, p
             if any(m.get(k)!=v for k,v in spec.items()): raise ValueError('matching inputs changed; choose a new release')
             return m
         m=spec|dict(state='planned',completed=[],counts={},created=time.time(),error=None)
-        if parent.get('calibration',{}).get('passed') and all(parent.get(k)==spec[k] for k in ('feature_signature','candidate_signature','confirmation_signature')):
+        if review_mode=='independent' and parent.get('calibration',{}).get('passed') and all(parent.get(k)==spec[k] for k in ('feature_signature','candidate_signature','confirmation_signature')):
             m['calibration']=parent['calibration']|dict(inherited_from=parent['release'])
             m['review_identity']=parent['review_identity']
         save(m);return m
@@ -397,11 +398,15 @@ def candidate_pages(m,b,columns='id,payload',size=BATCH,after=''):
 
 
 def candidate_rows(m,b):
-    for page in candidate_pages(m,b):
+    for page in candidate_pages(m,b,size=10000 if m.get('review_mode')=='automatic' else BATCH):
         for row in page:yield json.loads(row['payload'])
 
 
 def review(m,b):
+    if m.get('review_mode')=='automatic':
+        m['automatic_review']=automatic.prepare(m)
+        atomic_json(path(m['release'])/'automatic-review.json',m['automatic_review'])
+        save(m);return
     from .version_review import review
     return review(m,b)
 
@@ -412,6 +417,7 @@ def import_labels(release,filename,threshold=0.99):
     with lock(path(release)/'worker.lock'):
         m=read(release)
         if m['state']=='published':raise ValueError('published relationship release is immutable')
+        if m.get('review_mode')=='automatic':raise ValueError('automatic review does not import independent labels')
         package=read_json(path(release)/'review-package.json');labels=read_json(Path(filename))
         if threshold!=package['threshold']:raise ValueError('holdout threshold is frozen; create a new rule and independent package to change it')
         prior=path(release)/'calibration.json'
@@ -437,9 +443,18 @@ def groups(m,b):
     for kind in ('groups','members','reviews'):
         b.ch(f'INSERT INTO {db}.{kind} SELECT * FROM {prior}.{kind} FINAL')
     calibration=m.get('calibration',{});passed=calibration.get('passed',False)
+    auto=m.get('review_mode')=='automatic'
+    if auto:automatic.require(m)
+    assessed=eligible_count=0;started=time.monotonic()
     stars={};seen={};reviews=[]
     for r in candidate_rows(m,b):
-        eligible=passed and r['stratum'] in calibration['allowed_strata'] and rules.proposed(r['evidence'],calibration['threshold']) and r['unique_anchor']
+        eligible=automatic.allows(r) if auto else passed and r['stratum'] in calibration['allowed_strata'] and rules.proposed(r['evidence'],calibration['threshold']) and r['unique_anchor']
+        if auto:
+            assessed+=1;eligible_count+=int(eligible)
+            if assessed%10000==0:
+                protect(m)
+                m['progress']=dict(phase='automatic_assessment',processed=assessed,total=m['counts']['pairs'],unit='candidate_records',records_per_second=assessed/max(.001,time.monotonic()-started),updated=time.time())
+                save(m)
         if not eligible:
             reviews.append(dict(id=r['id'],payload=json.dumps(r)))
             if len(reviews)>=BATCH:insert(b,db+'.reviews',reviews);reviews=[]
@@ -471,15 +486,24 @@ def groups(m,b):
         old_group=inherited[0] if inherited else None
         all_members=sorted(set(keys+(old_group['members'] if old_group else [])))
         gid=old_group['group_id'] if old_group else 'vg_'+digest(dict(release=m['release'],members=all_members))[:32]
-        payload=dict(group_id=gid,members=all_members,preferred_openalex_id=anchor,state='confirmed',relation_type='preprint_publication',evidence=(old_group['evidence'] if old_group else [])+[r['evidence']|dict(method='calibrated_bibliographic',calibration=m['review_identity']) for r in members.values()])
+        provenance=dict(method='automatic_bibliographic',policy=automatic.POLICY,independent_review=False) if auto else dict(method='calibrated_bibliographic',calibration=m['review_identity'])
+        payload=dict(group_id=gid,members=all_members,preferred_openalex_id=anchor,state='confirmed',relation_type='preprint_publication',evidence=(old_group['evidence'] if old_group else [])+[r['evidence']|provenance for r in members.values()])
+        if auto:payload['assessment_mode']='automatic_rules'
         insert(b,db+'.groups',[dict(id=gid,payload=json.dumps(payload))])
         insert(b,db+'.members',[dict(id=k,group_id=gid) for k in all_members])
         insert(b,db+'.candidates',[dict(id=r['work_id']+':'+r['target_id'],payload=json.dumps(r|dict(state='confirmed',group_id=gid))) for r in members.values()])
+    if auto:
+        if assessed!=m['counts']['pairs']:raise RuntimeError('automatic assessment coverage mismatch')
+        m['automatic_review'].update(state='complete',evaluated=assessed,eligible=eligible_count,unresolved=assessed-eligible_count)
+        atomic_json(path(m['release'])/'automatic-review.json',m['automatic_review'])
     m['counts'].update({kind:int(b.ch(f'SELECT count() n FROM {db}.{kind} FINAL FORMAT JSONEachRow')[0]['n']) for kind in ('groups','members','reviews')});save(m)
 
 
 def validate(m,b):
     parent=inputs(m);db=table(m)
+    if m.get('review_mode')=='automatic':
+        report=automatic.require(m)
+        if report.get('state')!='complete' or report.get('evaluated')!=m['counts']['pairs']:raise RuntimeError('automatic assessment is incomplete')
     if m['counts'].get('features')!=m['expected_works'] or m['counts'].get('matched')!=m['selected_works']:raise RuntimeError('matching scope is incomplete')
     previous_coverage=parent['counts'].get('covered_works',0) if parent.get('schema',1)==2 else 0
     m['counts']['covered_works']=previous_coverage+m['selected_works']
@@ -500,13 +524,14 @@ def validate(m,b):
     for row in b.ch_stream(f'SELECT id,payload FROM {db}.groups FINAL ORDER BY id FORMAT JSONEachRow'):
         g=json.loads(row['payload'])
         if g['group_id']!=row['id'] or len(g['members'])<2 or len(set(g['members']))!=len(g['members']) or g['preferred_openalex_id'] not in g['members']:raise RuntimeError('invalid publication star')
-    m['validation']=dict(passed=True,signature=m['signature'],at=time.time(),counts=m['counts'].copy(),parent_signature=parent['signature'],full_earth_scan=m['counts']['covered_works']==m['expected_works'],calibration_passed=m.get('calibration',{}).get('passed',False))
+    m['validation']=dict(passed=True,signature=m['signature'],at=time.time(),counts=m['counts'].copy(),parent_signature=parent['signature'],full_earth_scan=m['counts']['covered_works']==m['expected_works'],calibration_passed=m.get('calibration',{}).get('passed',False),review_mode=m.get('review_mode','independent'),automatic_review_completed=m.get('automatic_review',{}).get('state')=='complete')
     atomic_json(path(m['release'])/'validation.json',m['validation']);save(m)
 
 
-def run(release,until='review'):
+def run(release,until=None):
     from .workspace import claim
     claim()
+    if until is None:until='validate' if read(release).get('review_mode')=='automatic' else 'review'
     if until not in STAGES:raise ValueError('unknown full-index matching stage')
     with lock(path(release)/'worker.lock'):
         m=read(release)

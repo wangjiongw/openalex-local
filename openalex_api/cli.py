@@ -28,6 +28,7 @@ def main():
     q.add_argument('--workers', type=int, default=4)
     q.add_argument('--labels')
     q.add_argument('--threshold', type=float, default=0.99)
+    q.add_argument('--review-mode',choices=['automatic','independent'],default='automatic')
     q.add_argument('--release', required=True)
     q.add_argument('--generation')
     q.add_argument('--arxiv-release')
@@ -224,7 +225,7 @@ def main():
                 raise ValueError('adopted workspaces cannot mutate version releases')
             if a.action == 'plan':
                 if a.profile == 'full-index':
-                    emit(versions.plan(a.release,a.generation,a.collection,a.seed,a.pilot_size,a.workers,a.stratum,a.batch_size))
+                    emit(versions.plan(a.release,a.generation,a.collection,a.seed,a.pilot_size,a.workers,a.stratum,a.batch_size,a.review_mode))
                 else:
                     emit(versions.plan(a.release,a.generation,a.arxiv_release,a.collection,a.seed))
             elif a.action == 'review-import':
@@ -251,7 +252,7 @@ def main():
             else:
                 if a.action == 'resume':
                     (versions.path(a.release)/'stop.json').unlink(missing_ok=True)
-                emit(versions.run(a.release,a.until or ('review' if hasattr(versions,'import_labels') else 'validate')))
+                emit(versions.run(a.release,a.until) if hasattr(versions,'import_labels') else versions.run(a.release,a.until or 'validate'))
             return
         if a.command == 'arxiv':
             from . import arxiv_pipeline as arxiv

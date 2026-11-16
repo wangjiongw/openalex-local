@@ -37,7 +37,7 @@ def status():
         return dict(ready=True,release=m['release'],generation=m['generation'],counts=m['counts'],
                     feature_coverage=m['counts'].get('features',0),matching_coverage=m['counts'].get('covered_works',m['counts'].get('matched',0)),
                     expected_works=m['expected_works'],full_earth_scan=m['validation']['full_earth_scan'],
-                    calibration=m.get('calibration'),candidate_scope='published text index; explicit DOI targets use imported metadata',
+                    calibration=m.get('calibration'),review_mode=m.get('review_mode','independent'),automatic_review=m.get('automatic_review'),candidate_scope='published text index; explicit DOI targets use imported metadata',
                     search_folding=False)
     except (OSError,RuntimeError,ValueError,KeyError,TypeError) as error:
         return dict(ready=False,error=str(error))

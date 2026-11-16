@@ -223,6 +223,7 @@ function renderVersionGroup(group) {
   box.append(node("h3","已确认的文献版本","block-title"),
     node("p",`命中记录 ${group.requested_openalex_id} · 当前显示 ${displayed} · 关系版本 ${group.relationship_release}`,"subtle"),
     node("p","摘要、作者、开放获取和引用关系均属于当前显示的记录；版本间不混用。","subtle"));
+  if(group.assessment_mode==="automatic_rules") box.append(node("p","关联由自动规则判定，未经人工核验。","subtle"));
   const controls=node("div",undefined,"version-controls");
   for(const member of group.records) {
     const label=(member.openalex_id===group.preferred_openalex_id ? "发表版" : "其他版本")+" · "+(member.record.title||member.openalex_id);
@@ -233,7 +234,7 @@ function renderVersionGroup(group) {
     const url=URL.createObjectURL(new Blob([JSON.stringify(group,null,2)],{type:"application/json;charset=utf-8"}));
     const a=node("a");a.href=url;a.download=group.group_id+".json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   },"secondary"));
-  const evidence=node("details"),summary=node("summary","关联证据（精确标识符或已校准的文献匹配）");
+  const evidence=node("details"),summary=node("summary","关联证据与判定方式");
   evidence.append(summary,node("pre",JSON.stringify(group.evidence,null,2),"raw-json"));
   box.append(controls,evidence);$("detail").prepend(box);
 }

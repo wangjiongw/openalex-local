@@ -23,9 +23,9 @@
    有界的原生标题词检索。组合采用最长的四个有效词近似稀有词，尚未实现全库词频筛选。
    DOI 候选可查询已导入的全量元数据，但共享 DOI 本身仍需审核。
    既有精确 arXiv 关联从父版本继承；标题检索仅覆盖已发布索引。
-4. **校准审核：**按研究关联的连通分量划分，准备开发集 500 对、盲审新增自动关联
-   600 对、困难负例 400 对。试点候选不足时，门槛保持未完成，不能视为通过。
-5. **关联与验收：**在父版本完整快照上增补通过独立校准且直接验证的发表版关联。
+4. **自动评估：**默认采用自动规则，不需要人工标签或样本配额。可选
+   `--review-mode independent` 按连通分量准备开发集 500 对、盲审 600 对、负例 400 对。
+5. **关联与验收：**在父版本完整快照上增补通过自动评估或独立校准且直接验证的发表版关联。
    每个新成员必须直接匹配发表版锚点；竞争发表版和跨既有版本组连接保留待审。
    发布前验证覆盖数量和版本组成员的双向一致性。
 
@@ -35,6 +35,17 @@
 都需要长期保留。
 
 ## 自动关联边界
+
+默认 `--review-mode automatic` 使用确定性规则，不调用模型，也不生成虚假的人工标签。
+除了原有无冲突及 0.99／0.85／0.03 条件，还要求规范化标题完全一致、至少四个词且
+不少于 20 个字符，具有强作者身份、唯一发表版锚点，版本年份差不超过三年。
+已知关联从父版本保留。拟确认记录需核对冻结原始摘要及撤稿／通知标志；竞争锚点和
+跨既有版本组冲突仍保留为候选。未确定候选不阻塞批次等待人工处理。
+
+自动判定记录 `automatic_bibliographic`、规则身份及 `independent_review: false`。
+API 状态和版本组下载明确提供评估方式，网页提示关联由自动规则判定。
+这不代表独立人工校准通过，也没有实测精度保证。下文 600 对和每层 100 对的要求
+仅适用于可选的独立人工审核模式。
 
 候选年份窗口为 ±10 年；缺失年份保持待审。每篇最多保留 200 个候选，达到截断条件
 标为 `overflow_review`，不能计为未匹配。作者姓名只作弱证据；要求共同 ORCID，或
@@ -47,7 +58,7 @@
 标题词重合率至少 **0.85**，候选分数间隔至少 **0.03**，竞争锚点按网格最宽松阈值检查。
 降低阈值需要新规则和新的独立盲审，不能利用已经看过的盲审标签调参。
 
-人工审核需标注 `same_study`、`different_study` 或 `uncertain`，填写审核人，
+选择 `--review-mode independent` 时，人工审核需标注 `same_study`、`different_study` 或 `uncertain`，填写审核人，
 并声明 `independent_review: true`。不得生成标签冒充审核。
 600 对盲审必须全部为可自动确认的真实关联，困难负例不能发生自动误合并。
 600 对零错误对应单侧 95% 精度下界约 99.5%，不代表全库召回率。
@@ -62,21 +73,33 @@
 ```bash
 oa versions plan --profile full-index --release earth_match_pilot \
   --pilot-size 1000000 --workers 4
-oa versions run --release earth_match_pilot --until review
+oa versions run --release earth_match_pilot --until validate
 oa versions status --release earth_match_pilot
 oa versions stop --release earth_match_pilot
-oa versions resume --release earth_match_pilot --until review
+oa versions resume --release earth_match_pilot --until validate
 ```
 
-`var/versions/<release>/` 下生成 `review-development.json`、`review-blind.json`，
+自动模式默认继续完成评估、分组和验收；发布仍需单独执行。
+`automatic-review.json` 记录规则及已评估／符合条件／未确定数量，不声明独立校准通过。
+`--until review` 仅准备自动规则，逐条评估在分组阶段执行。改变评估方式时创建新 release，
+在兼容性证明后复用特征和候选，不修改旧 release 或生成虚假的人工标签。
+
+```bash
+oa versions publish --release earth_match_pilot
+```
+
+可选独立人工模式会在 `var/versions/<release>/` 下生成 `review-development.json`、`review-blind.json`，
 以及含固定分组和分数的内部 `review-package.json`。审核人使用前两个文件，
 盲审人不应查看内部角色映射和分数。汇总标签文件包含 `identity`、
 `independent_review: true` 和 `pairs`（每条含 `id`、`label`、`reviewer`）。
 
 ```bash
-oa versions review-import --release earth_match_pilot --labels /local/reviews.json
-oa versions run --release earth_match_pilot --until validate
-oa versions publish --release earth_match_pilot
+oa versions plan --profile full-index --release earth_match_independent \
+  --review-mode independent
+oa versions run --release earth_match_independent --until review
+oa versions review-import --release earth_match_independent --labels /local/reviews.json
+oa versions run --release earth_match_independent --until validate
+oa versions publish --release earth_match_independent
 oa versions plan --profile full-index --release earth_match_core \
   --stratum 01_core_journals --batch-size 5000000
 ```

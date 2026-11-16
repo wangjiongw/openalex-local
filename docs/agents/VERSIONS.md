@@ -34,9 +34,15 @@ Read `AGENTS.md`, `DEVELOPMENT.md` and the reader guide `../VERSIONS.md`.
 - `versions_reader.py` dispatches both formats. `versions_full.py` owns independent
   features, candidate batches, review packages, cumulative groups and publication;
   `version_matching.py` owns pure evidence and acceptance rules.
-- Default full-index run stops at review. Never synthesize audit labels. Blind
+- Full-index defaults to automatic rules and runs through validate; publication
+  remains explicit. `version_auto_review.py` owns the frozen conservative policy.
+  Record automatic provenance, no independent attestation or precision bound.
+  Verify original digests/notices and retain unresolved candidates. Automatic
+  mode has no human sample quotas. Changed assessment needs a new release and
+  separately verified reuse of compatible completed features/candidates.
+- Optional independent mode stops at review. Never synthesize audit labels. Blind
   sets and thresholds are fixed before labels; a consumed holdout cannot be reused
-  for tuning. Unaudited strata remain review. Approximate matching never rewrites
+  for tuning. Uncalibrated strata in independent mode remain review. Matching never rewrites
   raw records or changes ordinary search/export semantics.
 - Feature directories bind the frozen index and posting projection. Reuse them for
   compatible confirmation changes, with a new relationship release/signature.

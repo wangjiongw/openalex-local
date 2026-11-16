@@ -69,5 +69,5 @@ def candidates(backend, value, release=None, cursor=None, per_page=25):
     next_cursor=base64.urlsafe_b64encode(json.dumps(dict(work=key,release=m['release'],after=rows[per_page-1]['id'])).encode()).decode() if len(rows)>per_page else None
     return dict(relationship_release=m['release'],generation=m['generation'],work_id=key,
                 processing_state=json.loads(coverage[0]['payload'])['state'] if coverage else 'not_processed',
-                calibration=m.get('calibration'),results=result,next_cursor=next_cursor,
-                semantics='candidates require review; source records and reference lists remain separate')
+                calibration=m.get('calibration'),review_mode=m.get('review_mode','independent'),automatic_review=m.get('automatic_review'),results=result,next_cursor=next_cursor,
+                semantics='unresolved version candidates; source records and reference lists remain separate')

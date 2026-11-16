@@ -72,6 +72,8 @@ def test_native_pipeline_publish_restore_and_resume(tmp_path, profile):
         with gzip.open(source_file,'rt') as stream: rows=[json.loads(line) for line in stream]
         rows[0].update(ids={'doi':'https://doi.org/10.48550/arxiv.1001.0001'},type='preprint',is_retracted=False)
         rows[-1]['is_retracted']=True
+        rows[3].update(type='preprint',title='Climate geology research syntheticpaper8')
+        rows[7]['title']='Climate geology research syntheticpaper8'
         with gzip.open(source_file,'wt') as stream:
             for row in rows:stream.write(json.dumps(row)+'\n')
         manifest_file=snapshot/'data/jsonl/works/manifest.json'
@@ -210,8 +212,15 @@ def test_native_pipeline_publish_restore_and_resume(tmp_path, profile):
                 run('versions','publish','--release','full_fixture')
                 full_status=client.get('/capabilities').json()['version_groups']
                 assert full_status['ready'] and full_status['feature_coverage']==12 and full_status['full_earth_scan']
-                assert not full_status['calibration'].get('passed')
+                assert not (full_status['calibration'] or {}).get('passed')
+                assert full_status['review_mode']=='automatic'
+                assert full_status['automatic_review']['state']=='complete'
+                assert full_status['automatic_review']['independent_review'] is False
                 assert client.get('/v1/works/W1/version-group').json()['preferred_openalex_id']=='W2'
+                automatic_group=client.get('/v1/works/W4/version-group').json()
+                assert automatic_group['preferred_openalex_id']=='W8',automatic_group
+                assert automatic_group['assessment_mode']=='automatic_rules'
+                assert automatic_group['evidence'][-1]['independent_review'] is False
                 pending=client.get('/v1/works/W3/version-candidates');pending.raise_for_status()
                 assert pending.json()['processing_state']=='processed'
                 assert pending.json()['relationship_release']=='full_fixture'

@@ -33,11 +33,11 @@ requires that parent; the existing arXiv workflow can create it.
    terms are not implemented. Shared DOI candidates resolve against all imported
    metadata and remain review candidates. Legacy explicit arXiv associations are
    inherited. Titles retrieve only from the published text scope.
-4. **Review:** export disjoint study components for development (500 pairs),
-   blind proposed novel associations (600) and difficult negatives (400). A small
-   pilot may not supply these counts; that is an incomplete gate, not a pass.
+4. **Assessment:** automatic rules are the default, without human labels or sample
+   quotas. Optional `--review-mode independent` exports disjoint study components
+   for development (500 pairs), blind associations (600) and negatives (400).
 5. **Groups and validation:** preserve the parent's complete snapshot and add
-   only independently calibrated, directly verified publication stars. Every
+   only automatically assessed or independently calibrated, directly verified publication stars. Every
    new member must match its publication anchor. Competing publications or links
    between existing groups remain candidates. Validate coverage and both
    directions of group membership before publication.
@@ -51,6 +51,21 @@ Do not remove the feature database, checkpoints, retained parent releases or
 index dependencies while a release references them.
 
 ## Conservative automatic association
+
+The default `--review-mode automatic` uses deterministic rules, not a model or
+synthetic human labels. It requires the existing conflict-free 0.99/0.85/0.03
+checks, an exact normalized title of at least four words and 20 characters,
+strong author identity, a unique publication anchor, and at most three years
+between versions. Known parent pairs are retained through the parent snapshot.
+Every proposed source is checked against its frozen raw digest and notice flags;
+competing stars and parent-group conflicts remain unresolved. Unresolved records
+stay available as candidates and do not block the batch pending human action.
+
+Automatic decisions record `automatic_bibliographic`, their policy and
+`independent_review: false`. API status and group downloads expose the mode; the
+web UI identifies these associations as automatically assessed. There is no
+empirical precision guarantee or human-calibration pass. The 600-pair and
+100-per-stratum requirements below apply only to independent review.
 
 The year window is ±10; missing years remain review. At most 200 candidates are
 retained per work; saturation is marked `overflow_review`, never unmatched.
@@ -67,7 +82,7 @@ Competing anchors are screened at the least strict grid value. Lower acceptance
 thresholds require a new policy and an independent holdout, rather than tuning
 against already-seen blind labels.
 
-A human reviewer must supply `same_study`, `different_study` or `uncertain`, a
+With `--review-mode independent`, a human reviewer must supply `same_study`, `different_study` or `uncertain`, a
 reviewer identifier and `independent_review: true`. Do not generate labels to
 make the gate pass. All 600 blind pairs must be accepted true associations,
 without automatic hard-negative errors. Zero errors in 600 gives a one-sided
@@ -84,23 +99,37 @@ release names; local paths and corpus counts do not belong in Git.
 ```bash
 oa versions plan --profile full-index --release earth_match_pilot \
   --pilot-size 1000000 --workers 4
-oa versions run --release earth_match_pilot --until review
+oa versions run --release earth_match_pilot --until validate
 oa versions status --release earth_match_pilot
 # Stop safely, then continue the same frozen inputs:
 oa versions stop --release earth_match_pilot
-oa versions resume --release earth_match_pilot --until review
+oa versions resume --release earth_match_pilot --until validate
 ```
 
-The release directory under `var/versions/` contains `review-development.json`,
+Automatic runs continue through assessment, groups and validation by default;
+publication is a separate command. `automatic-review.json` records the policy,
+evaluated/eligible/unresolved counts and absence of independent calibration.
+`--until review` only prepares the automatic policy; full assessment occurs while
+building groups. Reuse compatible completed features/candidates in a new release
+when changing assessment policy; never edit an old release or manufacture labels.
+
+```bash
+oa versions publish --release earth_match_pilot
+```
+
+For optional independent review, the release directory under `var/versions/` contains `review-development.json`,
 `review-blind.json` and a private `review-package.json` with the frozen role map.
 Reviewers use the first two; combine their labels into a JSON document containing
 `identity`, `independent_review: true` and `pairs` (`id`, `label`, `reviewer`).
 Do not expose the role map/scores to blind reviewers.
 
 ```bash
-oa versions review-import --release earth_match_pilot --labels /local/reviews.json
-oa versions run --release earth_match_pilot --until validate
-oa versions publish --release earth_match_pilot
+oa versions plan --profile full-index --release earth_match_independent \
+  --review-mode independent
+oa versions run --release earth_match_independent --until review
+oa versions review-import --release earth_match_independent --labels /local/reviews.json
+oa versions run --release earth_match_independent --until validate
+oa versions publish --release earth_match_independent
 # Subsequent cumulative batches, core first, then author-supported, then broad:
 oa versions plan --profile full-index --release earth_match_core \
   --stratum 01_core_journals --batch-size 5000000
