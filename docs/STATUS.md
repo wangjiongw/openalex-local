@@ -87,3 +87,8 @@ precision claim. Compatible installations can publish qualified batches after
 upgrading API/web/export workers; this does not imply whole-corpus coverage or a
 new community stable release. Inspect the actual service version and relationship
 release rather than assuming every installation still runs the stable baseline.
+
+The rc9 candidate adds persistent CPU scoring processes, bounded publication-star
+writes, scope-aligned progress and verified checkpoint migration. It reads qualified
+rc8 relationships without changing their producer signatures; upgrade and data
+publication still require separate qualification. Community stable remains v0.5.0.

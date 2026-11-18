@@ -210,3 +210,47 @@ pairs. Its feature payloads, candidate decisions and review packages cannot be
 reused unchanged: create a new relationship release and regenerate these derived
 artifacts. Frozen metadata and text indexes remain reusable; no text reindex is
 required. Keep the existing release/runtime and do not rewrite its signatures.
+
+## CPU acceleration and checkpoint migration (rc9)
+
+`--workers` bounds database retrieval concurrency. `--score-workers` separately
+selects 1–16 persistent CPU scoring processes; the default is 1. Workers retain
+exact string scores, source-level candidate margins and ordering. They never open
+database clients or commit checkpoints. The coordinator writes and reconciles
+2,000-source batches; parallel mode prepares at most one further batch. A failed
+worker stops the batch without advancing its checkpoint. The job stops if its
+process tree exceeds 64 GiB RSS; no GPU/NPU is required.
+
+Publication stars use bounded parent lookups and writes of at most 2,000 groups
+or 16 MiB. Each chunk is read back before its anchor checkpoint advances. Parent
+imports have a separate receipt, so resuming cannot overwrite completed extensions
+with an older parent snapshot. Cross-chunk competing anchors still block links.
+
+```bash
+oa versions plan --profile full-index --release earth_match_fast \
+  --stratum 03_author_supported --batch-size 5000000 \
+  --workers 8 --score-workers 8
+# First pause the source; retain its original software and input artifacts.
+oa versions stop --release earth_match_previous
+# After the source has exited and reports paused:
+oa versions migrate --release earth_match_fast --from-release earth_match_previous
+oa versions resume --release earth_match_fast --until validate
+```
+
+The target must have the same parent, selection, features and decision policy.
+Migration checks ordered SHA256 content receipts and counts for frozen sample IDs,
+features, candidate rows and coverage, and excludes uncommitted source tails. It
+reuses the acknowledged candidate checkpoint, then rebuilds assessment/groups as
+needed. A new implementation always gets a new release; old manifests and
+signatures are never rewritten. Only explicitly qualified historical producers
+are readable; unknown signatures fail. Historical read compatibility does not
+permit running or publishing an old release with the new producer.
+
+CLI status and HTTP version status include `progress_summary`. Its strict counters
+are associated source records within fully checked coverage, fully checked source
+records, and total frozen candidate source records. Candidate-generation visits,
+directional pair counts and overflows are separate. Expensive association counts
+are cached at validation/publication, not recomputed on HTTP requests. Missing
+optional progress evidence surfaces a progress error without disabling valid
+published associations. During a running batch, new associations are not counted
+until assessment, validation and publication finish.

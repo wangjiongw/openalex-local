@@ -14,7 +14,13 @@ def module(release):
 
 
 def read(release):
-    return module(release).read(release)
+    implementation=module(release)
+    if implementation is not legacy:
+        m=read_json(legacy.path(release)/'release.json')
+        if m.get('signature')!=implementation.signature():
+            from .version_resume import historical_read
+            return historical_read(release)
+    return implementation.read(release)
 
 
 def table(m):
@@ -34,7 +40,8 @@ def status():
     try:
         m=published()
         if m.get('schema',1)==1:return legacy.status()
-        return dict(ready=True,release=m['release'],generation=m['generation'],counts=m['counts'],
+        from .version_progress import for_status
+        return dict(progress_summary=for_status(m),ready=True,release=m['release'],generation=m['generation'],counts=m['counts'],
                     feature_coverage=m['counts'].get('features',0),matching_coverage=m['counts'].get('covered_works',m['counts'].get('matched',0)),
                     expected_works=m['expected_works'],full_earth_scan=m['validation']['full_earth_scan'],
                     calibration=m.get('calibration'),review_mode=m.get('review_mode','independent'),automatic_review=m.get('automatic_review'),candidate_scope='published text index; explicit DOI targets use imported metadata',

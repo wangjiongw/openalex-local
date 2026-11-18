@@ -1,0 +1,12 @@
+{
+  "70f5b87bd21e0e86eb6c6e24552cc01f937c3f7126c8c602c4c24cb8ffbe2fd7": {
+    "origin": "v0.6.0rc8 qualified schema-2 producer",
+    "schema": 2,
+    "files": {
+      "version_matching.py": "2c72367acb846189a148fac8b6315680efa5681613f63c5c83a303cfdaa9031e",
+      "versions_full.py": "7a4128b62686ccffc9b991b4c58d6540d920b699f2e968cb24a7c51318f50b31",
+      "version_review.py": "d3ee29fe5c59d3610bc7855c41e7d01d1ff0489eb1d19887da1170641c7f6ae7",
+      "version_auto_review.py": "9bcccd46741cbc8d90d47a21ccb1b1de16d562e1bccbcbf29c510753f8e64774"
+    }
+  }
+}

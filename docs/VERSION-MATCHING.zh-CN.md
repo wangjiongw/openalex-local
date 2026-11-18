@@ -162,3 +162,35 @@ oa versions plan --profile full-index --release earth_match_core \
 候选判定及审核包不能原样复用，须创建新关联 release 并重新生成这些派生产物。
 冻结的元数据和文本索引仍可复用，无需重建全文索引。保留旧 release／运行环境，
 不能修改旧签名来接受新实现。
+
+## CPU 加速与断点迁移（rc9）
+
+`--workers` 控制数据库读取并发；新增 `--score-workers` 单独配置 1–16 个持久 CPU
+评分进程，默认 1。评分保持原字符串分数、源文献级候选分差及顺序，子进程不开数据库
+连接、不写检查点。主进程每 2,000 篇写入并验证；并行模式最多提前准备一个批次。
+工作进程失败时不推进当前批次断点；进程树 RSS 超过 64 GiB 时受控停止，无需 GPU／NPU。
+
+版本组批量读取父关系，每次最多提交 2,000 组或 16 MiB，回读通过后才推进锚点检查点。
+父版本导入另有凭据，恢复时不会用旧父快照覆盖已完成的扩展组；跨分块的竞争锚点仍会阻止关联。
+
+```bash
+oa versions plan --profile full-index --release earth_match_fast \
+  --stratum 03_author_supported --batch-size 5000000 \
+  --workers 8 --score-workers 8
+# 先停止旧任务，并保留其原软件和输入文件。
+oa versions stop --release earth_match_previous
+# 确认源任务退出、状态为 paused 后：
+oa versions migrate --release earth_match_fast --from-release earth_match_previous
+oa versions resume --release earth_match_fast --until validate
+```
+
+迁移目标必须具有相同父版本、选取范围、特征及判断规则。迁移逐表核对冻结选取 ID、特征、
+候选和覆盖数据的有序 SHA256 内容摘要及数量，排除尚未提交的源批次尾部。复用已确认的候选
+断点，按需重做评估和分组。新实现必须使用新 release，不改写旧清单和签名。仅明确验收的
+历史生产程序可兼容读取，未知签名仍拒绝；只读兼容不允许用新程序运行或发布旧 release。
+
+CLI 状态和 HTTP 版本状态增加 `progress_summary`。严格口径分别为：完整检查范围内已关联的
+唯一源文献数、完成全流程检查的源文献数、全部冻结候选源文献数。候选生成遍历量、有方向的
+候选对数量和溢出量分别统计。关联数量在验收／发布时计算并缓存，HTTP 请求不执行全库统计。
+可选进度凭据缺失会明确报告进度错误，不影响有效的正式关联。运行批次的新关联需等评估、
+验收及发布完成后才计入正式结果。

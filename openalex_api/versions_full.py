@@ -18,6 +18,7 @@ from .ingest import lock
 from .manticore_build import file_hash
 from .manticore_engine import Client, checked_name
 from .semantics import digest
+from . import version_scoring as scoring
 
 STAGES = ('features','sample','candidates','review','groups','validate')
 BATCH = 2000
@@ -32,7 +33,7 @@ def table(m):
 
 
 def signature():
-    return digest({n:file_hash(Path(__file__).with_name(n)) for n in ('version_matching.py','versions_full.py','version_review.py','version_auto_review.py')})
+    return digest({n:file_hash(Path(__file__).with_name(n)) for n in ('version_matching.py','versions_full.py','version_review.py','version_auto_review.py','version_scoring.py','version_group_batch.py','version_resume.py','version_progress.py')})
 
 
 def save(m):
@@ -47,7 +48,7 @@ def read(release):
     return m
 
 
-def plan(release, generation=None, collection='earth_scope_v1', seed=20261113, pilot_size=1000000, workers=4, stratum=None, batch_size=5000000, review_mode='automatic'):
+def plan(release, generation=None, collection='earth_scope_v1', seed=20261113, pilot_size=1000000, workers=4, stratum=None, batch_size=5000000, review_mode='automatic', score_workers=1):
     from . import versions_reader
     from .search_versions import active as search_active, build_path, require_metadata
     from .earth_collections import collection_path
@@ -67,7 +68,7 @@ def plan(release, generation=None, collection='earth_scope_v1', seed=20261113, p
     total = sum(s['count'] for s in segments)
     if stratum and stratum not in {v['group'] for v in segments}:raise ValueError('stratum absent from frozen search')
     if not 1 <= batch_size <= total:batch_size=min(5000000,total)
-    if not 1 <= pilot_size <= total or not 1 <= workers <= 16: raise ValueError('invalid pilot size or workers')
+    if not 1 <= pilot_size <= total or not 1 <= workers <= 16 or not 1 <= score_workers <= 16: raise ValueError('invalid pilot size or workers')
     # Feature compatibility excludes candidate and confirmation policy changes.
     feature_signature = digest(dict(rule=rules.FEATURE_RULE,extract=inspect.getsource(rules.feature),posting_projection=inspect.getsource(rules.blocks),stop=sorted(rules.STOP),normalization=inspect.getsource(rules.normalize_title),notice=inspect.getsource(legacy.rules.notice),build=file_hash(buildfile)))
     spec = dict(schema=2,profile='full-index',release=release,generation=generation,collection=collection,
@@ -77,7 +78,7 @@ def plan(release, generation=None, collection='earth_scope_v1', seed=20261113, p
                 feature_signature=feature_signature,candidate_signature=digest(dict(rule=rules.CANDIDATE_RULE,blocks=inspect.getsource(rules.blocks),evidence=inspect.getsource(rules.evidence),window=rules.YEAR_WINDOW,negations=sorted(rules.NEGATIONS),stop=sorted(rules.STOP),cap=rules.MAX_CANDIDATES)),
                 confirmation_signature=digest(dict(rule=rules.POLICY_RULE,grid=rules.GRID,proposed=inspect.getsource(rules.proposed),review_mode=review_mode,automatic_policy=automatic.POLICY,automatic=inspect.getsource(automatic.allows))),
                 feature_database='oa_vfeatures_'+feature_signature[:16],seed=seed,pilot_size=pilot_size,
-                workers=workers,stratum=stratum,batch_size=batch_size,review_mode=review_mode,expected_works=total,signature=signature(),segments=segments)
+                workers=workers,score_workers=score_workers,group_batch_size=2000,stratum=stratum,batch_size=batch_size,review_mode=review_mode,expected_works=total,signature=signature(),segments=segments)
     path(release).mkdir(parents=True,exist_ok=True)
     with lock(path(release)/'worker.lock'):
         if (path(release)/'release.json').exists():
@@ -104,6 +105,15 @@ def inputs(m):
 
 def protect(m):
     legacy.protect(m)
+    if m.get('score_workers',1)>1:
+        import psutil
+        owner=psutil.Process()
+        processes=[owner,*owner.children(recursive=True)]
+        memory=0
+        for process in processes:
+            try:memory+=process.memory_info().rss
+            except psutil.NoSuchProcess:pass
+        if memory>64*1024**3:raise InterruptedError('version job exceeded 64 GiB memory budget')
 
 
 def insert(b, name, rows):
@@ -287,97 +297,95 @@ def inputs_parent(m):
     return versions_reader.read(m['parent_release'])
 
 
+def prepare_candidate_batch(m,b,after):
+    rows=b.ch(f'SELECT id,payload FROM {table(m)}.sample FINAL WHERE id>{sql_string(after)} ORDER BY id LIMIT {BATCH} FORMAT JSONEachRow')
+    if not rows:return None
+    protect(m)
+    source={v['id']:json.loads(v['payload']) for v in rows}
+    key_sources={};overflow=set()
+    for key,f in source.items():
+        for block in rules.blocks(f):
+            if len(sql_string(block).encode('utf-8'))+1>131072:
+                overflow.add(key);continue
+            key_sources.setdefault(block,[]).append(key)
+    targets={k:set() for k in source};methods={}
+    if key_sources:
+        by_key={}
+        queries=(f'SELECT key,id FROM {m["feature_database"]}.postings FINAL WHERE key IN {sql_list(batch)} ORDER BY key,id LIMIT {rules.MAX_CANDIDATES+1} BY key FORMAT JSONEachRow' for batch in key_batches(key_sources))
+        for r in read_batches(b,queries,m['workers']):by_key.setdefault(r['key'],[]).append(r['id'])
+        for block,ids in by_key.items():
+            for key in key_sources[block]:
+                if len(ids)>rules.MAX_CANDIDATES:overflow.add(key)
+                for target in ids:
+                    if target==key:continue
+                    targets[key].add(target)
+                    methods.setdefault((key,target),set()).add('normalized_title' if block.startswith('t:') else 'author_title_block')
+    fallback=[k for k,f in source.items() if f['kind']=='preprint' and not targets[k] and f['normalized'] and k not in overflow]
+    def native(key):
+        f=source[key]
+        words=sorted({w for w in f['normalized'].split() if len(w)>=5 and w not in rules.STOP},key=lambda w:(-len(w),w))[:3]
+        if not words:return key,[]
+        indexes=','.join(checked_name(s['index']) for s in m['segments'])
+        year=f" AND publication_year BETWEEN {max(0,f['year']-rules.YEAR_WINDOW)} AND {f['year']+rules.YEAR_WINDOW}" if f['year'] else ''
+        rows=native_rows(client,f"SELECT original_id FROM {indexes} WHERE MATCH({sql_string('@name '+ ' '.join(words))}){year} LIMIT {rules.MAX_CANDIDATES+1} OPTION max_matches={rules.MAX_CANDIDATES+1},threads=1")
+        return key,[v['original_id'] for v in rows if v['original_id']!=key]
+    if fallback:
+        with closing(Client(timeout=120)) as client, ThreadPoolExecutor(max_workers=m['workers']) as pool:
+            for key,ids in pool.map(native,fallback):
+                if len(ids)>=rules.MAX_CANDIDATES:overflow.add(key)
+                for target in ids:
+                    targets[key].add(target);methods.setdefault((key,target),set()).add('native_title_terms')
+    # DOI ambiguity is retained as review, including targets outside the text scope.
+    dois={v[4:]:[] for f in source.values() for v in f['identifiers'] if v.startswith('doi:')}
+    resolved={}
+    for batch in key_batches(dois):resolved.update(b.resolve_many(m['generation'],'works','doi',batch))
+    outside=set()
+    for key,f in source.items():
+        for value in f['identifiers']:
+            if not value.startswith('doi:'):continue
+            for target in resolved.get(value[4:],[]):
+                if target!=key:
+                    targets[key].add(target);outside.add(target)
+                    methods.setdefault((key,target),set()).add('shared_doi_review')
+        if len(targets[key])>rules.MAX_CANDIDATES:overflow.add(key)
+    selected={k:sorted(v)[:rules.MAX_CANDIDATES] for k,v in targets.items()}
+    all_targets={v for ids in selected.values() for v in ids}
+    found=fetch_features(m,b,all_targets)
+    # Only explicit-ID candidates may hydrate outside-scope metadata.
+    missing=sorted((all_targets-found.keys()) & outside)
+    for offset in range(0,len(missing),BATCH):
+        raw=b.details(m['generation'],'works',missing[offset:offset+BATCH])
+        from . import model
+        for key,record in raw.items():
+            attrs=model.project('works',record);attrs['name_literal']=record.get('title') or record.get('display_name') or ''
+            found[key]=rules.feature(dict(id=int(key[1:]),original_id=key,source_hash=digest(record),attrs=attrs),'outside_text_scope')
+    parent_map={};parent_table=legacy.table(inputs_parent(m))
+    queries=(f'SELECT id,group_id FROM {parent_table}.members FINAL WHERE id IN {sql_list(batch)} FORMAT JSONEachRow' for batch in key_batches(set(source)|all_targets))
+    parent_map.update({v['id']:v['group_id'] for v in read_batches(b,queries,m['workers'])})
+    return rows,source,selected,found,methods,overflow,parent_map
+
+
 def candidates(m,b):
+    with scoring.pool(m.get('score_workers',1)) as executor:
+        if executor:
+            with ThreadPoolExecutor(max_workers=1) as loader:
+                return run_candidates(m,b,executor,loader)
+        return run_candidates(m,b)
+
+
+def run_candidates(m,b,executor=None,loader=None):
     tables(m,b);checkpoint=path(m['release'])/'candidates-progress.json'
     p=read_json(checkpoint) if checkpoint.exists() else dict(after='',processed=0,pairs=0,overflow=0)
     initial=p['processed'];started=time.monotonic()
     m['counts'].update(matched=p['processed'],pairs=p['pairs'],overflow=p['overflow'])
-    while rows:=b.ch(f'SELECT id,payload FROM {table(m)}.sample FINAL WHERE id>{sql_string(p["after"])} ORDER BY id LIMIT {BATCH} FORMAT JSONEachRow'):
+    pending=loader.submit(prepare_candidate_batch,m,b,p['after']) if loader else None
+    while True:
+        batch=pending.result() if pending else prepare_candidate_batch(m,b,p['after'])
+        if batch is None:break
         protect(m)
-        source={v['id']:json.loads(v['payload']) for v in rows}
-        key_sources={};overflow=set()
-        for key,f in source.items():
-            for block in rules.blocks(f):
-                if len(sql_string(block).encode('utf-8'))+1>131072:
-                    overflow.add(key);continue
-                key_sources.setdefault(block,[]).append(key)
-        targets={k:set() for k in source};methods={}
-        if key_sources:
-            by_key={}
-            queries=(f'SELECT key,id FROM {m["feature_database"]}.postings FINAL WHERE key IN {sql_list(batch)} ORDER BY key,id LIMIT {rules.MAX_CANDIDATES+1} BY key FORMAT JSONEachRow' for batch in key_batches(key_sources))
-            for r in read_batches(b,queries,m['workers']):by_key.setdefault(r['key'],[]).append(r['id'])
-            for block,ids in by_key.items():
-                for key in key_sources[block]:
-                    if len(ids)>rules.MAX_CANDIDATES:overflow.add(key)
-                    for target in ids:
-                        if target==key:continue
-                        targets[key].add(target)
-                        methods.setdefault((key,target),set()).add('normalized_title' if block.startswith('t:') else 'author_title_block')
-        fallback=[k for k,f in source.items() if f['kind']=='preprint' and not targets[k] and f['normalized'] and k not in overflow]
-        def native(key):
-            f=source[key]
-            words=sorted({w for w in f['normalized'].split() if len(w)>=5 and w not in rules.STOP},key=lambda w:(-len(w),w))[:3]
-            if not words:return key,[]
-            indexes=','.join(checked_name(s['index']) for s in m['segments'])
-            year=f" AND publication_year BETWEEN {max(0,f['year']-rules.YEAR_WINDOW)} AND {f['year']+rules.YEAR_WINDOW}" if f['year'] else ''
-            rows=native_rows(client,f"SELECT original_id FROM {indexes} WHERE MATCH({sql_string('@name '+ ' '.join(words))}){year} LIMIT {rules.MAX_CANDIDATES+1} OPTION max_matches={rules.MAX_CANDIDATES+1},threads=1")
-            return key,[v['original_id'] for v in rows if v['original_id']!=key]
-        if fallback:
-            with closing(Client(timeout=120)) as client, ThreadPoolExecutor(max_workers=m['workers']) as pool:
-                for key,ids in pool.map(native,fallback):
-                    if len(ids)>=rules.MAX_CANDIDATES:overflow.add(key)
-                    for target in ids:
-                        targets[key].add(target);methods.setdefault((key,target),set()).add('native_title_terms')
-        # DOI ambiguity is retained as review, including targets outside the text scope.
-        dois={v[4:]:[] for f in source.values() for v in f['identifiers'] if v.startswith('doi:')}
-        resolved={}
-        for batch in key_batches(dois):resolved.update(b.resolve_many(m['generation'],'works','doi',batch))
-        outside=set()
-        for key,f in source.items():
-            for value in f['identifiers']:
-                if not value.startswith('doi:'):continue
-                for target in resolved.get(value[4:],[]):
-                    if target!=key:
-                        targets[key].add(target);outside.add(target)
-                        methods.setdefault((key,target),set()).add('shared_doi_review')
-            if len(targets[key])>rules.MAX_CANDIDATES:overflow.add(key)
-        selected={k:sorted(v)[:rules.MAX_CANDIDATES] for k,v in targets.items()}
-        all_targets={v for ids in selected.values() for v in ids}
-        found=fetch_features(m,b,all_targets)
-        # Only explicit-ID candidates may hydrate outside-scope metadata.
-        missing=sorted((all_targets-found.keys()) & outside)
-        for offset in range(0,len(missing),BATCH):
-            raw=b.details(m['generation'],'works',missing[offset:offset+BATCH])
-            from . import model
-            for key,record in raw.items():
-                attrs=model.project('works',record);attrs['name_literal']=record.get('title') or record.get('display_name') or ''
-                found[key]=rules.feature(dict(id=int(key[1:]),original_id=key,source_hash=digest(record),attrs=attrs),'outside_text_scope')
-        parent_map={};parent_table=legacy.table(inputs_parent(m))
-        queries=(f'SELECT id,group_id FROM {parent_table}.members FINAL WHERE id IN {sql_list(batch)} FORMAT JSONEachRow' for batch in key_batches(set(source)|all_targets))
-        parent_map.update({v['id']:v['group_id'] for v in read_batches(b,queries,m['workers'])})
-        output=[];coverage=[]
-        for key,f in source.items():
-            scored=[]
-            for target in selected[key]:
-                if target not in found: raise RuntimeError('candidate target missing from pinned metadata/index')
-                e=candidate_evidence(f,found[target],methods[(key,target)])
-                if e is None:continue
-                if 'shared_doi_review' in e['methods']:e['conflicts'].append('duplicate_doi_requires_review')
-                if key in overflow:e['conflicts'].append('candidate_overflow')
-                anchor=target if f['kind']=='preprint' else key
-                scored.append(dict(id=rules.pair_id(key,target),work_id=key,target_id=target,anchor=anchor,
-                                   stratum=f['stratum'],source=f,target=found[target],evidence=e,state='review',parent_groups=sorted({parent_map[v] for v in (key,target) if v in parent_map}),known_pair=bool(parent_map.get(key) and parent_map.get(key)==parent_map.get(target))))
-            eligible=[r for r in scored if rules.proposed(r['evidence'],min(rules.GRID))]
-            anchors={r['anchor'] for r in eligible}
-            ranked=sorted((r['evidence']['title_similarity'] for r in scored if not r['evidence']['conflicts']),reverse=True)
-            margin=ranked[0]-ranked[1] if len(ranked)>1 else 1.0
-            for r in scored:
-                r['evidence']['candidate_margin']=margin
-                r['unique_anchor']=len(anchors)==1 and r['anchor'] in anchors and key not in overflow
-                if not r['unique_anchor']:r['evidence']['conflicts'].append('competing_or_unqualified_anchor')
-                # Direction-specific row IDs preserve processing coverage for both records.
-                output.append(dict(id=key+':'+r['target_id'],payload=json.dumps(r)))
-            coverage.append(dict(id=key,payload=json.dumps(dict(state='overflow_review' if key in overflow else 'processed',candidates=len(scored)))))
+        rows,source,selected,found,methods,overflow,parent_map=batch
+        pending=loader.submit(prepare_candidate_batch,m,b,rows[-1]['id']) if loader else None
+        output,coverage=scoring.score_batch(source,selected,found,methods,overflow,parent_map,executor)
         insert(b,table(m)+'.candidates',output);insert(b,table(m)+'.coverage',coverage)
         check=b.ch(f'SELECT count() n FROM {table(m)}.coverage FINAL WHERE id IN {sql_list(list(source))} FORMAT JSONEachRow')[0]['n']
         if int(check)!=len(source):raise RuntimeError('candidate coverage write mismatch')
@@ -440,8 +448,13 @@ def import_labels(release,filename,threshold=0.99):
 def groups(m,b):
     parent=inputs(m);tables(m,b);db=table(m);prior=legacy.table(parent)
     # Full parent snapshots retain every confirmed arXiv group, including other disciplines.
-    for kind in ('groups','members','reviews'):
-        b.ch(f'INSERT INTO {db}.{kind} SELECT * FROM {prior}.{kind} FINAL')
+    parent_receipt=path(m['release'])/'groups-parent.json'
+    if m.get('group_batch_size',1)>1 and parent_receipt.exists():
+        if read_json(parent_receipt)!=dict(parent=m['parent_signature'],signature=m['signature']):raise RuntimeError('group parent receipt changed')
+    else:
+        for kind in ('groups','members','reviews'):
+            b.ch(f'INSERT INTO {db}.{kind} SELECT * FROM {prior}.{kind} FINAL')
+        if m.get('group_batch_size',1)>1:atomic_json(parent_receipt,dict(parent=m['parent_signature'],signature=m['signature']))
     calibration=m.get('calibration',{});passed=calibration.get('passed',False)
     auto=m.get('review_mode')=='automatic'
     if auto:automatic.require(m)
@@ -475,23 +488,27 @@ def groups(m,b):
         if set(raws)!=set(keys) or any(digest(raws[k])!=expected[k] for k in keys):raise RuntimeError('proposed confirmation raw checksum mismatch')
         verified.update({k:not legacy.rules.notice(raws[k]) for k in keys})
     m['counts']['raw_verified']=len(verified)
-    for anchor,members in sorted(stars.items()):
-        protect(m);keys=sorted({anchor,*members})
-        old=b.ch(f'SELECT id,group_id FROM {prior}.members FINAL WHERE id IN {sql_list(keys)} FORMAT JSONEachRow')
-        gids=sorted({r['group_id'] for r in old})
-        parents=b.ch(f'SELECT id,payload FROM {prior}.groups FINAL WHERE id IN {sql_list(gids)} FORMAT JSONEachRow') if gids else []
-        inherited=[json.loads(r['payload']) for r in parents]
-        if len(inherited)>1 or any(g['preferred_openalex_id']!=anchor for g in inherited) or any(len(seen[k])>1 for k in members):continue
-        if not all(verified[k] for k in keys):raise RuntimeError('notice reached automatic confirmation')
-        old_group=inherited[0] if inherited else None
-        all_members=sorted(set(keys+(old_group['members'] if old_group else [])))
-        gid=old_group['group_id'] if old_group else 'vg_'+digest(dict(release=m['release'],members=all_members))[:32]
-        provenance=dict(method='automatic_bibliographic',policy=automatic.POLICY,independent_review=False) if auto else dict(method='calibrated_bibliographic',calibration=m['review_identity'])
-        payload=dict(group_id=gid,members=all_members,preferred_openalex_id=anchor,state='confirmed',relation_type='preprint_publication',evidence=(old_group['evidence'] if old_group else [])+[r['evidence']|provenance for r in members.values()])
-        if auto:payload['assessment_mode']='automatic_rules'
-        insert(b,db+'.groups',[dict(id=gid,payload=json.dumps(payload))])
-        insert(b,db+'.members',[dict(id=k,group_id=gid) for k in all_members])
-        insert(b,db+'.candidates',[dict(id=r['work_id']+':'+r['target_id'],payload=json.dumps(r|dict(state='confirmed',group_id=gid))) for r in members.values()])
+    if m.get('group_batch_size',1)>1:
+        from .version_group_batch import write_stars
+        write_stars(m,b,parent,stars,seen,verified)
+    else:
+        for anchor,members in sorted(stars.items()):
+            protect(m);keys=sorted({anchor,*members})
+            old=b.ch(f'SELECT id,group_id FROM {prior}.members FINAL WHERE id IN {sql_list(keys)} FORMAT JSONEachRow')
+            gids=sorted({r['group_id'] for r in old})
+            parents=b.ch(f'SELECT id,payload FROM {prior}.groups FINAL WHERE id IN {sql_list(gids)} FORMAT JSONEachRow') if gids else []
+            inherited=[json.loads(r['payload']) for r in parents]
+            if len(inherited)>1 or any(g['preferred_openalex_id']!=anchor for g in inherited) or any(len(seen[k])>1 for k in members):continue
+            if not all(verified[k] for k in keys):raise RuntimeError('notice reached automatic confirmation')
+            old_group=inherited[0] if inherited else None
+            all_members=sorted(set(keys+(old_group['members'] if old_group else [])))
+            gid=old_group['group_id'] if old_group else 'vg_'+digest(dict(release=m['release'],members=all_members))[:32]
+            provenance=dict(method='automatic_bibliographic',policy=automatic.POLICY,independent_review=False) if auto else dict(method='calibrated_bibliographic',calibration=m['review_identity'])
+            payload=dict(group_id=gid,members=all_members,preferred_openalex_id=anchor,state='confirmed',relation_type='preprint_publication',evidence=(old_group['evidence'] if old_group else [])+[r['evidence']|provenance for r in members.values()])
+            if auto:payload['assessment_mode']='automatic_rules'
+            insert(b,db+'.groups',[dict(id=gid,payload=json.dumps(payload))])
+            insert(b,db+'.members',[dict(id=k,group_id=gid) for k in all_members])
+            insert(b,db+'.candidates',[dict(id=r['work_id']+':'+r['target_id'],payload=json.dumps(r|dict(state='confirmed',group_id=gid))) for r in members.values()])
     if auto:
         if assessed!=m['counts']['pairs']:raise RuntimeError('automatic assessment coverage mismatch')
         m['automatic_review'].update(state='complete',evaluated=assessed,eligible=eligible_count,unresolved=assessed-eligible_count)
@@ -525,6 +542,8 @@ def validate(m,b):
         g=json.loads(row['payload'])
         if g['group_id']!=row['id'] or len(g['members'])<2 or len(set(g['members']))!=len(g['members']) or g['preferred_openalex_id'] not in g['members']:raise RuntimeError('invalid publication star')
     m['validation']=dict(passed=True,signature=m['signature'],at=time.time(),counts=m['counts'].copy(),parent_signature=parent['signature'],full_earth_scan=m['counts']['covered_works']==m['expected_works'],calibration_passed=m.get('calibration',{}).get('passed',False),review_mode=m.get('review_mode','independent'),automatic_review_completed=m.get('automatic_review',{}).get('state')=='complete')
+    from .version_progress import seal
+    seal(m,b)
     atomic_json(path(m['release'])/'validation.json',m['validation']);save(m)
 
 
@@ -536,7 +555,7 @@ def run(release,until=None):
     with lock(path(release)/'worker.lock'):
         m=read(release)
         if m['state']=='published':return m
-        inputs(m);b=Backend(writer=True)
+        inputs(m);atomic_json(ROOT/'var/versions-job-active.json',dict(release=release,signature=m['signature']));b=Backend(writer=True)
         try:
             for stage in STAGES[:STAGES.index(until)+1]:
                 if stage in m['completed']:continue

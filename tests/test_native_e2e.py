@@ -205,7 +205,10 @@ def test_native_pipeline_publish_restore_and_resume(tmp_path, profile):
                 assert client.get('/capabilities').json()['version_groups']['search_folding'] is False
                 assert (workspace/'var/active.json').read_bytes()==pointer_before
                 assert (workspace/'var/generations/demo/search-active.json').read_bytes()==search_before
-                run('versions','plan','--profile','full-index','--release','full_fixture','--pilot-size','12','--workers','2')
+                run('versions','plan','--profile','full-index','--release','full_source','--pilot-size','12','--workers','2','--score-workers','2')
+                run('versions','run','--release','full_source','--until','candidates')
+                run('versions','plan','--profile','full-index','--release','full_fixture','--pilot-size','12','--workers','2','--score-workers','2')
+                run('versions','migrate','--release','full_fixture','--from-release','full_source')
                 run('versions','run','--release','full_fixture','--until','validate')
                 code="from openalex_api import versions_full as f; from openalex_api.backend import Backend; b=Backend(); m=f.read('full_fixture'); rows=f.fetch_features(m,b,['W1','W12']); assert rows['W1']['blocked'] is False,rows; assert rows['W12']['blocked'] is True,rows; b.close()"
                 subprocess.run([sys.executable,'-c',code],env=os.environ|dict(OPENALEX_HOME=str(workspace)),check=True,timeout=60)

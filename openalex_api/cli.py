@@ -20,12 +20,14 @@ def main():
     p.add_argument("--workspace", help="local data/config workspace; overrides OPENALEX_HOME")
     s = p.add_subparsers(dest="command", required=True)
     q = s.add_parser('versions', help='independent conservative OpenAlex version relationships')
-    q.add_argument('action', choices=['plan','run','resume','status','stop','validate','publish','review-export','review-import'])
+    q.add_argument('action', choices=['plan','run','resume','status','stop','validate','publish','review-export','review-import','migrate'])
     q.add_argument('--profile', choices=['legacy','full-index'], default='legacy')
     q.add_argument('--pilot-size', type=int, default=1000000)
     q.add_argument('--stratum', help='subsequent batch: frozen search group name')
     q.add_argument('--batch-size', type=int, default=5000000)
     q.add_argument('--workers', type=int, default=4)
+    q.add_argument('--score-workers', type=int, default=1)
+    q.add_argument('--from-release')
     q.add_argument('--labels')
     q.add_argument('--threshold', type=float, default=0.99)
     q.add_argument('--review-mode',choices=['automatic','independent'],default='automatic')
@@ -225,9 +227,13 @@ def main():
                 raise ValueError('adopted workspaces cannot mutate version releases')
             if a.action == 'plan':
                 if a.profile == 'full-index':
-                    emit(versions.plan(a.release,a.generation,a.collection,a.seed,a.pilot_size,a.workers,a.stratum,a.batch_size,a.review_mode))
+                    emit(versions.plan(a.release,a.generation,a.collection,a.seed,a.pilot_size,a.workers,a.stratum,a.batch_size,a.review_mode,a.score_workers))
                 else:
                     emit(versions.plan(a.release,a.generation,a.arxiv_release,a.collection,a.seed))
+            elif a.action == 'migrate':
+                from .version_resume import migrate
+                if not a.from_release:raise ValueError('--from-release is required')
+                emit(migrate(a.from_release,a.release))
             elif a.action == 'review-import':
                 if not a.labels or not hasattr(versions, 'import_labels'):
                     raise ValueError('--labels and full-index release required')
@@ -235,7 +241,11 @@ def main():
             elif a.action == 'review-export':
                 emit(versions.run(a.release,'review'))
             elif a.action == 'status':
-                emit(versions.read(a.release))
+                m=versions_reader.read(a.release)
+                if m.get('schema')==2:
+                    from .version_progress import summary
+                    m=m|dict(progress_summary=summary(m))
+                emit(m)
             elif a.action == 'stop':
                 atomic_json(versions.path(a.release)/'stop.json',dict(stop=True))
                 emit(dict(state='stop_requested'))

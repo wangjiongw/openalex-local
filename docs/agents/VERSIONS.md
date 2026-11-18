@@ -63,3 +63,21 @@ Read `AGENTS.md`, `DEVELOPMENT.md` and the reader guide `../VERSIONS.md`.
   blocked flag. Rebuild affected feature payloads, candidate decisions and review
   packages under a new release; unchanged metadata/text indexes remain usable.
   Never clear all blocked flags or relax review gates to repair this defect.
+
+## rc9 execution and read compatibility
+
+- Keep `version_matching.py` and automatic acceptance rules unchanged. Source-level
+  scoring lives in `version_scoring.py`; spawn workers own no HTTP clients/writers.
+  Preserve deterministic task results and a single commit owner, with one-batch
+  lookahead and a 64 GiB process-tree guard.
+- `version_group_batch.py` owns bounded star commits. Verify groups/members/candidate
+  payloads before the anchor cursor. Never repeat the parent import over already
+  extended groups; bind its receipt to parent and producer identities.
+- `version_resume.py` permits exact registered historical producers only. Running
+  and publication still require the current signature. Migrate paused source data
+  to a new release with matching semantics; verify ordered content hashes, coverage
+  and cursor bounds. Do not copy uncommitted tails or partial assessment results.
+- `version_progress.py` distinguishes fully checked source coverage, associated
+  sources inside that coverage and candidate-generation visits. Global inherited
+  members and groups are different scopes/units. Keep HTTP progress reads cheap;
+  optional progress errors must not disable otherwise valid published groups.
