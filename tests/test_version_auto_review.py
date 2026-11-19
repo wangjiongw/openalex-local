@@ -33,7 +33,7 @@ def test_automatic_assessment_rejects_conflicts_and_weak_evidence(reason):
 
 
 def manifest():
-    return dict(release='new',parent_release='old',generation='demo',signature='implementation',
+    return dict(release='new',parent_release='old',parent_signature='oldcode',group_batch_size=2,generation='demo',signature='implementation',
                 feature_signature='feature',candidate_signature='candidate',confirmation_signature='automatic',
                 selected_works=1,review_mode='automatic',counts=dict(pairs=1))
 
@@ -55,9 +55,15 @@ def test_automatic_groups_verify_raw_and_record_provenance(tmp_path,monkeypatch,
     monkeypatch.setattr(full,'tables',lambda m,b:None)
     monkeypatch.setattr(full,'protect',lambda m:None)
     monkeypatch.setattr(full,'save',lambda m:None)
-    monkeypatch.setattr(full,'candidate_rows',lambda m,b:iter([row]))
+    monkeypatch.setattr(full,'candidate_pages',lambda m,b,**kwargs:iter([[dict(id='W1:W2',payload=json.dumps(row))]]))
     writes=[];monkeypatch.setattr(full,'insert',lambda b,name,rows:writes.extend((name,r) for r in rows))
-    backend=Mock();backend.ch.side_effect=lambda q,*args:[dict(n=0)] if q.startswith('SELECT count') else []
+    import re
+    def query(q,*args):
+        if q.startswith('SELECT count'):return [dict(n=0)]
+        name=re.search(r'FROM ([\w.]+)',q)[1]
+        keys=re.findall(r"'([^']+)'",q)
+        return [r for table,r in writes if table==name and r['id'] in keys]
+    backend=Mock();backend.ch.side_effect=query
     if changed_raw:raw['W2']['title']='Changed underlying source'
     backend.details.return_value=raw
     if changed_raw:

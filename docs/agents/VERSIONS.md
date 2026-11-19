@@ -69,7 +69,7 @@ Read `AGENTS.md`, `DEVELOPMENT.md` and the reader guide `../VERSIONS.md`.
 - Keep `version_matching.py` and automatic acceptance rules unchanged. Source-level
   scoring lives in `version_scoring.py`; spawn workers own no HTTP clients/writers.
   Preserve deterministic task results and a single commit owner, with one-batch
-  lookahead and a 64 GiB process-tree guard.
+  lookahead and a configurable process-tree RSS guard (64 GiB default).
 - `version_group_batch.py` owns bounded star commits. Verify groups/members/candidate
   payloads before the anchor cursor. Never repeat the parent import over already
   extended groups; bind its receipt to parent and producer identities.
@@ -81,3 +81,18 @@ Read `AGENTS.md`, `DEVELOPMENT.md` and the reader guide `../VERSIONS.md`.
   sources inside that coverage and candidate-generation visits. Global inherited
   members and groups are different scopes/units. Keep HTTP progress reads cheap;
   optional progress errors must not disable otherwise valid published groups.
+
+## rc10 bounded assessment
+
+- `version_assessment.py` owns automatic assessment SQLite staging, durable page
+  cursors, first-direction star deduplication, global competing-anchor queries and
+  feature-hash verification receipts. Never split conflict decisions by chunk.
+- Commit unresolved ClickHouse reviews before SQLite cursor/data; replay is
+  idempotent. Resume assessment and raw verification without retaining the full
+  candidate set in Python. Retain staging with its release and input identity.
+- `version_memory_gib` is an installation setting, default 64, not a policy knob.
+  Keep the RSS guard enabled. Raising it requires measured headroom; do not use
+  it as a substitute for bounded processing.
+- Migration v2 receipts hash engine-side SHA256 payload digests in ID order.
+  Preserve historical producer registrations and old manifests; new producers
+  require a new release even when the decision policy is unchanged.

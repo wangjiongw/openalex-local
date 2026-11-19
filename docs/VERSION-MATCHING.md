@@ -219,7 +219,7 @@ exact string scores, source-level candidate margins and ordering. They never ope
 database clients or commit checkpoints. The coordinator writes and reconciles
 2,000-source batches; parallel mode prepares at most one further batch. A failed
 worker stops the batch without advancing its checkpoint. The job stops if its
-process tree exceeds 64 GiB RSS; no GPU/NPU is required.
+process tree exceeds the configured RSS budget (64 GiB by default); no GPU/NPU is required.
 
 Publication stars use bounded parent lookups and writes of at most 2,000 groups
 or 16 MiB. Each chunk is read back before its anchor checkpoint advances. Parent
@@ -254,3 +254,27 @@ are cached at validation/publication, not recomputed on HTTP requests. Missing
 optional progress evidence surfaces a progress error without disabling valid
 published associations. During a running batch, new associations are not counted
 until assessment, validation and publication finish.
+
+## Bounded automatic assessment (rc10)
+
+Automatic assessment stores accepted candidates, feature hashes and the global
+member-to-anchor conflict index in `assessment.sqlite`. Each page commits its
+data and cursor together after unresolved-review writes succeed. Resume continues
+at that committed cursor; global conflicts still block links across pages and
+group chunks. Raw-record verification has durable per-record results. Group
+writes keep their existing read-back and anchor checkpoint. Retain this SQLite
+file with the release; it is a recovery dependency, not a disposable cache.
+
+The workspace setting `version_memory_gib` controls the process-tree RSS guard
+(default 64). Operators with measured headroom may raise it, for example to 128;
+it does not allocate memory or replace bounded processing. Exceeding the budget
+pauses the offline job and leaves the published service pointer unchanged.
+There is no automatic retry loop. Page-level checks can briefly overshoot the
+budget. Upgrading a historical release requires a new release and verified
+migration; the old in-memory assessment cannot be recovered from its counter.
+
+Migration hashes payload bytes with SHA256 inside ClickHouse, then hashes the
+ordered ID/digest rows. This preserves cryptographic content checks while avoiding
+transfer of complete candidate JSON. These receipts use a new algorithm label;
+historical receipts and signatures remain unchanged. Assessment rules, original
+records, text indexes and reference ownership are unchanged.

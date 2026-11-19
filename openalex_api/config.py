@@ -16,6 +16,7 @@ DEFAULT = dict(
     os_url="http://127.0.0.1:19200",
     cpus=min(8, os.cpu_count() or 1),
     memory_gib=16,
+    version_memory_gib=64,
     disk_budget_gib=None,
     min_free_gib=1,
     execution_profile="community",

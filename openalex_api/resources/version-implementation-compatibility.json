@@ -8,5 +8,19 @@
       "version_review.py": "d3ee29fe5c59d3610bc7855c41e7d01d1ff0489eb1d19887da1170641c7f6ae7",
       "version_auto_review.py": "9bcccd46741cbc8d90d47a21ccb1b1de16d562e1bccbcbf29c510753f8e64774"
     }
+  },
+  "b7a55104ee5834aba7bd1449e5bae397dad002e479a887fa6c09515087c66384": {
+    "origin": "v0.6.0rc9 qualified schema-2 producer",
+    "schema": 2,
+    "files": {
+      "version_matching.py": "2c72367acb846189a148fac8b6315680efa5681613f63c5c83a303cfdaa9031e",
+      "versions_full.py": "de3a34288e1e364667d1aec359bf4612ab27738ee903c5492ce3d0ae53f3e019",
+      "version_review.py": "d3ee29fe5c59d3610bc7855c41e7d01d1ff0489eb1d19887da1170641c7f6ae7",
+      "version_auto_review.py": "9bcccd46741cbc8d90d47a21ccb1b1de16d562e1bccbcbf29c510753f8e64774",
+      "version_scoring.py": "23e8742fc113a76fed1f892ff72bfb7405c7f1409b18671462694de16356c889",
+      "version_group_batch.py": "c8b376e28196e4b373504746b1be74ec0bdc64dc1d20df41c9d58ae659a63d17",
+      "version_resume.py": "33b26226223b67a93a9d5dd105c2815246d2f4507fd89cc2cfc559b21a045178",
+      "version_progress.py": "1300d574affec4fdf358ca966f6051d88ff64bfea429da11149595785969d7c2"
+    }
   }
 }

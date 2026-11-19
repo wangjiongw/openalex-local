@@ -7,6 +7,11 @@ retrieval workflow. Use the service's `/status`, `/capabilities` and footer vers
 to identify an actual installation; a source release does not upgrade deployments
 or publish a dataset. Existing compatible indexes are reused.
 
+Candidate v0.6.0rc10 adds disk-backed automatic version assessment with durable
+page recovery and a configurable memory guard. Decision rules are unchanged.
+Historical matching jobs require verified migration; deployment and full-data
+qualification remain separate from source implementation.
+
 
 ## Optional arXiv extension in v0.4.0
 

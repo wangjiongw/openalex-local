@@ -33,7 +33,7 @@ def table(m):
 
 
 def signature():
-    return digest({n:file_hash(Path(__file__).with_name(n)) for n in ('version_matching.py','versions_full.py','version_review.py','version_auto_review.py','version_scoring.py','version_group_batch.py','version_resume.py','version_progress.py')})
+    return digest({n:file_hash(Path(__file__).with_name(n)) for n in ('version_matching.py','versions_full.py','version_review.py','version_auto_review.py','version_scoring.py','version_group_batch.py','version_resume.py','version_progress.py','version_assessment.py')})
 
 
 def save(m):
@@ -105,15 +105,18 @@ def inputs(m):
 
 def protect(m):
     legacy.protect(m)
-    if m.get('score_workers',1)>1:
+    if m.get('score_workers',1)>1 or m.get('review_mode')=='automatic':
         import psutil
+        limit=config().get('version_memory_gib',64)
+        if isinstance(limit,bool) or not isinstance(limit,(int,float)) or not 1<=limit<=1024:
+            raise ValueError('version_memory_gib must be between 1 and 1024')
         owner=psutil.Process()
         processes=[owner,*owner.children(recursive=True)]
         memory=0
         for process in processes:
             try:memory+=process.memory_info().rss
             except psutil.NoSuchProcess:pass
-        if memory>64*1024**3:raise InterruptedError('version job exceeded 64 GiB memory budget')
+        if memory>limit*1024**3:raise InterruptedError(f'version job exceeded {limit:g} GiB memory budget')
 
 
 def insert(b, name, rows):
@@ -457,7 +460,12 @@ def groups(m,b):
         if m.get('group_batch_size',1)>1:atomic_json(parent_receipt,dict(parent=m['parent_signature'],signature=m['signature']))
     calibration=m.get('calibration',{});passed=calibration.get('passed',False)
     auto=m.get('review_mode')=='automatic'
-    if auto:automatic.require(m)
+    if auto:
+        from . import version_assessment
+        automatic.require(m)
+        version_assessment.run(m,b,parent)
+        m['counts'].update({kind:int(b.ch(f'SELECT count() n FROM {db}.{kind} FINAL FORMAT JSONEachRow')[0]['n']) for kind in ('groups','members','reviews')});save(m)
+        return
     assessed=eligible_count=0;started=time.monotonic()
     stars={};seen={};reviews=[]
     for r in candidate_rows(m,b):

@@ -23,9 +23,11 @@ def table_digest(b,query,columns):
     import hashlib
     import orjson
     h=hashlib.sha256();n=0
-    for row in b.ch_stream(f'SELECT {columns} FROM {query} ORDER BY id FORMAT JSONEachRow'):
+    # Hash payload bytes at the engine; retain ordered SHA256 without transferring full JSON.
+    projected="id,lower(hex(SHA256(payload))) AS payload" if columns=='id,payload' else columns
+    for row in b.ch_stream(f'SELECT {projected} FROM {query} ORDER BY id FORMAT JSONEachRow'):
         h.update(orjson.dumps(row,option=orjson.OPT_SORT_KEYS)+b'\n');n+=1
-    return dict(rows=n,sha256=h.hexdigest())
+    return dict(rows=n,sha256=h.hexdigest(),algorithm='ordered-row-sha256-v2')
 
 
 def migrate(source,target):
@@ -70,8 +72,11 @@ def migrate(source,target):
                 if name in receipt['tables']:
                     if table_digest(b,target_query,columns)!=receipt['tables'][name]:raise RuntimeError('acknowledged migration table changed')
                     continue
+                receipt.update(phase='hash_source',table=name);f.atomic_json(receiptfile,receipt)
                 expected=table_digest(b,source_query,columns)
+                receipt.update(phase='copy',table=name,expected=expected);f.atomic_json(receiptfile,receipt)
                 b.ch(f'INSERT INTO {f.table(m)}.{name} SELECT {columns} FROM {source_query}')
+                receipt.update(phase='hash_target');f.atomic_json(receiptfile,receipt)
                 actual=table_digest(b,target_query,columns)
                 if actual!=expected:raise RuntimeError('migration content reconciliation failed: '+name)
                 receipt['tables'][name]=actual;f.atomic_json(receiptfile,receipt)
